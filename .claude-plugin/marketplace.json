@@ -1,0 +1,18 @@
+{
+  "name": "claude-kit",
+  "owner": {
+    "name": "claude-kit"
+  },
+  "metadata": {
+    "description": "Super Engineer — a team of AI agents for software development"
+  },
+  "plugins": [
+    {
+      "name": "claude-kit",
+      "source": ".",
+      "description": "Super Engineer — brainstorm, plan, code, and review with a team of specialized AI agents.",
+      "version": "1.0.0",
+      "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"]
+    }
+  ]
+}

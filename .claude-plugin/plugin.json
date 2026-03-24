@@ -1,0 +1,10 @@
+{
+  "name": "claude-kit",
+  "version": "1.0.0",
+  "description": "Super Engineer — a team of AI agents for software development: brainstorm, plan, code, and review.",
+  "author": {
+    "name": "claude-kit"
+  },
+  "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"],
+  "repository": "https://github.com/hanh-nd/claude-kit"
+}
