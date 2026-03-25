@@ -1,10 +1,10 @@
 ---
-description: "Interactive project setup wizard - create context files for new projects"
+description: 'Interactive project setup wizard - create context files for new projects'
 ---
 
 # 🚀 Kit Setup Wizard
 
-Hello! This is the wizard to setup project context for Claude-Kit.
+Hello! This is the wizard to setup project context for Agent-Kit.
 
 ## I will help you create 3 context files:
 
@@ -19,6 +19,7 @@ Hello! This is the wizard to setup project context for Claude-Kit.
 Please tell me about your project:
 
 **Questions:**
+
 1. What are you building? (One-line description)
 2. Who are the primary users? (Developers, End users, Enterprises, etc.)
 3. What is the main goal of the product?
@@ -27,12 +28,14 @@ Please tell me about your project:
 ---
 
 When you finish answering, I will:
-1. Create file `.claude-kit/product.md`
+
+1. Create file `.agent-kit/product.md`
 2. Continue asking about Tech Stack
 3. Continue asking about Guidelines
 4. Complete setup!
 
 **You can answer freely or following the format:**
+
 ```
 Product: [description]
 Users: [who uses it]

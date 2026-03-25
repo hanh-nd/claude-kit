@@ -1,5 +1,5 @@
 ---
-description: "Context-aware Git wrapper: Resolves Oh My Zsh aliases, generates context-rich arguments, and requests execution approval."
+description: 'Context-aware Git wrapper: Resolves Oh My Zsh aliases, generates context-rich arguments, and requests execution approval.'
 ---
 
 # 🐙 SYSTEM: INTERACTIVE SMART GIT ORCHESTRATOR
@@ -18,16 +18,16 @@ CURRENT_BRANCH=$(git branch --show-current)
 TICKET_ID=$(echo "$CURRENT_BRANCH" | grep -oE '[A-Z]+-[0-9]+')
 if [ -z "$TICKET_ID" ]; then
   # Grab the newest file in the tickets tmp folder
-  TICKET_ID=$(ls -t .claude-kit/handoffs/tickets/ 2>/dev/null | head -1 | sed 's/\.md//')
+  TICKET_ID=$(ls -t .agent-kit/handoffs/tickets/ 2>/dev/null | head -1 | sed 's/\.md//')
 fi
 if [ -z "$TICKET_ID" ]; then
   TICKET_ID="NONE"
 fi
 
 # 3. Get staged changes for commit generation (limit size to protect context)
-git diff --cached > .claude-kit/handoffs/staged_diff.txt
+git diff --cached > .agent-kit/handoffs/staged_diff.txt
 
-echo "{\"current_branch\": \"$CURRENT_BRANCH\", \"ticket_id\": \"$TICKET_ID\", \"has_staged_files\": $(if [ -s .claude-kit/handoffs/staged_diff.txt ]; then echo true; else echo false; fi)}"
+echo "{\"current_branch\": \"$CURRENT_BRANCH\", \"ticket_id\": \"$TICKET_ID\", \"has_staged_files\": $(if [ -s .agent-kit/handoffs/staged_diff.txt ]; then echo true; else echo false; fi)}"
 ```
 
 ## 2. ALIAS RESOLUTION & INTENT PARSING
@@ -50,15 +50,15 @@ Based on the resolved command, apply the following logic:
 **A. Auto-Branching (`git checkout -b`):**
 
 - **Trigger:** The resolved command is `git checkout -b` AND no branch name is provided in the input.
-- **Action:** 1. If `TICKET_ID` is not "NONE", read `.claude-kit/handoffs/tickets/${TICKET_ID}.md` to determine the ticket type (Feature, Bug, Refactor) and a short summary. 2. Generate a branch name strictly following the pattern: `<type>/${TICKET_ID}-<short-kebab-case-summary>`. 3. Formulate the final command.
+- **Action:** 1. If `TICKET_ID` is not "NONE", read `.agent-kit/handoffs/tickets/${TICKET_ID}.md` to determine the ticket type (Feature, Bug, Refactor) and a short summary. 2. Generate a branch name strictly following the pattern: `<type>/${TICKET_ID}-<short-kebab-case-summary>`. 3. Formulate the final command.
 
 **B. Auto-Committing (`git commit`):**
 
 - **Trigger:** The resolved command is `git commit` or `git commit -m` AND no message is provided in the input.
 - **Validation:** If `has_staged_files` is false, ABORT and output: "Cannot commit: No files staged."
 - **Action:**
-  1. Read `.claude-kit/handoffs/staged_diff.txt` to analyze the actual code changes.
-  2. If `TICKET_ID` is not "NONE", read `.claude-kit/handoffs/tickets/${TICKET_ID}.md` for business context.
+  1. Read `.agent-kit/handoffs/staged_diff.txt` to analyze the actual code changes.
+  2. If `TICKET_ID` is not "NONE", read `.agent-kit/handoffs/tickets/${TICKET_ID}.md` for business context.
   3. Generate a strict Conventional Commit message: `<type>(<scope>): [${TICKET_ID}] <imperative description>`.
   4. Formulate the final command wrapped in quotes for the message.
 

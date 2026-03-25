@@ -1,5 +1,5 @@
 ---
-description: "Implement code from a plan with clean code standards and conditional test generation"
+description: 'Implement code from a plan with clean code standards and conditional test generation'
 ---
 
 # 💻 Code
@@ -29,14 +29,17 @@ Structure every file modification using this template:
 ## 📄 File: [path/to/file]
 
 ### 💡 Change Summary
+
 - [Brief, technical description of the modification]
 
 ### 💻 Code
+
 [language]
 // Complete, production-ready code
 [/language]
 
 ### 🧪 Verification
+
 - [How this code was verified or the test case added]
 ```
 
@@ -54,14 +57,14 @@ After all file modifications, provide a final status report:
 
 ### Phase 1: Environment Check
 
-1. Read `.claude-kit/stats.json` to check the `hasUnitTests` flag.
+1. Read `.agent-kit/stats.json` to check the `hasUnitTests` flag.
 2. Set execution constraints:
    - If `hasUnitTests: true` → you MUST generate unit tests for all new/modified logic.
    - If `hasUnitTests: false` or user explicitly skips → test generation is optional.
 
 ### Phase 2: Plan Ingestion
 
-Read the full Implementation Plan from `$ARGUMENTS`. If it is a file path (e.g. `@.claude-kit/handoffs/plans/plan-xyz.md`), use `Read` to ingest it.
+Read the full Implementation Plan from `$ARGUMENTS`. If it is a file path (e.g. `@.agent-kit/handoffs/plans/plan-xyz.md`), use `Read` to ingest it.
 
 ### Phase 3: Skill Loading
 

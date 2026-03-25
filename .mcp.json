@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "kit-agents": {
-      "command": "node",
-      "args": ["dist/kit-server.js"],
-      "cwd": "${CLAUDE_PLUGIN_ROOT}"
-    }
-  }
-}

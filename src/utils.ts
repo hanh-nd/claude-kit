@@ -1,5 +1,5 @@
 /**
- * Utility functions for claude-kit
+ * Utility functions for agent-kit
  */
 
 import path from 'path';

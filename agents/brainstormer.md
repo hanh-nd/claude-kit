@@ -33,7 +33,7 @@ _(Use this in the early phases to validate the problem, expand the vision, and l
 - **The 10-Star Vision (Expansion):** [Describe what this looks like if it were 10x more ambitious]
 - **The Narrowest Wedge (Reduction):** [Describe the absolute bare minimum that ships value today]
 
-#### ⚠️ Interactive Brainstorm (ask_user)
+#### ⚠️ Interactive Brainstorm (AskUserQuestion)
 
 _(Follow format: Re-ground -> Simplify -> Recommend -> Options)_
 
@@ -80,5 +80,5 @@ _(Use this ONLY after the user has locked in the scope, approach, and boundaries
 #### 5. Execution Handoff
 
 **Action Required:** The requirements are locked. Type "Approve" or run the following command to break down into a technical WBS (Work Breakdown Structure).
-`/plan @.gemini-kit/handoffs/brainstorms/brainstorm-[timestamp]-[slug].md`
+`/plan @.agent-kit/handoffs/brainstorms/brainstorm-[timestamp]-[slug].md`
 ```

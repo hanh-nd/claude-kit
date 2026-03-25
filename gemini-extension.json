@@ -1,0 +1,13 @@
+{
+  "name": "agent-kit",
+  "version": "2.3.0",
+  "description": "Super Engineer - Team of AI Agents for software development",
+  "contextFileName": "CLAUDE.md",
+  "mcpServers": {
+    "kit-agents": {
+      "command": "node",
+      "args": ["${extensionPath}${/}dist${/}kit-server.js"],
+      "cwd": "${extensionPath}"
+    }
+  }
+}

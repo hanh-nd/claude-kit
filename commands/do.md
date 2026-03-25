@@ -1,5 +1,5 @@
 ---
-description: "Analyze a task and route it through the right pipeline"
+description: 'Analyze a task and route it through the right pipeline'
 ---
 
 # 🧠 AI Router — Auto Orchestrator
@@ -7,6 +7,7 @@ description: "Analyze a task and route it through the right pipeline"
 **Task:** $ARGUMENTS
 
 If no task is provided, output usage instructions and stop:
+
 ```
 Usage: /do <describe your task>
 
@@ -22,13 +23,13 @@ Examples:
 
 Analyze the task and determine the right pipeline:
 
-| Task Type | Pipeline |
-|---|---|
-| Vague idea or requires design discussion | `/brainstorm` |
-| Has clear requirements, needs architecture | `/plan` |
-| Has a plan file ready, implement it | `/code @<plan-path>` |
-| PR URL or diff to review | `/review-pr` or `/review-changes` |
-| No existing plan, implement directly | `/plan` → `/code` |
+| Task Type                                  | Pipeline                          |
+| ------------------------------------------ | --------------------------------- |
+| Vague idea or requires design discussion   | `/brainstorm`                     |
+| Has clear requirements, needs architecture | `/plan`                           |
+| Has a plan file ready, implement it        | `/code @<plan-path>`              |
+| PR URL or diff to review                   | `/review-pr` or `/review-changes` |
+| No existing plan, implement directly       | `/plan` → `/code`                 |
 
 ## Step 2: Announce
 

@@ -28,7 +28,7 @@ You are executing the Code Implementation Pipeline. You MUST process the impleme
 ## Phase 4: Quality Gate & Testing (Conditional)
 
 1. **Action:** Decide whether to create unit tests
-   - Read `.gemini-kit/stats.json` to get the `hasUnitTests`.
+   - Read `.agent-kit/stats.json` to get the `hasUnitTests`.
    - If `hasUnitTests` is `true`, load `skills/unit-testing/SKILL.md`.
    - Else, skip this phase.
 2. **Bypass Rule:** If the user ask to skip test generation, skip this phase but log a "Testing Skipped" note in the summary.

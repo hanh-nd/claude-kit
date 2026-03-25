@@ -47,5 +47,5 @@ You MUST execute this brainstorming process strictly sequentially. Do not rush t
 - **Objective:** Consolidate all decisions into a single source of truth for engineering.
 - **Action:** Transition to **State 2: Engineer-Ready PRD & HLD**.
 - **Constraint:** Ensure the document is brutally clear. The ASCII diagram must exist. The Failure Modes table must be populated based on Phase 4.
-- **Persistence:** Save the finalized decision, including the ASCII diagram and reasoning, to `.gemini-kit/handoffs/brainstorms/brainstorm-[timestamp]-[slug].md`.
+- **Persistence:** Save the finalized decision, including the ASCII diagram and reasoning, to `.agent-kit/handoffs/brainstorms/brainstorm-[timestamp]-[slug].md`.
 - **Handoff:** Request explicit user approval ("Approve") before ending the pipeline. This output will serve as the perfect input for `/plan` or a `planner` agent.

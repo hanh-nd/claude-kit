@@ -1,5 +1,5 @@
 ---
-description: "Fetch a Jira ticket and route to the planning pipeline"
+description: 'Fetch a Jira ticket and route to the planning pipeline'
 ---
 
 # 🎫 Ticket
@@ -23,12 +23,15 @@ description: "Fetch a Jira ticket and route to the planning pipeline"
 **Status:** <status>
 
 ### Description
+
 <ticket description>
 
 ### Acceptance Criteria
+
 <acceptance criteria as a checklist>
 
 ### Additional Context
+
 <labels, components, linked issues if present>
 ```
 

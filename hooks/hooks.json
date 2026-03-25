@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "name": "kit-init",
+            "type": "command",
+            "command": "node ${extensionPath}${/}hooks${/}session-start.js",
+            "description": "Initialize Agent-Kit",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

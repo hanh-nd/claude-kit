@@ -21,7 +21,7 @@ export function registerCoreTools(server: McpServer): void {
   // ═══════════════════════════════════════════════════════════════
   server.tool(
     'kit_get_extension_info',
-    'Get absolute paths to the claude-kit extension directories (agents, skills, commands, scripts). Use the returned paths with the native Read tool to load agent personas and skill modules.',
+    'Get absolute paths to the agent-kit extension directories (agents, skills, commands, scripts). Use the returned paths with the native Read tool to load agent personas and skill modules.',
     {},
     async () => {
       try {
@@ -39,7 +39,7 @@ export function registerCoreTools(server: McpServer): void {
                   scriptsDir: path.join(root, 'scripts'),
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -49,7 +49,7 @@ export function registerCoreTools(server: McpServer): void {
           content: [{ type: 'text' as const, text: `Error getting extension info: ${error}` }],
         };
       }
-    }
+    },
   );
 
   // ═══════════════════════════════════════════════════════════════
@@ -59,18 +59,20 @@ export function registerCoreTools(server: McpServer): void {
   // ═══════════════════════════════════════════════════════════════
   server.tool(
     'kit_save_handoff',
-    'Save a brainstorm, plan, or ticket handoff artifact to .claude-kit/handoffs/. Returns the saved file path to use in next-step instructions.',
+    'Save a brainstorm, plan, or ticket handoff artifact to .agent-kit/handoffs/. Returns the saved file path to use in next-step instructions.',
     {
       type: z.enum(['brainstorm', 'plan', 'ticket']).describe('Handoff type'),
       content: z.string().describe('Full markdown content to save'),
-      slug: z.string().describe('Short identifier for the filename, e.g. "user-auth" or "PROJ-123"'),
+      slug: z
+        .string()
+        .describe('Short identifier for the filename, e.g. "user-auth" or "PROJ-123"'),
     },
     async ({ type, content, slug }) => {
       try {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const safeSlug = slug.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
         const filename = `${type}-${timestamp}-${safeSlug}.md`;
-        const handoffDir = path.join(getWorkspaceRoot(), '.claude-kit', 'handoffs', `${type}s`);
+        const handoffDir = path.join(getWorkspaceRoot(), '.agent-kit', 'handoffs', `${type}s`);
 
         if (!fs.existsSync(handoffDir)) {
           fs.mkdirSync(handoffDir, { recursive: true });
@@ -87,7 +89,7 @@ export function registerCoreTools(server: McpServer): void {
           content: [{ type: 'text' as const, text: `Error saving handoff: ${error}` }],
         };
       }
-    }
+    },
   );
 }
 

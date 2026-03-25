@@ -1,5 +1,5 @@
 ---
-description: "Review local code changes (working tree or branch) with auto-detected Jira context"
+description: 'Review local code changes (working tree or branch) with auto-detected Jira context'
 ---
 
 # 🕵️ Review Changes
@@ -34,20 +34,25 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp diffs. Yo
 **Scope Drift Check:** `[CLEAN | DRIFT DETECTED - <Brief explanation>]`
 
 #### 🛑 BLOCKERS (Must Fix)
+
 - **`[file_name:line_number]`**: [Terse description].
   - _Why:_ [Explanation]
   - _Fix:_ [Suggested change]
 
 #### ⚠️ CONCERNS (Should Fix)
+
 - **`[file_name:line_number]`**: [Problem] → [Fix]
 
 #### 💡 NITPICKS (Informational / Optional)
+
 - **`[file_name:line_number]`**: [Problem] → [Fix]
 
 #### ✅ WHAT WENT WELL
+
 - [Acknowledge specifically good design choices or clean abstractions]
 
 #### 🧩 Skill Insights
+
 [Findings from loaded skill modules, or "No additional skill metrics generated."]
 ```
 
@@ -74,8 +79,8 @@ DIFF_DATA=$(git diff $BASE_TARGET -- . \
   ':(exclude)*.svg' ':(exclude)*.png')
 
 echo "{\"ticket_id\": \"$TICKET_ID\", \"diff_length\": ${#DIFF_DATA}}"
-mkdir -p .claude-kit/handoffs
-echo "$DIFF_DATA" > .claude-kit/handoffs/current_diff.txt
+mkdir -p .agent-kit/handoffs
+echo "$DIFF_DATA" > .agent-kit/handoffs/current_diff.txt
 ```
 
 If `TICKET_ID` is not `"NONE"`, call `kit_jira_get_ticket(ticketId: "EXTRACTED-ID")` to fetch business context.
@@ -87,7 +92,7 @@ If `TICKET_ID` is not `"NONE"`, call `kit_jira_get_ticket(ticketId: "EXTRACTED-I
 
 ### Phase 3: Context Ingestion & Scope Drift Detection
 
-1. Read `.claude-kit/handoffs/current_diff.txt`.
+1. Read `.agent-kit/handoffs/current_diff.txt`.
 2. If Jira context is available, evaluate the diff against the Acceptance Criteria. Flag logic that contradicts the ticket as a "Requirement Violation".
 
 ### Phase 4: Macro Review (Design & Complexity)

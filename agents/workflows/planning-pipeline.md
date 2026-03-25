@@ -23,7 +23,7 @@ You MUST execute the planning process strictly sequentially. Do not skip phases.
   2. **Code Quality:** DRY violations, error handling patterns.
   3. **Tests:** Ensure every new branch/logic path has a test requirement.
   4. **Performance:** N+1 issues, memory, caching.
-- **Decision Gate:** Use the `ask_user` format to resolve architectural ambiguities or scope bloat with the user.
+- **Decision Gate:** Use the `AskUserQuestion` format to resolve architectural ambiguities or scope bloat with the user.
   - _Constraint:_ Never batch questions. Ask them clearly.
   - _Halt:_ Wait for the user's explicit response before proceeding to Phase 3.
 
@@ -43,5 +43,5 @@ You MUST execute the planning process strictly sequentially. Do not skip phases.
 ## Phase 5: Persistence & Handoff
 
 - **Constraint Check:** Verify that NO source code has been modified during the planning session.
-- **Action:** Save the generated blueprint to `.gemini-kit/handoffs/plans/plan-[timestamp]-[feature].md`.
-- **Handoff:** Request explicit user approval. Upon receiving "Approve", output the exact command for the coder agent: `/code @.gemini-kit/handoffs/plans/[filename].md`.
+- **Action:** Save the generated blueprint to `.agent-kit/handoffs/plans/plan-[timestamp]-[feature].md`.
+- **Handoff:** Request explicit user approval. Upon receiving "Approve", output the exact command for the coder agent: `/code @.agent-kit/handoffs/plans/[filename].md`.

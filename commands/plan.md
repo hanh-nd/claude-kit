@@ -1,5 +1,5 @@
 ---
-description: "Create an intern-proof implementation blueprint from requirements or a brainstorm handoff"
+description: 'Create an intern-proof implementation blueprint from requirements or a brainstorm handoff'
 ---
 
 # 🏛️ Plan
@@ -29,6 +29,7 @@ You do NOT write functional code. You design systems. You prioritize truth and a
 ## Output Formats
 
 ### State 1: Discovery & Scope Challenge
+
 _(Use when initializing the plan. Analyze constraints, challenge the scope, ask questions before building the blueprint.)_
 
 ```markdown
@@ -49,18 +50,21 @@ _(Use when initializing the plan. Analyze constraints, challenge the scope, ask 
 ```
 
 ### State 2: Intern-Proof Blueprint
+
 _(Use ONLY after requirements are locked. Explicit enough for a Junior/Intern to execute without guessing.)_
 
 ```markdown
 ### 📋 Execution Blueprint: [Feature Name]
 
 #### 1. Technical Architecture & Contracts
+
 - **ASCII Diagram:** [Clear ASCII diagram of data flow, state machine, or pipeline]
 - **Data Contracts:** [Exact schemas, TypeScript interfaces, or API payloads]
 - **Failure Modes:** [Production failure scenarios (timeout, null ref) and how code must handle them]
 - **NOT in Scope:** [Considered but deferred]
 
 #### 2. Implementation Phases (Micro-WBS)
+
 - **Phase 1: Foundation & Types**
   - [ ] Task 1.1: In `[file_path]`, export interface `[Name]` containing `[fields]`.
 - **Phase 2: Core Logic & Edge Cases**
@@ -71,11 +75,13 @@ _(Use ONLY after requirements are locked. Explicit enough for a Junior/Intern to
   - [ ] Task 3.1: [Specific integration steps]
 
 #### 3. Test Plan Artifact
+
 - **Affected Routes/Components:** [What to test]
 - **Required Unit Tests:** [Exact scenarios, e.g., "should throw Error when payload is malformed"]
 - **Edge Cases to Mock:** [Dependencies to mock and states to simulate]
 
 #### 4. Execution Handoff
+
 **Action Required:** Review this blueprint. Type "Approve" to proceed.
 ```
 
@@ -98,7 +104,7 @@ _(Use ONLY after requirements are locked. Explicit enough for a Junior/Intern to
   2. **Code Quality:** DRY violations, error handling patterns.
   3. **Tests:** Every new branch/logic path must have a test requirement.
   4. **Performance:** N+1 issues, memory, caching.
-- **Gate:** Use the `ask_user` format to resolve architectural ambiguities. Never batch questions. Wait for explicit response before proceeding.
+- **Gate:** Use the `AskUserQuestion` format to resolve architectural ambiguities. Never batch questions. Wait for explicit response before proceeding.
 
 ### Phase 3: Domain Skill Routing & Blueprint Preparation
 

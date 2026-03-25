@@ -58,13 +58,13 @@ export function getFileExtensions(projectDir: string): string[] {
  * Load project settings from .gemini/settings.json
  */
 export function loadProjectSettings(projectDir: string): ProjectSettings {
-  const settingsPath = path.join(projectDir, '.claude-kit', 'settings.json');
+  const settingsPath = path.join(projectDir, '.agent-kit', 'settings.json');
 
   if (fs.existsSync(settingsPath)) {
     try {
       return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
     } catch (error) {
-      console.error(`[claude-kit] Warning: Failed to parse ${settingsPath}:`, error);
+      console.error(`[agent-kit] Warning: Failed to parse ${settingsPath}:`, error);
     }
   }
 

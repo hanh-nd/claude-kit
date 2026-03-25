@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Claude-Kit MCP Server
+ * Agent-Kit MCP Server
  * Provides custom tools for agent orchestration
  *
  * Modular architecture - tools split into separate modules
@@ -11,10 +11,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 // Import modular tool registrations
 import { registerCoreTools } from './tools/core.js';
+import { registerAgentTools } from './tools/agent.js';
 import { registerIntegrationTools } from './tools/integration.js';
 
 const server = new McpServer({
-  name: 'claude-kit-agents',
+  name: 'agent-kit-agents',
   version: '1.0.0',
 });
 
@@ -23,7 +24,8 @@ const server = new McpServer({
 // ═══════════════════════════════════════════════════════════════
 
 registerIntegrationTools(server); // GitHub, Jira tools
-registerCoreTools(server);         // Extension info, handoff persistence
+registerCoreTools(server); // Extension info, handoff persistence
+registerAgentTools(server); // Gemini/Claude CLI delegation
 
 // ═══════════════════════════════════════════════════════════════
 // START SERVER

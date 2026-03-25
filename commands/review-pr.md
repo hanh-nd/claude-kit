@@ -1,5 +1,5 @@
 ---
-description: "Deep PR review for GitHub or Bitbucket with Jira alignment and 2-pass analysis"
+description: 'Deep PR review for GitHub or Bitbucket with Jira alignment and 2-pass analysis'
 ---
 
 # 🔍 Review PR
@@ -34,20 +34,25 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp PRs. You 
 **Scope Drift Check:** `[CLEAN | DRIFT DETECTED - <Brief explanation>]`
 
 #### 🛑 BLOCKERS (Must Fix)
+
 - **`[file_name:line_number]`**: [Terse description of the problem].
   - _Why:_ [Explanation based on principles]
   - _Fix:_ [Suggested code change or architectural shift]
 
 #### ⚠️ CONCERNS (Should Fix)
+
 - **`[file_name:line_number]`**: [Problem] → [Fix]
 
 #### 💡 NITPICKS (Informational / Optional)
+
 - **`[file_name:line_number]`**: [Problem] → [Fix]
 
 #### ✅ WHAT WENT WELL
+
 - [Acknowledge specifically good design choices, excellent test coverage, or clean abstractions]
 
 #### 🧩 Skill Insights
+
 [Findings from any loaded skill modules, or "No additional skill metrics generated."]
 ```
 
@@ -84,6 +89,7 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp PRs. You 
 ### Phase 5: Micro Review — Pass 1 (CRITICAL)
 
 Scan the diff for:
+
 - **SQL & Data Safety:** Direct DB writes bypassing validation, SQL string interpolation.
 - **Race Conditions:** Check-then-set patterns, lack of atomic operations.
 - **LLM/Trust Boundaries:** Unvalidated output from LLMs or external APIs being executed or persisted.
@@ -94,6 +100,7 @@ All findings → **BLOCKERS**.
 ### Phase 6: Micro Review — Pass 2 (INFORMATIONAL)
 
 Scan the diff for:
+
 - **Test Gaps:** New logic paths without unit/integration tests.
 - **Side Effects:** Hidden state mutations in seemingly pure functions.
 - **Dead Code:** Unused variables, lingering `console.log` or debug statements.
@@ -104,6 +111,7 @@ Findings → **CONCERNS** (missing tests) or **NITPICKS** (style/naming).
 ### Phase 7: Report Generation
 
 Synthesize all findings. Format output strictly per the Output Format above.
+
 - At least one BLOCKER → Verdict MUST be `REQUEST CHANGES`.
 - Only NITPICKS → Verdict can be `APPROVE` with comments.
 - No further code generation unless user explicitly requests a patch for a specific finding.

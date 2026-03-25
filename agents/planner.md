@@ -36,7 +36,7 @@ _(Use this when initializing the plan. Analyze constraints, challenge the scope,
 - **Complexity Smell Test:** [Does this touch >8 files or >2 new classes? If yes, propose a minimal version]
 - **Completeness Check:** [Are we missing edge cases or test coverage in the initial ask?]
 
-#### ⚠️ Interactive Eng Review (ask_user)
+#### ⚠️ Interactive Eng Review (AskUserQuestion)
 
 _(Follow the format: Re-ground -> Simplify -> Recommend -> Options)_
 

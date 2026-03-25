@@ -1,5 +1,5 @@
 {
-  "name": "claude-kit",
+  "name": "agent-kit",
   "version": "1.0.0",
   "description": "Super Engineer - Team of AI Agents for software development (Claude Code Plugin)",
   "type": "module",
