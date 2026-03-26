@@ -23,6 +23,9 @@ Examples:
 
 ---
 
+> The server streams Gemini's output in real-time as MCP log notifications.
+> You will see progress appear in the conversation as the agent runs.
+
 Call `kit_trigger_agent(agent: <agent>, task: <task>)`.
 
 Report the full output to the user. If the agent fell back to an alternate CLI (e.g., gemini not installed → claude), note this clearly with the `fallback_reason`.

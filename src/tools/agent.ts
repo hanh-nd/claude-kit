@@ -3,8 +3,9 @@
  * Supports handoff file injection and automatic fallback
  */
 
-import { execFileSync } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
@@ -14,6 +15,43 @@ import { commandExists, validatePath } from './security.js';
 
 // Configurable timeout via environment variable (default: 5 minutes)
 const AGENT_TIMEOUT = parseInt(process.env.KIT_AGENT_TIMEOUT || '300000', 10);
+
+interface AgentJob {
+  id: string;
+  agent: 'gemini' | 'claude';
+  process: ChildProcess;
+  startedAt: Date;
+  chunks: string[];
+  timeoutHandle: ReturnType<typeof setTimeout>;
+}
+
+const jobRegistry = new Map<string, AgentJob>();
+
+/**
+ * Generate a URL-safe slug from a task string (first ~6 words, max 48 chars)
+ */
+function taskSlug(task: string): string {
+  return task
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 6)
+    .join('-')
+    .slice(0, 48);
+}
+
+/**
+ * Write agent output to .agent-kit/logs/agents/delegate-<slug>.log
+ */
+function writeAgentLog(workspaceRoot: string, slug: string, agent: string, output: string): string {
+  const logsDir = path.join(workspaceRoot, '.agent-kit', 'logs', 'agents');
+  fs.mkdirSync(logsDir, { recursive: true });
+  const logFile = path.join(logsDir, `delegate-${slug}.log`);
+  const header = `Agent: ${agent}\nDate: ${new Date().toISOString()}\n${'─'.repeat(60)}\n\n`;
+  fs.writeFileSync(logFile, header + output, 'utf-8');
+  return path.relative(workspaceRoot, logFile);
+}
 
 /**
  * Register agent delegation tools with MCP server
@@ -33,7 +71,7 @@ export function registerAgentTools(server: McpServer): void {
       task: z
         .string()
         .describe(
-          'Task message or path to a handoff file (e.g., ".agent-kit/handoffs/plans/plan-xyz.md")',
+          'Task message or path to a handoff file (e.g., ".agent-kit/handoffs/plans/plan-xyz.md")'
         ),
     },
     async ({ agent, task }) => {
@@ -80,7 +118,7 @@ export function registerAgentTools(server: McpServer): void {
                       error: `Neither ${agent} nor the fallback agent CLI is installed. ${installHint}`,
                     },
                     null,
-                    2,
+                    2
                   ),
                 },
               ],
@@ -89,30 +127,71 @@ export function registerAgentTools(server: McpServer): void {
         }
 
         // Execute the agent CLI with the prompt
-        const output = execFileSync(usedAgent, ['-p', prompt], {
-          encoding: 'utf8',
-          timeout: AGENT_TIMEOUT,
-          maxBuffer: 10 * 1024 * 1024, // 10MB
+        const jobId = randomUUID();
+        const child = spawn(usedAgent, ['--y', '-p', prompt], {
           cwd: workspaceRoot,
+          env: { ...process.env, GEMINI_WORKSPACE: workspaceRoot },
         });
 
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(
-                {
-                  agent: usedAgent,
-                  status: fallbackReason ? 'fallback' : 'success',
-                  output,
-                  ...(fallbackReason && { fallback_reason: fallbackReason }),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
+        const job: AgentJob = {
+          id: jobId,
+          agent: usedAgent as 'gemini' | 'claude',
+          process: child,
+          startedAt: new Date(),
+          chunks: [],
+          timeoutHandle: setTimeout(() => {
+            child.kill('SIGTERM');
+          }, AGENT_TIMEOUT),
         };
+
+        jobRegistry.set(jobId, job);
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            child.stdout?.on('data', (data) => {
+              job.chunks.push(data.toString());
+            });
+
+            child.stderr?.on('data', (data) => {
+              job.chunks.push(data.toString());
+            });
+
+            child.on('close', (code) => {
+              if (code === 0) resolve();
+              else reject(new Error(`Process exited with code ${code}`));
+            });
+
+            child.on('error', reject);
+          });
+
+          const output = job.chunks.join('');
+          const slug = taskSlug(task);
+          const logPath = writeAgentLog(workspaceRoot, slug, usedAgent, output);
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify(
+                  {
+                    agent: usedAgent,
+                    status: fallbackReason ? 'fallback' : 'success',
+                    log: logPath,
+                    output,
+                    ...(fallbackReason && { fallback_reason: fallbackReason }),
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        } catch (error) {
+          throw error;
+        } finally {
+          clearTimeout(job.timeoutHandle);
+          jobRegistry.delete(jobId);
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
@@ -127,12 +206,13 @@ export function registerAgentTools(server: McpServer): void {
                   error: msg,
                 },
                 null,
-                2,
+                2
               ),
             },
           ],
         };
       }
-    },
+    }
   );
+
 }

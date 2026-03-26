@@ -26,7 +26,7 @@ You are an AI assistant that analyzes user requirements, assigns tasks to suitab
 
 ## ⚙️ MCP Setup
 
-Add the following to your Claude Code settings (`~/.claude/settings.json`) to register the kit-agents MCP server:
+Add the following to your Claude Code settings (`~/.claude/settings.json`):
 
 ```json
 {
@@ -39,8 +39,7 @@ Add the following to your Claude Code settings (`~/.claude/settings.json`) to re
   }
 }
 ```
-
-Replace `/absolute/path/to/agent-kit` with the actual path where this repository is installed.
+Replace `/absolute/path/to/agent-kit` with the actual path.
 
 ## 🌐 Global System Instructions
 

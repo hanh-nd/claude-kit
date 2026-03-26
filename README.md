@@ -15,18 +15,19 @@ agent-kit gives Claude Code a team of four specialized agents:
 
 ### Commands
 
-| Command                   | Description                            |
-| ------------------------- | -------------------------------------- |
-| `/ak:brainstorm [idea]`   | Strategic architectural analysis       |
-| `/ak:plan [file or idea]` | Create an implementation blueprint     |
-| `/ak:code [file or task]` | Implement from a plan                  |
-| `/ak:review-pr [PR URL]`  | Review a pull request                  |
-| `/ak:review-changes`      | Review uncommitted local changes       |
-| `/ak:ticket [ID]`         | Work from a Jira/GitHub ticket         |
-| `/ak:do [task]`           | Route a task through the full pipeline |
-| `/ak:git`                 | Git commit, branch, and PR workflow    |
-| `/ak:workflow`            | Resume or check workflow state         |
-| `/ak:kit-setup`           | Configure integrations (GitHub, Jira)  |
+| Command                       | Description                             |
+| ----------------------------- | --------------------------------------- |
+| `/ak:brainstorm [idea]`       | Strategic architectural analysis        |
+| `/ak:plan [file or idea]`     | Create an implementation blueprint      |
+| `/ak:code [file or task]`     | Implement from a plan                   |
+| `/ak:review-pr [PR URL]`      | Review a pull request                   |
+| `/ak:review-changes`          | Review uncommitted local changes        |
+| `/ak:ticket [ID]`             | Work from a Jira/GitHub ticket          |
+| `/ak:do [task]`               | Route a task through the full pipeline  |
+| `/ak:git`                     | Git commit, branch, and PR workflow     |
+| `/ak:workflow`                | Resume or check workflow state          |
+| `/ak:kit-setup`               | Configure integrations (GitHub, Jira)   |
+| `/ak:delegate <agent> <task>` | Delegate a task to Gemini or Claude CLI |
 
 ---
 

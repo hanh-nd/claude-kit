@@ -15,7 +15,7 @@ import { registerAgentTools } from './tools/agent.js';
 import { registerIntegrationTools } from './tools/integration.js';
 
 const server = new McpServer({
-  name: 'agent-kit-agents',
+  name: 'kit-agents',
   version: '1.0.0',
 });
 
@@ -30,5 +30,6 @@ registerAgentTools(server); // Gemini/Claude CLI delegation
 // ═══════════════════════════════════════════════════════════════
 // START SERVER
 // ═══════════════════════════════════════════════════════════════
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
