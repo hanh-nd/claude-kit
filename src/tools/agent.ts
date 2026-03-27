@@ -22,6 +22,7 @@ interface AgentJob {
   process: ChildProcess;
   startedAt: Date;
   chunks: string[];
+  logStream: fs.WriteStream;
   timeoutHandle: ReturnType<typeof setTimeout>;
 }
 
@@ -42,15 +43,23 @@ function taskSlug(task: string): string {
 }
 
 /**
- * Write agent output to .agent-kit/logs/agents/delegate-<slug>.log
+ * Initialize a live-streaming log file for an agent job.
+ * Writes the header synchronously so the file exists immediately,
+ * then opens an append-mode WriteStream for real-time chunk writing.
  */
-function writeAgentLog(workspaceRoot: string, slug: string, agent: string, output: string): string {
+function initAgentLog(
+  workspaceRoot: string,
+  slug: string,
+  agent: string
+): { logPath: string; logStream: fs.WriteStream } {
   const logsDir = path.join(workspaceRoot, '.agent-kit', 'logs', 'agents');
   fs.mkdirSync(logsDir, { recursive: true });
   const logFile = path.join(logsDir, `delegate-${slug}.log`);
   const header = `Agent: ${agent}\nDate: ${new Date().toISOString()}\n${'─'.repeat(60)}\n\n`;
-  fs.writeFileSync(logFile, header + output, 'utf-8');
-  return path.relative(workspaceRoot, logFile);
+  fs.writeFileSync(logFile, header, 'utf-8');
+  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+  logStream.on('error', () => {});
+  return { logPath: path.relative(workspaceRoot, logFile), logStream };
 }
 
 /**
@@ -134,6 +143,9 @@ export function registerAgentTools(server: McpServer): void {
             ? ['-y', '-p', prompt]
             : ['--dangerously-skip-permissions', '-p', prompt];
 
+        const slug = taskSlug(task);
+        const { logPath, logStream } = initAgentLog(workspaceRoot, slug, usedAgent);
+
         const jobId = randomUUID();
         const child = spawn(usedAgent, agentArgs, {
           cwd: workspaceRoot,
@@ -146,6 +158,7 @@ export function registerAgentTools(server: McpServer): void {
           process: child,
           startedAt: new Date(),
           chunks: [],
+          logStream,
           timeoutHandle: setTimeout(() => {
             child.kill('SIGTERM');
           }, AGENT_TIMEOUT),
@@ -157,10 +170,12 @@ export function registerAgentTools(server: McpServer): void {
           await new Promise<void>((resolve, reject) => {
             child.stdout?.on('data', (data) => {
               job.chunks.push(data.toString());
+              job.logStream.write(data);
             });
 
             child.stderr?.on('data', (data) => {
               job.chunks.push(data.toString());
+              job.logStream.write(data);
             });
 
             child.on('close', (code) => {
@@ -172,8 +187,6 @@ export function registerAgentTools(server: McpServer): void {
           });
 
           const output = job.chunks.join('');
-          const slug = taskSlug(task);
-          const logPath = writeAgentLog(workspaceRoot, slug, usedAgent, output);
 
           return {
             content: [
@@ -196,6 +209,7 @@ export function registerAgentTools(server: McpServer): void {
         } catch (error) {
           throw error;
         } finally {
+          job.logStream.end();
           clearTimeout(job.timeoutHandle);
           jobRegistry.delete(jobId);
         }
