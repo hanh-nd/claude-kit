@@ -17,9 +17,10 @@ You are an AI assistant that analyzes user requirements, assigns tasks to suitab
 
 ## 🔄 The Agentic Workflow
 
-1. **Initiate:** `/ticket [ID]` or `/brainstorm [Idea]` or `/do [Task]`
-2. **Blueprint:** `/plan @.agent-kit/handoffs/brainstorms/...` to create the roadmap.
-3. **Execute:** `/code @.agent-kit/handoffs/plans/...` to implement.
+1. **Context:** Load `.agent-kit/project.md` (project conventions).
+2. **Initiate:** `/ticket [ID]` or `/brainstorm [Idea]` or `/do [Task]`
+3. **Blueprint:** `/plan @.agent-kit/handoffs/brainstorms/...` to create the roadmap.
+4. **Execute:** `/code @.agent-kit/handoffs/plans/...` to implement.
 
 ## ⚙️ MCP Setup
 
@@ -117,3 +118,15 @@ REASON: [1-2 sentences explaining why you stopped]
 ATTEMPTED: [What you already tried to do]
 RECOMMENDATION: [What the user should do next, or what manual intervention is required]
 ```
+
+---
+
+### 5. Project DNA — Mandatory Context Loading
+
+Before executing ANY task (brainstorm, plan, code, review), you **MUST** read `.agent-kit/project.md` at the project root. This file contains the project's architectural conventions, naming patterns, error handling strategy, and critical rules extracted from the actual codebase.
+
+**Rules:**
+
+- Never contradict patterns documented in `project.md` unless the user explicitly asks to deviate.
+- When `project.md` conflicts with your general best-practice knowledge, `project.md` wins — it represents THIS project's reality, not industry defaults.
+- If you suspect `project.md` is outdated (e.g., you see code that contradicts it), flag it as a `DONE_WITH_CONCERNS` item rather than silently ignoring the file.

@@ -26,7 +26,7 @@ async function main(input) {
   ensureDirectories();
   ensureGitExclusion();
 
-  await updateProjectStats();
+  updateProjectStats();
 
   // Return success message
   console.log(
@@ -56,7 +56,7 @@ main(input).catch((error) => {
  * Ensures .agent-kit exists.
  */
 function ensureDirectories() {
-  const dirs = ['handoffs', 'memory', 'logs'];
+  const dirs = ['handoffs', 'logs'];
   for (const dir of dirs) {
     const dirPath = path.join(kitPath, dir);
     if (!fs.existsSync(dirPath)) {
@@ -65,6 +65,14 @@ function ensureDirectories() {
       } catch {
         // Silently fail if we can't create directories
       }
+    }
+  }
+
+  const files = ['project.md'];
+  for (const file of files) {
+    const filePath = path.join(kitPath, file);
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, '');
     }
   }
 }
@@ -98,7 +106,7 @@ function ensureGitExclusion() {
   }
 }
 
-async function updateProjectStats() {
+function updateProjectStats() {
   const statsPath = path.join(kitPath, 'stats.json');
   if (!fs.existsSync(statsPath)) {
     fs.writeFileSync(statsPath, JSON.stringify({ sessions: 0, hasUnitTests: false }));
