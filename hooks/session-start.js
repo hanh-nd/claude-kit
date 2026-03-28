@@ -3,11 +3,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { countTests } from '../scripts/count-tests.js';
 
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const kitDir = '.agent-kit';
-const kitPath = path.join(projectDir, kitDir);
+import { countTests } from '../scripts/count-tests.js';
+import { KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
 
 /**
  * SessionStart Hook
@@ -58,7 +56,7 @@ main(input).catch((error) => {
 function ensureDirectories() {
   const dirs = ['handoffs', 'logs'];
   for (const dir of dirs) {
-    const dirPath = path.join(kitPath, dir);
+    const dirPath = path.join(KIT_PATH, dir);
     if (!fs.existsSync(dirPath)) {
       try {
         fs.mkdirSync(dirPath, { recursive: true });
@@ -70,7 +68,7 @@ function ensureDirectories() {
 
   const files = ['project.md'];
   for (const file of files) {
-    const filePath = path.join(kitPath, file);
+    const filePath = path.join(KIT_PATH, file);
     if (!fs.existsSync(filePath)) {
       fs.writeFileSync(filePath, '');
     }
@@ -81,7 +79,7 @@ function ensureDirectories() {
  * Adds .agent-kit to .git/info/exclude to ensure it's ignored locally.
  */
 function ensureGitExclusion() {
-  const gitDir = path.join(projectDir, '.git');
+  const gitDir = path.join(PROJECT_DIR, '.git');
   if (!fs.existsSync(gitDir)) return;
 
   const gitExcludePath = path.join(gitDir, 'info', 'exclude');
@@ -97,9 +95,9 @@ function ensureGitExclusion() {
       content = fs.readFileSync(gitExcludePath, 'utf8');
     }
 
-    if (!content.includes(kitDir)) {
+    if (!content.includes(KIT_DIR)) {
       const separator = content.length > 0 && !content.endsWith('\n') ? '\n' : '';
-      fs.appendFileSync(gitExcludePath, `${separator}${kitDir}\n`);
+      fs.appendFileSync(gitExcludePath, `${separator}${KIT_DIR}\n`);
     }
   } catch {
     // Silently fail to not block the server startup
@@ -107,7 +105,7 @@ function ensureGitExclusion() {
 }
 
 function updateProjectStats() {
-  const statsPath = path.join(kitPath, 'stats.json');
+  const statsPath = path.join(KIT_PATH, 'stats.json');
   if (!fs.existsSync(statsPath)) {
     fs.writeFileSync(statsPath, JSON.stringify({ sessions: 0, hasUnitTests: false }));
   }
@@ -117,7 +115,7 @@ function updateProjectStats() {
   stats.sessions++;
 
   // Update test count
-  const testCount = countTests(projectDir);
+  const testCount = countTests(PROJECT_DIR);
   if (testCount > 5) {
     stats.hasUnitTests = true;
   }

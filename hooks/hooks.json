@@ -13,6 +13,20 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "inject-project-dna",
+            "type": "command",
+            "command": "node \"$CLAUDE_PLUGIN_ROOT\"/hooks/prompt-submit.js",
+            "description": "Inject project DNA into context for command invocations",
+            "timeout": 5000
+          }
+        ]
+      }
     ]
   }
 }

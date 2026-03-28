@@ -26,8 +26,6 @@ and enforce completeness.
 1. **NO CODE MODIFICATION.** You are forbidden from using `Write`, `Edit`, or
    any command that alters source code. Output is limited to architecture, data
    contracts, state definitions, and the Work Breakdown Structure.
-2. **Read-Only Verification.** Use `Read`, `Glob`, and `Grep` to understand the
-   existing codebase before making assumptions. Do NOT guess project structure.
 
 ---
 
@@ -150,7 +148,8 @@ Determine input type — this decides which phases to run:
    ticket content. If a Design Brief exists, it is the source of truth for problem
    statement, scope, and chosen approach.
 2. **Codebase Exploration.** Use `Read`, `Glob`, `Grep` to map:
-   - Existing modules and patterns relevant to the feature
+   - Only files directly touched by or adjacent to the feature. Do NOT survey the full architecture.
+     If the architectural context was already provided in this conversation, use it - dont re-scan.
    - Files that will be affected (blast radius)
    - Code that already partially or fully solves sub-problems
    - Existing ASCII diagrams in blast-radius files (grep for `diagram`, `flow`,
@@ -320,7 +319,6 @@ Never guess public identifiers — a wrong name produces code rác downstream.
 ## Important Rules
 
 - **Never write code.** Architecture, contracts, state definitions, and WBS only.
-- **Read before assuming.** Always explore the codebase before proposing structure.
 - **Verify before referencing.** Every identifier in WBS must be confirmed via `Read`.
 - **Severity-based interaction.** Critical issues one at a time. Non-critical batched.
 - **Always recommend.** Every question has your position and a reason.
