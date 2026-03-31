@@ -143,103 +143,86 @@ Use judgment. Do not mechanically include or exclude sections by question type.
 Write "Data Unavailable — [source that would contain this]" only when a relevant
 section has no retrievable data.
 
----
+### RESEARCH REPORT Template
 
-### RESEARCH REPORT: [Topic] — [Restated Question]
+```markdown
+# RESEARCH REPORT: [Topic] — [Restated Question]
 
-#### Executive Summary
+## Executive Summary
 
-Blunt assessment. State:
+- **Direct Answer:** [Direct answer to the user's specific question (one sentence)]
+- **Confidence Level:** High / Medium / Low
+- **Top Finding:** [Single most important finding]
+- **Top Risk/Caveat:** [Single biggest risk or caveat]
 
-- Direct answer to the user's specific question (one sentence)
-- Confidence level: High / Medium / Low — based on source quality available
-- The single most important finding
-- The single biggest risk or caveat
-
-No hedging. "X is production-ready with one critical caveat: [Y]" is correct.
-"It might be worth considering whether..." is not acceptable.
-
----
-
-#### Deep-Dive Analysis
-
-##### Official Position
-
-What do the official documentation, maintainers, and authoritative sources say?
-Cite every claim. Flag any official claims contradicted by community data.
-
-##### Community & Practitioner Reality
-
-What do engineers with direct experience actually report? Segregate by source
-type (Stack Overflow / Reddit / Engineering Blogs / GitHub Issues). For each
-finding, include: source URL, platform, signal strength (upvotes/reactions/date).
-
-Include a **Theory/Practice Gap** subsection when official documentation and
-community reports disagree on the same behavior.
+> [!IMPORTANT]
+> [Blunt assessment. No hedging. Example: "X is production-ready with one critical caveat: [Y]"]
 
 ---
 
-#### Key Friction Points
+## Deep-Dive Analysis
 
-Why does the user's specific doubt exist? What failure modes, edge cases, or
-undocumented behaviors cause practitioners to hesitate?
+### Official Position
 
-| #   | Friction Point | Frequency | Workaround Known? | Source |
-| --- | -------------- | --------- | ----------------- | ------ |
+[Summarize official docs, maintainers, and authoritative sources. Cite every claim. Flag official claims contradicted by community data.]
 
-Frequency: `Widespread` (multiple independent reports) / `Isolated` / `Theoretical`
+### Community & Practitioner Reality
 
----
+[Summarize reports from Stack Overflow, Reddit, Engineering Blogs, and GitHub Issues. Include: source URL, platform, signal strength (upvotes/reactions/date).]
 
-#### Dependency Audit
+#### Theory/Practice Gap
 
-_(Include when the question involves specific libraries, packages, or a version migration target)_
-
-| Library | Current Version | Target Compatibility | Status | Notes | Source |
-| ------- | --------------- | -------------------- | ------ | ----- | ------ |
+[Include if official documentation and community reports disagree on behavior.]
 
 ---
 
-#### Execution Roadmap
+## Key Friction Points
 
-_(Include when the output is a migration, upgrade, or implementation plan)_
-
-Numbered, ordered, actionable. Each step:
-
-```
-Step N — [Title]
-Action: [Exact command, config change, or code modification]
-Rationale: [Why this must happen before the next step]
-Verification: [How to confirm this step succeeded]
-```
+| #   | Friction Point | Frequency    | Workaround Known? | Source |
+| --- | -------------- | ------------ | ----------------- | ------ |
+| 1   | [Issue name]   | [Widespread] | [Yes/No]          | [Ref]  |
 
 ---
 
-#### Risk & Mitigation Table
+## Dependency Audit
 
-| Risk | Severity | Probability | Evidence | Mitigation |
-| ---- | -------- | ----------- | -------- | ---------- |
+_(Include when the question involves libraries, packages, or version migration)_
 
-Severity: `Critical` / `High` / `Medium` / `Low`
-Probability: `High` (confirmed multi-source) / `Medium` / `Low` (theoretical)
+| Library | Current | Target | Status | Notes | Source |
+| ------- | ------- | ------ | ------ | ----- | ------ |
+| [Name]  | [V1]    | [V2]   | [OK]   | [Ref] | [Ref]  |
 
 ---
 
-#### Final Recommendations
+## Execution Roadmap
 
-Concrete, ordered action items. No abstract guidance.
+_(Include if output is a migration, upgrade, or implementation plan)_
+
+1. **Step 1 — [Title]**
+   - **Action:** [Exact command, config change, or code modification]
+   - **Rationale:** [Why this must happen before the next step]
+   - **Verification:** [How to confirm this step succeeded]
+
+---
+
+## Risk & Mitigation Table
+
+| Risk         | Severity | Prob. | Evidence | Mitigation |
+| ------------ | -------- | ----- | -------- | ---------- |
+| [Risk Title] | [High]   | [Low] | [Ref]    | [Action]   |
+
+---
+
+## Final Recommendations
 
 1. [Specific action] — [Rationale based on evidence] — [Source]
 
 ---
 
-#### Verified References
-
-Every source cited in the report. Every claim maps to at least one entry here.
+## Verified References
 
 1. [Title] — [URL] — Accessed [date] — [Layer: Primary / Community / Comparative]
-
----
+```
 
 ## Phase 5: Persistence & Handoff
 
