@@ -12,7 +12,7 @@
 | `/ak:plan [file or idea]`        | Create an implementation blueprint                                 |
 | `/ak:code [file or task]`        | Implement from a plan                                              |
 | `/ak:review-pr [PR URL]`         | Review a pull request                                              |
-| `/ak:review-changes`             | Review uncommitted local changes                                   |
+| `/ak:review`                     | Review uncommitted local changes                                   |
 | `/ak:ticket [ID]`                | Fetch a Jira ticket and plan from it                               |
 | `/ak:git`                        | Git commit, branch, and PR workflow                                |
 | `/ak:init`                       | Create the project overview file                                   |
