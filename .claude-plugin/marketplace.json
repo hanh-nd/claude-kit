@@ -1,7 +1,7 @@
 {
-  "name": "ak",
+  "name": "agent-kit",
   "owner": {
-    "name": "agent-kit"
+    "name": "hanhnd"
   },
   "metadata": {
     "description": "Super Engineer — a team of AI agents for software development"
@@ -9,10 +9,7 @@
   "plugins": [
     {
       "name": "agent-kit",
-      "source": "./",
-      "description": "Super Engineer — brainstorm, plan, code, and review with a team of specialized AI agents.",
-      "version": "1.0.0",
-      "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"]
+      "source": "./"
     }
   ]
 }
