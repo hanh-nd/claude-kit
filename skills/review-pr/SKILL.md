@@ -1,5 +1,7 @@
 ---
+name: ak:review-pr
 description: 'Deep Bitbucket PR review with Jira alignment and 2-pass analysis'
+version: 1.0.0
 ---
 
 # 🔍 Review PR

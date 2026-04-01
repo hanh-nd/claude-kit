@@ -1,15 +1,12 @@
 ---
+name: ak:init
 description: >
-  Extract a compact "DNA Profile" from any codebase — capturing stack, architecture,
-  conventions, error handling, testing patterns, and business terminology — so that
-  downstream coding agents produce code that matches the project's existing style and
-  structure. Use this skill whenever you need to understand a codebase before generating
-  code, planning implementation, or reviewing PRs. Trigger on: "scan this project",
-  "understand this codebase", "extract project conventions", "what patterns does this
-  project use", "generate a project profile", "codebase DNA", "project context",
-  or any task where the agent needs to write code that fits an existing project and
-  the project conventions are not yet known. Also trigger proactively when a coding
-  task references a project root or repository path and no DNA profile exists in context yet.
+  Extract a compact "DNA Profile" from any codebase — capturing stack,
+  architecture, conventions, error handling, testing patterns, and business terminology —
+  so that downstream coding agents produce code that matches the project's existing style
+  and structure. Use this skill whenever you need to understand a codebase before
+  generating code, planning implementation, or reviewing PRs.
+version: 1.0.0
 ---
 
 # Codebase DNA Extractor

@@ -1,0 +1,20 @@
+{
+  "name": "agent-kit",
+  "version": "1.0.7",
+  "description": "Super Engineer - Team of AI Agents for software development",
+  "contextFileName": "CLAUDE.md",
+  "mcpServers": {
+    "kit-agents": {
+      "command": "npx",
+      "args": ["-y", "@hanhnd/agent-kit"],
+      "env": {
+        "ATLASSIAN_CLOUD_ID": "$ATLASSIAN_CLOUD_ID",
+        "ATLASSIAN_USER_EMAIL": "$ATLASSIAN_USER_EMAIL",
+        "ATLASSIAN_API_TOKEN": "$ATLASSIAN_API_TOKEN",
+        "BITBUCKET_USER_EMAIL": "$BITBUCKET_USER_EMAIL",
+        "BITBUCKET_API_TOKEN": "$BITBUCKET_API_TOKEN",
+        "BITBUCKET_DEFAULT_WORKSPACE": "$BITBUCKET_DEFAULT_WORKSPACE"
+      }
+    }
+  }
+}

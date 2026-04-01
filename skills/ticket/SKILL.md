@@ -1,5 +1,7 @@
 ---
+name: ak:ticket
 description: 'Fetch a Jira ticket and route to the planning pipeline'
+version: 1.0.0
 ---
 
 # 🎫 Ticket

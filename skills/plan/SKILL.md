@@ -1,5 +1,7 @@
 ---
+name: ak:plan
 description: 'Create an intern-proof implementation blueprint from a Design Brief or raw requirements'
+version: 1.0.0
 ---
 
 # 🏛️ Plan

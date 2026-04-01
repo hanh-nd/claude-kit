@@ -1,5 +1,7 @@
 ---
+name: ak:review
 description: 'Review local code changes (working tree or branch) with auto-detected Jira context'
+version: 1.0.0
 ---
 
 # 🕵️ Review Changes

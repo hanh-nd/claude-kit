@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "agent-kit",
+      "name": "ak",
       "source": "./"
     }
   ]

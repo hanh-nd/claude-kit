@@ -1,5 +1,7 @@
 ---
+name: ak:code
 description: 'Implement code from a plan with clean code standards and conditional test generation'
+version: 1.0.0
 ---
 
 # 💻 Code

@@ -1,20 +1,11 @@
 ---
+name: ak:orchestrate
 description: |
   Orchestrate a cross-service feature by discovering affected services, exploring
   each codebase for relevant code and patterns, synthesizing an architecture plan
   with interface contracts, and producing scoped handoff briefs per service that
   feed directly into the brainstorm or plan skills.
-  Use when asked to "orchestrate", "coordinate across services", "break down this
-  feature across repos", "which services does this touch", "cross-service planning",
-  or any request involving a feature/ticket that spans multiple codebases or
-  microservices. Also trigger when the user provides a Jira ticket and mentions
-  multiple services, or asks "how should we split this work across teams/repos".
-  Proactively suggest when the user describes a feature that clearly touches more
-  than one service boundary — even if they haven't said "orchestrate." If someone
-  pastes a ticket that mentions API changes + UI changes + third-party integration,
-  that's an orchestration problem.
-  Do NOT use for single-service tasks, simple bug fixes contained in one repo, or
-  when the user explicitly wants to work in one codebase only.
+version: 1.0.0
 ---
 
 # Orchestrate — Cross-Service Feature Decomposition

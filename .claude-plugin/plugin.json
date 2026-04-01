@@ -1,9 +1,9 @@
 {
   "name": "ak",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Super Engineer — a team of AI agents for software development: brainstorm, plan, code, and review.",
   "author": {
-    "name": "agent-kit"
+    "name": "hanhnd"
   },
   "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"],
   "repository": "https://github.com/hanh-nd/agent-kit",

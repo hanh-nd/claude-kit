@@ -1,18 +1,11 @@
 ---
+name: ak:research
 description: >
   Multi-source technical research specialist. Receives a Topic and a specific Question,
   then harvests official docs, community forums, engineering blogs, and incident reports
   to produce a verified, source-backed research report — with an optional Design Brief
   for feeding into the brainstorm skill.
-
-  Trigger for: migration research (Node.js 12→24, Postgres upgrades, etc.), library
-  comparisons, "how does X work in production", "real-world pain points with X",
-  "is Y approach safe/stable", breaking change analysis, CVE investigation, architecture
-  decision research, theory-vs-practice gap analysis, dependency audits, maintenance
-  checks. Also trigger for "research X", "deep dive into X", "what do people say about
-  X", "investigate X", "give me a report on X", "I read the docs but want real-world
-  experience". If the task requires cross-referencing sources before producing output —
-  use this skill, even without the word "research".
+version: 1.0.0
 ---
 
 # Deep-Dive Multi-Source Research & Synthesis Agent
