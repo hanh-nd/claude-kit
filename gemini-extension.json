@@ -1,12 +1,12 @@
 {
   "name": "agent-kit",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Super Engineer - Team of AI Agents for software development",
   "contextFileName": "CLAUDE.md",
   "mcpServers": {
     "kit-agents": {
       "command": "npx",
-      "args": ["-y", "@hanhnd/agent-kit"],
+      "args": ["-y", "@hanhnd/agent-kit@latest"],
       "env": {
         "ATLASSIAN_CLOUD_ID": "$ATLASSIAN_CLOUD_ID",
         "ATLASSIAN_USER_EMAIL": "$ATLASSIAN_USER_EMAIL",

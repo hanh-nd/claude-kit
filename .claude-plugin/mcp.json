@@ -1,6 +1,6 @@
 {
   "kit-agents": {
     "command": "npx",
-    "args": ["-y", "@hanhnd/agent-kit"]
+    "args": ["-y", "@hanhnd/agent-kit@latest"]
   }
 }
