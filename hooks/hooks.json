@@ -27,6 +27,20 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "security-blocker",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/security-privacy.js",
+            "description": "Hard-block access to sensitive files",
+            "timeout": 5000
+          }
+        ]
+      }
     ]
   }
 }

@@ -11,7 +11,7 @@
 | `/ak:brainstorm [idea]`          | Strategic architectural analysis                                   |
 | `/ak:plan [file or idea]`        | Create an implementation blueprint                                 |
 | `/ak:code [file or task]`        | Implement from a plan                                              |
-| `/ak:code-simplifier`            | Refactor modified code for readability                             |
+| `/ak:code-simplify`              | Refactor modified code for readability                             |
 | `/ak:research [topic]`           | Research a topic                                                   |
 | `/ak:review-pr [PR URL]`         | Review a pull request                                              |
 | `/ak:review`                     | Review uncommitted local changes                                   |
@@ -29,7 +29,7 @@
 
 ```bash
 claude plugin marketplace add https://github.com/hanh-nd/agent-kit
-claude plugin install agent-kit
+claude plugin install ak
 ```
 
 The plugin fetches from GitHub, registers the MCP server automatically, and makes all commands available immediately.
@@ -45,8 +45,8 @@ export BITBUCKET_API_TOKEN="your-atlassian-api-token"
 export BITBUCKET_DEFAULT_WORKSPACE="your-default-workspace-slug"
 ```
 
-To update: `claude plugin update agent-kit`
-To uninstall: `claude plugin uninstall agent-kit`
+To update: `claude plugin update ak`
+To uninstall: `claude plugin uninstall ak`
 
 ---
 
@@ -67,7 +67,7 @@ npm run build
 
 ```bash
 claude plugin marketplace add /absolute/path/to/agent-kit
-claude plugin install agent-kit
+claude plugin install ak
 ```
 
 This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `kit-agents` entry to `settings.json` — the plugin handles that.

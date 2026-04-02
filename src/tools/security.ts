@@ -28,18 +28,43 @@ export function sanitize(input: string): string {
 }
 
 /**
- * Validate file path to prevent path traversal attacks
- * Uses stricter path.sep check to prevent prefix matching flaws
- * (e.g., /.geminit-kit/handoffs/app should not match /.geminit-kit/handoffs/app-secret)
+ * Sensitive files that agents are FORBIDDEN from reading/writing.
+ * Includes environment variables, shell configs, and system profiles.
+ */
+const FORBIDDEN_FILES = [
+  '.env',
+  '.bashrc',
+  '.zshrc',
+  '.profile',
+  '.bash_profile',
+  '.bash_history',
+  '.zsh_history',
+  'config.mjs', // Some projects use this for sensitive config
+];
+
+/**
+ * Validate file path to prevent path traversal attacks and access to forbidden files.
+ * Uses stricter path.sep check to prevent prefix matching flaws.
  */
 export function validatePath(filePath: string, baseDir: string = process.cwd()): string {
   const resolved = path.resolve(baseDir, filePath);
   const root = path.resolve(baseDir);
 
-  // Stricter: exact match OR starts with root + separator
+  // 1. Path traversal check
   if (resolved !== root && !resolved.startsWith(root + path.sep)) {
     throw new Error(`Path traversal detected: ${filePath}`);
   }
+
+  // 2. Forbidden files check (exact filename or suffix)
+  const fileName = path.basename(resolved);
+  if (
+    FORBIDDEN_FILES.some(
+      (forbidden) => fileName === forbidden || fileName.startsWith(forbidden + '.')
+    )
+  ) {
+    throw new Error(`Access to sensitive file is FORBIDDEN: ${fileName}`);
+  }
+
   return resolved;
 }
 
