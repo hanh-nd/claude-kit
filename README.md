@@ -15,6 +15,7 @@
 | `/ak:research [topic]`           | Research a topic                                                   |
 | `/ak:review-pr [PR URL]`         | Review a pull request                                              |
 | `/ak:review`                     | Review uncommitted local changes                                   |
+| `/ak:debate [subject]`           | Run adversarial debate (Gilfoyle vs Dinesh vs Judge)               |
 | `/ak:ticket [ID]`                | Fetch a Jira ticket and plan from it                               |
 | `/ak:git`                        | Git commit, branch, and PR workflow                                |
 | `/ak:init`                       | Create the project overview file                                   |
