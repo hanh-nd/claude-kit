@@ -24,6 +24,13 @@
             "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/prompt-submit.js",
             "description": "Inject project DNA into context for command invocations",
             "timeout": 5000
+          },
+          {
+            "name": "security-blocker",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/security-privacy.js",
+            "description": "Hard-block access to sensitive files",
+            "timeout": 5000
           }
         ]
       }

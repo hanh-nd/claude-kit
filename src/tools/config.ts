@@ -70,3 +70,69 @@ export function loadProjectSettings(projectDir: string): ProjectSettings {
 
   return {};
 }
+
+/**
+ * Sensitive files that agents are FORBIDDEN from reading/writing.
+ */
+export const FORBIDDEN_FILES: string[] = [
+  '.env',
+  '.bashrc',
+  '.zshrc',
+  '.profile',
+  '.bash_profile',
+  '.bash_history',
+  '.zsh_history',
+  'config.mjs',
+  '.npmrc',
+  '.yarnrc',
+  '.netrc',
+  '.gitconfig',
+];
+
+/**
+ * Regex patterns (case-insensitive) matched against path.basename.
+ */
+export const FORBIDDEN_PATTERNS: RegExp[] = [
+  /^\.env$/i, // .env, .Env — case-insensitive exact
+  /^\.env[^a-z]/i, // .env_bak, .env-prod, .env.local
+  /^id_rsa/i, // SSH private keys
+  /^id_ed25519/i,
+  /^id_ecdsa/i,
+  /\.pem$/i, // Certificates
+  /credentials\.json$/i,
+  /secrets\.json$/i,
+  /secret\.json$/i,
+];
+
+/**
+ * Directory name segments that are always blocked.
+ */
+export const FORBIDDEN_DIRS: string[] = [
+  '.git',
+  '.ssh',
+  '.aws',
+  '.kube',
+  '.gnupg',
+  '.docker',
+];
+
+/**
+ * Environment variables safe to pass to child processes.
+ */
+export const SAFE_ENV_VARS: string[] = [
+  'PATH',
+  'HOME',
+  'USER',
+  'SHELL',
+  'TERM',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'TMPDIR',
+  'TMP',
+  'TEMP',
+  'NODE_ENV',
+  'GEMINI_WORKSPACE',
+  'KIT_AGENT_TIMEOUT',
+  'GEMINI_KIT_GIT_TIMEOUT',
+];
