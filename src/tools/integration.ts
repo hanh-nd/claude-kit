@@ -8,6 +8,7 @@ import { writeFileSync } from 'fs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+import { getCredential } from '../credentials.js';
 import { sanitize } from './security.js';
 
 // Zod schema for Bitbucket PR REST API response
@@ -89,8 +90,8 @@ function extractAdfText(adf: Record<string, unknown> | null | undefined): string
 }
 
 function buildJiraBasicAuth(): string {
-  const email = process.env.ATLASSIAN_USER_EMAIL;
-  const token = process.env.ATLASSIAN_API_TOKEN;
+  const email = getCredential('ATLASSIAN_USER_EMAIL');
+  const token = getCredential('ATLASSIAN_API_TOKEN');
   if (!email || !token) {
     throw new Error('Missing ATLASSIAN_USER_EMAIL or ATLASSIAN_API_TOKEN');
   }
@@ -98,8 +99,8 @@ function buildJiraBasicAuth(): string {
 }
 
 function buildBitbucketBasicAuth(): string {
-  const email = process.env.BITBUCKET_USER_EMAIL;
-  const token = process.env.BITBUCKET_API_TOKEN;
+  const email = getCredential('BITBUCKET_USER_EMAIL');
+  const token = getCredential('BITBUCKET_API_TOKEN');
   if (!email || !token) {
     throw new Error('Missing BITBUCKET_USER_EMAIL or BITBUCKET_API_TOKEN');
   }
@@ -173,14 +174,14 @@ export function registerIntegrationTools(server: McpServer): void {
     },
     async ({ input, workspace, repoSlug, includeDiff }) => {
       try {
-        const bbEmail = process.env.BITBUCKET_USER_EMAIL;
-        const bbToken = process.env.BITBUCKET_API_TOKEN;
+        const bbEmail = getCredential('BITBUCKET_USER_EMAIL');
+        const bbToken = getCredential('BITBUCKET_API_TOKEN');
         if (!bbEmail || !bbToken) {
           return {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ Missing BITBUCKET_USER_EMAIL or BITBUCKET_API_TOKEN. Create an API token at id.atlassian.com/manage-profile/security/api-tokens.`,
+                text: `❌ Missing BITBUCKET_USER_EMAIL or BITBUCKET_API_TOKEN. Set them in ~/.claude/agent-kit or as environment variables.`,
               },
             ],
           };
@@ -198,7 +199,7 @@ export function registerIntegrationTools(server: McpServer): void {
           prId = parseInt(urlMatch[3], 10);
         } else if (input.match(/^\d+$/)) {
           prId = parseInt(input, 10);
-          ws = workspace || process.env.BITBUCKET_DEFAULT_WORKSPACE;
+          ws = workspace || getCredential('BITBUCKET_DEFAULT_WORKSPACE');
           repo = repoSlug;
         }
 
@@ -278,9 +279,9 @@ ${pr.description || 'No description'}`;
     },
     async ({ ticketId }) => {
       try {
-        const cloudId = process.env.ATLASSIAN_CLOUD_ID;
-        const userEmail = process.env.ATLASSIAN_USER_EMAIL;
-        const apiToken = process.env.ATLASSIAN_API_TOKEN;
+        const cloudId = getCredential('ATLASSIAN_CLOUD_ID');
+        const userEmail = getCredential('ATLASSIAN_USER_EMAIL');
+        const apiToken = getCredential('ATLASSIAN_API_TOKEN');
 
         if (!cloudId || !userEmail || !apiToken) {
           const missing = [

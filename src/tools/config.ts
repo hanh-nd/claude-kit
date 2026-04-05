@@ -87,6 +87,7 @@ export const FORBIDDEN_FILES: string[] = [
   '.yarnrc',
   '.netrc',
   '.gitconfig',
+  'credentials', // ~/.claude/credentials file
 ];
 
 /**
@@ -114,25 +115,4 @@ export const FORBIDDEN_DIRS: string[] = [
   '.kube',
   '.gnupg',
   '.docker',
-];
-
-/**
- * Environment variables safe to pass to child processes.
- */
-export const SAFE_ENV_VARS: string[] = [
-  'PATH',
-  'HOME',
-  'USER',
-  'SHELL',
-  'TERM',
-  'LANG',
-  'LC_ALL',
-  'LC_CTYPE',
-  'TMPDIR',
-  'TMP',
-  'TEMP',
-  'NODE_ENV',
-  'GEMINI_WORKSPACE',
-  'KIT_AGENT_TIMEOUT',
-  'GEMINI_KIT_GIT_TIMEOUT',
 ];

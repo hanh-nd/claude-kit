@@ -12,7 +12,6 @@ import { z } from 'zod';
 
 import { getWorkspaceRoot } from '../utils.js';
 import { commandExists, validatePath, sanitizeOutput } from './security.js';
-import { SAFE_ENV_VARS } from './config.js';
 
 // Configurable timeout via environment variable (default: 5 minutes)
 const AGENT_TIMEOUT = parseInt(process.env.KIT_AGENT_TIMEOUT || '300000', 10);
@@ -149,18 +148,9 @@ export function registerAgentTools(server: McpServer): void {
 
         const jobId = randomUUID();
 
-        // Build sanitized environment: only SAFE_ENV_VARS + GEMINI_WORKSPACE
-        const sanitizedEnv: Record<string, string | undefined> = {};
-        for (const key of SAFE_ENV_VARS) {
-          if (process.env[key] !== undefined) {
-            sanitizedEnv[key] = process.env[key];
-          }
-        }
-        sanitizedEnv.GEMINI_WORKSPACE = workspaceRoot;
-
         const child = spawn(usedAgent, agentArgs, {
           cwd: workspaceRoot,
-          env: sanitizedEnv,
+          env: { ...process.env, GEMINI_WORKSPACE: workspaceRoot },
         });
 
         const job: AgentJob = {

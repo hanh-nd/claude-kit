@@ -35,16 +35,23 @@ claude plugin install ak
 
 The plugin fetches from GitHub, registers the MCP server automatically, and makes all commands available immediately.
 
-**Add credentials** to your shell profile (`~/.zshrc` or `~/.bashrc`):
+**Add credentials** to `~/.claude/credentials` (like `~/.aws/credentials`):
 
 ```bash
-export ATLASSIAN_CLOUD_ID="your-atlassian-cloud-id"
-export ATLASSIAN_USER_EMAIL="you@yourcompany.com"
-export ATLASSIAN_API_TOKEN="your-atlassian-api-token"
-export BITBUCKET_USER_EMAIL="you@yourcompany.com"
-export BITBUCKET_API_TOKEN="your-atlassian-api-token"
-export BITBUCKET_DEFAULT_WORKSPACE="your-default-workspace-slug"
+touch ~/.claude/credentials && chmod 600 ~/.claude/credentials
 ```
+
+```ini
+[default]
+ATLASSIAN_CLOUD_ID = your-atlassian-cloud-id
+ATLASSIAN_USER_EMAIL = you@yourcompany.com
+ATLASSIAN_API_TOKEN = your-atlassian-api-token
+BITBUCKET_USER_EMAIL = you@yourcompany.com
+BITBUCKET_API_TOKEN = your-atlassian-api-token
+BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
+```
+
+To use multiple profiles, add `[work]`, `[personal]`, etc. sections and set `KIT_PROFILE=work` in your environment.
 
 To update: `claude plugin update ak`
 To uninstall: `claude plugin uninstall ak`
@@ -73,15 +80,20 @@ claude plugin install ak
 
 This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `kit-agents` entry to `settings.json` — the plugin handles that.
 
-**3. Add credentials** to your shell profile (`~/.zshrc` or `~/.bashrc`):
+**3. Add credentials** to `~/.claude/credentials`:
 
 ```bash
-export ATLASSIAN_CLOUD_ID="your-atlassian-cloud-id"
-export ATLASSIAN_USER_EMAIL="you@yourcompany.com"
-export ATLASSIAN_API_TOKEN="your-atlassian-api-token"
-export BITBUCKET_USER_EMAIL="you@yourcompany.com"
-export BITBUCKET_API_TOKEN="your-atlassian-api-token"
-export BITBUCKET_DEFAULT_WORKSPACE="your-default-workspace-slug"
+touch ~/.claude/credentials && chmod 600 ~/.claude/credentials
+```
+
+```ini
+[default]
+ATLASSIAN_CLOUD_ID = your-atlassian-cloud-id
+ATLASSIAN_USER_EMAIL = you@yourcompany.com
+ATLASSIAN_API_TOKEN = your-atlassian-api-token
+BITBUCKET_USER_EMAIL = you@yourcompany.com
+BITBUCKET_API_TOKEN = your-atlassian-api-token
+BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
 ```
 
 **4. Verify**
@@ -125,11 +137,13 @@ The MCP server source is in `src/`. Agent personas are in `agents/`. Skill modul
 
 ## Integrations
 
+Credentials are stored in `~/.claude/credentials` (INI format). Keys can also be set as environment variables — env vars take priority (useful for CI/CD).
+
 ### Jira (via Atlassian REST API)
 
 Used by `/ak:ticket` and `/ak:review-pr`.
 
-| Variable               | Description                                                                                                                              |
+| Key                    | Description                                                                                                                              |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `ATLASSIAN_CLOUD_ID`   | Your Atlassian Cloud ID — find it at [admin.atlassian.com](https://admin.atlassian.com) under your site settings                         |
 | `ATLASSIAN_USER_EMAIL` | Your Atlassian account email                                                                                                             |
@@ -139,7 +153,7 @@ Used by `/ak:ticket` and `/ak:review-pr`.
 
 Used by `/ak:review-pr`.
 
-| Variable                      | Description                                                                                                                              |
+| Key                           | Description                                                                                                                              |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `BITBUCKET_USER_EMAIL`        | Your Atlassian account email (same as Jira)                                                                                              |
 | `BITBUCKET_API_TOKEN`         | API token — create at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |

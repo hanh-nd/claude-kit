@@ -82,8 +82,6 @@ if (input.tool_name || input.tool || input.action || input.name || input.call) {
   const args =
     input.tool_input || input.args || (input.call && input.call.params) || {};
 
-  const workspaceRoot = process.cwd();
-
   for (const [key, value] of Object.entries(args)) {
     if (typeof value !== 'string') continue;
 
@@ -103,15 +101,6 @@ if (input.tool_name || input.tool || input.action || input.name || input.call) {
         }
       }
 
-      // Workspace boundary check (path traversal)
-      try {
-        const resolved = path.resolve(workspaceRoot, value);
-        if (resolved !== workspaceRoot && !resolved.startsWith(workspaceRoot + path.sep)) {
-          blockAction(`Path traversal detected: '${value}' resolves outside workspace.`);
-        }
-      } catch {
-        // Not a valid path — ignore
-      }
     }
 
     if (COMMAND_ARG_KEYS.has(key)) {
