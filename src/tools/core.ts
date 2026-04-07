@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
 
-import { getWorkspaceRoot } from '../utils.js';
+import { getWorkspaceRoot } from '../utils/utils.js';
 import { DEFAULT_EXTENSIONS } from './config.js';
 
 /**

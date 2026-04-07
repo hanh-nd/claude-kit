@@ -8,7 +8,8 @@ import { writeFileSync } from 'fs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { getCredential } from '../credentials.js';
+import { getCredential } from '../utils/credentials.js';
+import { adfToMarkdown } from '../utils/parser.js';
 import { sanitize } from './security.js';
 
 // Zod schema for Bitbucket PR REST API response
@@ -61,33 +62,6 @@ const JiraTicketSchema = z.object({
   errorMessages: z.array(z.string()).optional(),
   fields: JiraFieldsSchema,
 });
-
-/**
- * Extract plain text from ADF (Atlassian Document Format) content
- * Recursively walks the content tree to find text nodes
- */
-function extractAdfText(adf: Record<string, unknown> | null | undefined): string {
-  if (!adf || typeof adf !== 'object') return 'No description';
-
-  const content = adf.content as Array<Record<string, unknown>> | undefined;
-  if (!content || !Array.isArray(content)) return 'No description';
-
-  const textParts: string[] = [];
-
-  function extractText(nodes: Array<Record<string, unknown>>): void {
-    for (const node of nodes) {
-      if (typeof node.text === 'string') {
-        textParts.push(node.text);
-      }
-      if (Array.isArray(node.content)) {
-        extractText(node.content as Array<Record<string, unknown>>);
-      }
-    }
-  }
-
-  extractText(content);
-  return textParts.join(' ') || 'No description';
-}
 
 function buildJiraBasicAuth(): string {
   const email = getCredential('ATLASSIAN_USER_EMAIL');
@@ -352,7 +326,7 @@ ${pr.description || 'No description'}`;
 ${
   typeof ticket.fields.description === 'string'
     ? ticket.fields.description
-    : extractAdfText(ticket.fields.description as Record<string, unknown>)
+    : adfToMarkdown(ticket.fields.description)
 }
 
 ### Labels

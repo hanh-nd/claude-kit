@@ -1,9 +1,3 @@
-/**
- * Utility functions for agent-kit
- */
-
-import path from 'path';
-
 export function getWorkspaceRoot(): string {
   return (
     process.env.WORKSPACE_DIR ||

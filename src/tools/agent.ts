@@ -3,15 +3,15 @@
  * Supports handoff file injection and automatic fallback
  */
 
-import { spawn, type ChildProcess } from 'child_process';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { spawn, type ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
 
-import { getWorkspaceRoot } from '../utils.js';
-import { commandExists, validatePath, sanitizeOutput } from './security.js';
+import { getWorkspaceRoot } from '../utils/utils.js';
+import { commandExists, sanitizeOutput, validatePath } from './security.js';
 
 // Configurable timeout via environment variable (default: 5 minutes)
 const AGENT_TIMEOUT = parseInt(process.env.KIT_AGENT_TIMEOUT || '300000', 10);

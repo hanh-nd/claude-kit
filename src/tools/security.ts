@@ -6,8 +6,8 @@
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getWorkspaceRoot } from '../utils.js';
-import { FORBIDDEN_FILES, FORBIDDEN_PATTERNS, FORBIDDEN_DIRS } from './config.js';
+import { getWorkspaceRoot } from '../utils/utils.js';
+import { FORBIDDEN_DIRS, FORBIDDEN_FILES, FORBIDDEN_PATTERNS } from './config.js';
 
 /**
  * Sanitize string for safe use with execFileSync
@@ -51,9 +51,7 @@ export function validatePath(filePath: string, baseDir: string = process.cwd()):
 
   // 3. Forbidden files check (two-stage)
   const fileName = path.basename(resolved);
-  const isExactForbidden = FORBIDDEN_FILES.some(
-    (f) => fileName.toLowerCase() === f.toLowerCase()
-  );
+  const isExactForbidden = FORBIDDEN_FILES.some((f) => fileName.toLowerCase() === f.toLowerCase());
   const isPatternForbidden = FORBIDDEN_PATTERNS.some((re) => re.test(fileName));
 
   if (isExactForbidden || isPatternForbidden) {
@@ -184,4 +182,3 @@ export function sanitizeOutput(text: string): string {
 
   return sanitized;
 }
-
