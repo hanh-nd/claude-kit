@@ -99,7 +99,7 @@ Determine input type — this decides which phases to run:
 
 **Objective:** Understand what exists before proposing or reviewing anything.
 
-1. **Input Analysis.** Read `$ARGUMENTS`, any attached Design Brief, schemas, or ticket content. If a Design Brief exists, it is the source of truth for problem statement, scope, and chosen approach.
+1. **Input Analysis.** Read `$ARGUMENTS`, any attached Design Brief, schemas, or ticket content. **Extract the high-level Goal, relevant Background, and verifiable Acceptance Criteria.** If a Design Brief exists, it is the source of truth for problem statement, scope, and chosen approach.
 2. **Codebase Exploration.** If the architectural context was already provided in this conversation, use it. Only explore the codebase if no file paths, schemas, or existing code were provided in this conversation:
    - Files directly touched by the feature and their blast radius (callers, dependents, shared utilities)
    - Code that already partially or fully solves sub-problems
@@ -119,6 +119,7 @@ Output as **State 1: Discovery & Scope Challenge.**
 ```markdown
 ### Step 0: Scope Challenge & Discovery: [Feature Name]
 
+- **Goal & Acceptance Criteria:** [Draft of the goal and list of ACs for user validation]
 - **Verified Context:** [Existing systems, files, and patterns relevant to the feature]
 - **What Already Exists:** [Code/flows that partially or fully solve sub-problems]
 - **Reusability Check:** [What can be reused vs. unnecessarily rebuilt]
@@ -180,6 +181,14 @@ Draft the WBS strictly bottom-up. Tasks must be granular — not "Implement the 
 
 ```markdown
 ### Execution Blueprint: [Feature Name]
+
+#### 0. Goal & Acceptance Criteria
+
+- **Goal:** [Briefly state the "Why" and the high-level "What"]
+- **Acceptance Criteria:**
+  - [ ] AC 1: [Condition]
+  - [ ] AC 2: [Condition]
+- **Background:** [Relevant context/rationale if needed for implementation]
 
 #### 1. Technical Architecture & Contracts
 
