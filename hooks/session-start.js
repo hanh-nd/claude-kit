@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import { countTests } from '../scripts/count-tests.js';
 import { KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
+import { spawnBackground } from './utils.js';
 
 /**
  * SessionStart Hook
@@ -24,6 +25,7 @@ async function main(input) {
   ensureDirectories();
   ensureGitExclusion();
 
+  spawnCleanup();
   updateProjectStats();
 
   // Return success message
@@ -102,6 +104,10 @@ function ensureGitExclusion() {
   } catch {
     // Silently fail to not block the server startup
   }
+}
+
+function spawnCleanup() {
+  spawnBackground(new URL('../scripts/cleanup-handoffs.js', import.meta.url));
 }
 
 function updateProjectStats() {

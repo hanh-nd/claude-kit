@@ -19,6 +19,7 @@ export const FORBIDDEN_FILES = [
   '.yarnrc',
   '.netrc',
   '.gitconfig',
+  'credentials',
 ];
 
 export const FORBIDDEN_PATTERN_STRINGS = [

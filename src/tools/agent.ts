@@ -54,8 +54,9 @@ function initAgentLog(
 ): { logPath: string; logStream: fs.WriteStream } {
   const logsDir = path.join(workspaceRoot, '.agent-kit', 'logs', 'agents');
   fs.mkdirSync(logsDir, { recursive: true });
-  const logFile = path.join(logsDir, `delegate-${slug}.log`);
-  const header = `Agent: ${agent}\nDate: ${new Date().toISOString()}\n${'─'.repeat(60)}\n\n`;
+  const now = new Date().toISOString();
+  const logFile = path.join(logsDir, `delegate-${now}-${slug}.log`);
+  const header = `Agent: ${agent}\nDate: ${now}\n${'─'.repeat(60)}\n\n`;
   fs.writeFileSync(logFile, header, 'utf-8');
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });
   logStream.on('error', () => {});
