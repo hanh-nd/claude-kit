@@ -35,9 +35,20 @@ version: 1.0.0
 
 4. Call `kit_save_handoff(type: "ticket", content: <formatted brief>, slug: "<extracted_id>")`.
 
-5. The tool returns the saved file path. Output:
+5. The tool returns the saved file path. Present the execution menu using `AskUserQuestion` or `ask_user` tool with type of `choice` to provide a list of choices so that user can choose:
 
 ```
-✅ Ticket brief saved. To create an implementation plan:
-/plan @<returned-path>
+✅ Ticket brief saved → `<returned-path>`
+
+What would you like to do next?
+
+1) Plan        — Start /plan with this ticket
+2) Done        — No further action
+3) [Custom]    — Type anything to continue
 ```
+
+**On user selection:**
+
+- **1 — Plan:** Invoke `/plan @<saved-path>` to hand the ticket brief directly to the planning skill.
+- **2 — Done:** Output `Ticket saved. No further action.` and stop.
+- **3 — Custom:** The user types their request. Treat it as continuing the conversation — brainstorm the approach, ask questions about the ticket, or anything else they need.

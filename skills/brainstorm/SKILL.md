@@ -169,7 +169,7 @@ If user agrees → proceed to Phase 3.
 
 ### Phase 3: Output — Write the Design Brief
 
-Only reached after consensus. Request explicit user approval ("Approve") for this output:
+Only reached after consensus. Write the Design Brief immediately — do not request approval before writing:
 
 ````markdown
 ## Design Brief: [Feature/Project Name]
@@ -247,7 +247,23 @@ Only reached after consensus. Request explicit user approval ("Approve") for thi
 - [...]
 ````
 
-After approval: call `kit_save_handoff(type: "brainstorm", content: <full PRD markdown>, slug: <feature-slug>)`.
+After writing the Design Brief: call `kit_save_handoff(type: "brainstorm", content: <full PRD markdown>, slug: <feature-slug>)` immediately — do not ask for approval first. The tool returns the saved file path. Then present the execution menu using `AskUserQuestion` or `ask_user` tool with type of `choice` to provide a list of choices so that user can choose:
+
+```
+✅ Design Brief saved → `<returned-path>`
+
+What would you like to do next?
+
+1) Execute plan phase  — Start /plan with this Design Brief
+2) Done                — No further action
+3) [Custom]            — Type anything to continue the conversation
+```
+
+**On user selection:**
+
+- **1 — Execute plan phase:** Invoke `/plan @<saved-path>` to hand the Design Brief directly to the planning skill.
+- **2 — Done:** Output `Design Brief saved. No further action.` and stop.
+- **3 — Custom:** The user types their request. Treat it as continuing the brainstorm conversation — revise the brief, revisit a decision, go deeper on a specific area, or anything else they need.
 
 ---
 

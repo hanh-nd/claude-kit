@@ -199,14 +199,17 @@ Draft the WBS strictly bottom-up. Tasks must be granular — not "Implement the 
 
 #### 2. Implementation Phases (Micro-WBS)
 
+> **Dependency notation:** Annotate every task with `[P]` (can run in parallel within its layer — no intra-layer dependencies) or `[S: task_id]` (sequential — depends on a specific prior task). This annotation is machine-readable and used by parallel execution agents to determine grouping. Tasks in different layers are always sequential (Layer 2 cannot start until all Layer 1 tasks complete).
+
 - **Layer 1: Foundation & Types**
-  - [ ] Task 1.1: In `[file_path]`, export interface `[Name]` containing `[fields]`.
+  - [ ] [P] Task 1.1: In `[file_path]`, export interface `[Name]` containing `[fields]`.
 - **Layer 2: Core Logic & Edge Cases**
-  - [ ] Task 2.1: In `[file_path]`, create function `[Name]`.
+  - [ ] [P] Task 2.1: In `[file_path]`, create function `[Name]`.
     - _Logic:_ [Step-by-step]
     - _Edge Case:_ [If X is null, throw Y error]
+  - [ ] [S: 2.1] Task 2.2: [Task that depends on 2.1]
 - **Layer 3: Integration & Presentation**
-  - [ ] Task 3.1: [Specific integration steps]
+  - [ ] [S: 2.1, 2.2] Task 3.1: [Specific integration steps]
 
 #### 3. Test Plan
 
@@ -230,9 +233,27 @@ Draft the WBS strictly bottom-up. Tasks must be granular — not "Implement the 
 ### Phase 5: Handoff
 
 1. **Constraint check.** Verify NO source code was modified during this session.
-2. **Request explicit user approval.** Wait for "Approve."
-3. **Persist the blueprint.** Call `kit_save_handoff(type: "plan", content: <full blueprint markdown>, slug: <feature-name>)`. The tool returns the saved file path. Output:
-   ```
-   ✅ Plan saved. To implement:
-   /code @<returned-path>
-   ```
+2. **Persist the blueprint immediately** — do NOT ask for approval first. Call `kit_save_handoff(type: "plan", content: <full blueprint markdown>, slug: <feature-name>)`. The tool returns the saved file path.
+3. **Present execution menu.** Present the execution menu using `AskUserQuestion` or `ask_user` tool with type of `choice` to provide a list of choices so that user can choose:
+
+```
+✅ Plan saved → `<returned-path>`
+
+What would you like to do next?
+
+1) Execute now        — I implement the plan directly in this session
+2) Delegate to agent  — Hand off to Gemini (default) or Claude
+3) Done               — No further action
+4) [Custom]           — Type anything to continue
+```
+
+**On user selection:**
+
+- **1 — Execute now:** Invoke `/code @<saved-path>` and begin implementation immediately.
+- **2 — Delegate:** Ask "Gemini or Claude?" (default: Gemini). Invoke the `delegate` skill telling it to implement the plan, passing the saved plan path as context.
+- **3 — Done:** Output `Plan saved. No further action.` and stop.
+- **4 — Custom:** The user types their request. Treat it as continuing the planning conversation — revise the blueprint, challenge a decision, go deeper on a specific phase, or anything else they need. If the user asks to implement the plan using parallel agents, Ask "Gemini or Claude?" (default: Gemini). Then:
+  1. Analyze the WBS using the `[P]` / `[S: task_id]` annotations to identify independent task groups.
+  2. Group tasks into execution batches: tasks within a batch all carry `[P]` and share the same layer, or have all their `[S]` dependencies already satisfied by a prior batch.
+  3. Spawn one agent per batch. Each agent receives: (a) its assigned task list, (b) the saved plan path for full context, (c) the data contracts from Section 1 of the blueprint.
+  4. Agents run in parallel within each batch. Wait for all agents in a batch to complete before spawning the next batch (layer boundary).
