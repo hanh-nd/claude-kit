@@ -7,9 +7,21 @@
           {
             "name": "kit-init",
             "type": "command",
-            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/session-start.js",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/kit-init.js",
             "description": "Initialize Agent-Kit",
             "timeout": 10000
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "name": "reinject-wiki-after-clear",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/wiki-context-reinject.js",
+            "description": "Re-inject wiki context after /clear",
+            "timeout": 5000
           }
         ]
       }
@@ -21,15 +33,29 @@
           {
             "name": "inject-project-dna",
             "type": "command",
-            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/prompt-submit.js",
-            "description": "Inject project DNA into context for command invocations",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/inject-project-dna.js",
+            "description": "Inject project DNA into context for skill command invocations",
             "timeout": 5000
           },
           {
             "name": "security-blocker",
             "type": "command",
-            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/security-privacy.js",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/security-privacy.js",
             "description": "Hard-block access to sensitive files",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "kit-wiki-inbox",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/wiki-inbox-append.js",
+            "description": "Log kit_save_handoff calls to wiki inbox",
             "timeout": 5000
           }
         ]
@@ -42,9 +68,51 @@
           {
             "name": "security-blocker",
             "type": "command",
-            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/hooks/security-privacy.js",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/security-privacy.js",
             "description": "Hard-block access to sensitive files",
             "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "export-conversation-history",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
+            "description": "Export conversation transcript to wiki/raw before /compact discards context",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "kit-wiki-reinject",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/wiki-context-reinject.js",
+            "description": "Re-inject wiki context after /compact",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "export-conversation-history-on-exit",
+            "type": "command",
+            "command": "node \"${extensionPath}${CLAUDE_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
+            "description": "Export conversation transcript to wiki/raw on any session exit (/clear, Ctrl+C, logout, etc.)",
+            "timeout": 10000
           }
         ]
       }

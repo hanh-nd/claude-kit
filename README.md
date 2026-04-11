@@ -6,21 +6,59 @@
 
 ### Commands
 
-| Command                          | Description                                                        |
-| -------------------------------- | ------------------------------------------------------------------ |
-| `/ak:brainstorm [idea]`          | Strategic architectural analysis                                   |
-| `/ak:plan [file or idea]`        | Create an implementation blueprint                                 |
-| `/ak:code [file or task]`        | Implement from a plan                                              |
-| `/ak:code-simplify`              | Refactor modified code for readability                             |
-| `/ak:research [topic]`           | Research a topic                                                   |
-| `/ak:review-pr [PR URL]`         | Review a pull request                                              |
-| `/ak:review`                     | Review uncommitted local changes                                   |
-| `/ak:debate [subject]`           | Run adversarial debate (Gilfoyle vs Dinesh vs Judge)               |
-| `/ak:ticket [ID]`                | Fetch a Jira ticket and plan from it                               |
-| `/ak:git`                        | Git commit, branch, and PR workflow                                |
-| `/ak:init`                       | Create the project overview file                                   |
-| `/ak:orchestrate [file or idea]` | Orchestrate agents to solve problems span across multiple projects |
-| `/ak:delegate <agent> <task>`    | Delegate a task to Gemini or Claude CLI                            |
+| Command                           | Description                                                        |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `/ak:brainstorm [idea]`           | Strategic architectural analysis                                   |
+| `/ak:plan [file or idea]`         | Create an implementation blueprint                                 |
+| `/ak:code [file or task]`         | Implement from a plan                                              |
+| `/ak:code-simplify`               | Refactor modified code for readability                             |
+| `/ak:research [topic]`            | Research a topic                                                   |
+| `/ak:review-pr [PR URL]`          | Review a pull request                                              |
+| `/ak:review`                      | Review uncommitted local changes                                   |
+| `/ak:debate [subject]`            | Run adversarial debate (Gilfoyle vs Dinesh vs Judge)               |
+| `/ak:ticket [ID]`                 | Fetch a Jira ticket and plan from it                               |
+| `/ak:git`                         | Git commit, branch, and PR workflow                                |
+| `/ak:init`                        | Create the project overview file                                   |
+| `/ak:orchestrate [file or idea]`  | Orchestrate agents to solve problems span across multiple projects |
+| `/ak:delegate <agent> <task>`     | Delegate a task to Gemini or Claude CLI                            |
+| `/ak:wiki [compile\|query\|lint]` | Maintain a persistent, compounding project knowledge wiki          |
+
+---
+
+## Wiki
+
+The wiki is a persistent, compounding knowledge base that accumulates architectural decisions, feature history, patterns, and edge cases across sessions. Unlike conversation memory (which resets), the wiki survives compaction, restarts, and new sessions — it is the long-term institutional memory of your project.
+
+### How It's Auto-Populated (Hooks)
+
+You don't need to run the wiki manually. Five hooks keep it fed automatically:
+
+- **PostToolUse** — every `kit_save_handoff` call is automatically logged to `.agent-kit/wiki/raw/inbox.md`
+- **PreCompact** — before `/compact` discards context, the full session transcript is exported to `.agent-kit/wiki/raw/`
+- **PostCompact** — after compaction, the wiki index is re-injected as context so the very next turn has full project knowledge
+- **SessionEnd** — before session is cleared, the conversation transcript is exported to `.agent-kit/wiki/raw/`
+- **SessionStart (clear)** — after `/clear` resets the session, the wiki index is re-injected so the fresh session starts with full project knowledge
+
+### Operations
+
+| Command                          | Description                                                           |
+| -------------------------------- | --------------------------------------------------------------------- |
+| `/ak:wiki` or `/ak:wiki compile` | Ingest raw inbox + conversation exports → build/update wiki pages     |
+| `/ak:wiki query {question}`      | Search the wiki and synthesize a cited answer                         |
+| `/ak:wiki lint`                  | Health-check: broken links, orphan pages, contradictions, stale inbox |
+
+### Directory Structure
+
+```
+.agent-kit/wiki/
+├── raw/
+│   ├── inbox.md          # Auto-appended by PostToolUse hook (handoff logs)
+│   └── conv-*.md         # Exported by PreCompact hook (conversation transcripts)
+├── compiled/
+│   └── *.md              # Structured wiki pages built by /ak:wiki compile
+└── archive/
+    └── *.md              # Old raw files moved here after compilation
+```
 
 ---
 
