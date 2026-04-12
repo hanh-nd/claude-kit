@@ -19,6 +19,7 @@ function ensureDirectories() {
     'wiki/compiled/entities',
     'wiki/compiled/concepts',
     'wiki/archive',
+    'wiki/archive/conversations',
   ];
   for (const dir of dirs) {
     const dirPath = path.join(KIT_PATH, dir);

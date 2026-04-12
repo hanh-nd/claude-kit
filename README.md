@@ -53,7 +53,7 @@ You don't need to run the wiki manually. Five hooks keep it fed automatically:
 .agent-kit/wiki/
 ├── raw/
 │   ├── inbox.md          # Auto-appended by PostToolUse hook (handoff logs)
-│   └── conv-*.md         # Exported by PreCompact hook (conversation transcripts)
+│   └── conv_*.md         # Exported by PreCompact hook (conversation transcripts)
 ├── compiled/
 │   └── *.md              # Structured wiki pages built by /ak:wiki compile
 └── archive/

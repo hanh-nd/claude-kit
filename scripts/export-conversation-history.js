@@ -34,7 +34,19 @@ runWhenInvoked(import.meta.url, async () => {
   try {
     const outDir = path.join(KIT_PATH, 'wiki', 'raw');
     fs.mkdirSync(outDir, { recursive: true });
-    const outPath = path.join(outDir, `conv-${sessionId}.txt`);
+
+    const existingFiles = fs
+      .readdirSync(outDir)
+      .filter((file) => new RegExp(`^conv_.*_${sessionId}\.txt$`).test(file))
+      .sort();
+    let outPath = path.join(
+      outDir,
+      `conv_${new Date().toISOString().split('T')[0]}_${sessionId}.txt`
+    );
+    if (existingFiles.length) {
+      const lastFile = existingFiles[existingFiles.length - 1];
+      outPath = path.join(outDir, lastFile);
+    }
     const text = messages
       .map(({ role, content }) => `[${role.toUpperCase()}]\n${content}`)
       .join('\n---\n');

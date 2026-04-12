@@ -31,7 +31,7 @@ Default (empty or unrecognized): run **Compile**.
 .agent-kit/wiki/
   raw/
     inbox.md                 # append-only handoff log (written by PostToolUse hook)
-    conv-{session_id}.txt    # exported conversations (/export before /compact)
+    conv_*.txt               # exported conversations (/export before /compact)
   compiled/
     index.md                 # content catalog — one line per page, loaded into every session
     log.md                   # chronological record of compiles and queries (append-only)
@@ -70,9 +70,9 @@ When compiling, the `path` field can be used to read the full handoff document f
 
 ### Step 1: Check for work
 
-Read `.agent-kit/wiki/raw/inbox.md`. List all `wiki/raw/conv-*.txt` files (Glob).
+Read `.agent-kit/wiki/raw/inbox.md`. List all `wiki/raw/conv_*.txt` files (Glob).
 
-If inbox is empty AND no conv-\*.txt exist:
+If inbox is empty AND no conv\_\*.txt exist:
 
 ```
 Nothing to compile — inbox is empty.
@@ -80,7 +80,7 @@ Nothing to compile — inbox is empty.
 
 Stop.
 
-For large `conv-*.txt` files (>500 lines), focus on sections with decisions, conclusions, or "we always / the rule is / because of" language rather than reading every exchange.
+For large `conv_*.txt` files (>500 lines), focus on sections with decisions, conclusions, or "we always / the rule is / because of" language rather than reading every exchange.
 
 For inbox entries, the `path` field points to the actual handoff document. For entries where the summary alone is insufficient, read the handoff file for deeper context.
 
@@ -138,7 +138,7 @@ Append to `wiki/compiled/log.md` (create if absent):
 ### Step 7: Archive and clear
 
 Append processed inbox entries verbatim to `wiki/archive/{YYYY-MM}.md`.
-Move `conv-*.txt` files to `wiki/archive/` with Bash `mv`.
+Move `conv_*.txt` files to `wiki/archive/conversations/` with Bash `mv`.
 Overwrite `wiki/raw/inbox.md` with an empty file.
 
 ### Step 8: Report
