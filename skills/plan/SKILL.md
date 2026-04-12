@@ -68,7 +68,7 @@ If running low on context, preserve in this order:
 
 ## Interaction Format
 
-When presenting choices:
+Present choices as an interactive TUI menu using arrow keys (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
 
 ```
 1. **[Category]:** [Plain English — explain what it DOES, not what it's called]
@@ -126,16 +126,21 @@ Output as **State 1: Discovery & Scope Challenge.**
 - **Completeness Check:** [Lake or ocean? Complete version vs shortcut assessment]
 - **Missing Edge Cases:** [Failure modes not addressed in the initial ask]
 
+#### Critical Issues
+
+1. **[Architecture/Scope]:** [Plain English explanation]
+2. **[Next issue if any]:** [Plain English explanation]
+```
+
 #### Interactive Eng Review
 
-List all critical issues here, one per numbered item:
+List all critical issues. Present choices as an interactive TUI menu using arrow keys (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
 
 1. **[Architecture/Scope]:** [Plain English explanation]
    RECOMMENDATION: Choose [X] because [Reason]
    A) [Complete option — effort/risk]
    B) [Alternative/shortcut]
 2. **[Next issue if any]:** ...
-```
 
 **Gate:** Scope must be agreed before proceeding. **Stop and wait** for user selection. Do NOT start Phase 3 until Phase 2 decisions are resolved.
 
@@ -234,7 +239,7 @@ Draft the WBS strictly bottom-up. Tasks must be granular — not "Implement the 
 
 1. **Constraint check.** Verify NO source code was modified during this session.
 2. **Persist the blueprint immediately** — do NOT ask for approval first. Call `kit_save_handoff(type: "plan", content: <full blueprint markdown>, slug: <feature-name>)`. The tool returns the saved file path.
-3. **Present execution menu.** Present the execution menu using `AskUserQuestion` or `ask_user` tool with type of `choice` to provide a list of choices so that user can choose:
+3. **Present execution menu.** Present the execution menu as an interactive TUI menu using arrow keys (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
 
 ```
 ✅ Plan saved → `<returned-path>`
@@ -244,7 +249,6 @@ What would you like to do next?
 1) Execute now        — I implement the plan directly in this session
 2) Delegate to agent  — Hand off to Gemini (default) or Claude
 3) Done               — No further action
-4) [Custom]           — Type anything to continue
 ```
 
 **On user selection:**

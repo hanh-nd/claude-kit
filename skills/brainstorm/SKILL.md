@@ -134,7 +134,7 @@ If a premise is wrong, say so and loop back.
 
 #### Structured Interaction Format
 
-When presenting choices to the user, use this format. Every question has your recommendation — you are not neutral:
+Every question has your recommendation — you are not neutral. Provide choices as an interactive TUI menu using arrow keys (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
 
 ```
 1. **[Problem/Scope]:** [Specific question]
@@ -247,7 +247,7 @@ Only reached after consensus. Write the Design Brief immediately — do not requ
 - [...]
 ````
 
-After writing the Design Brief: call `kit_save_handoff(type: "brainstorm", content: <full PRD markdown>, slug: <feature-slug>)` immediately — do not ask for approval first. The tool returns the saved file path. Then present the execution menu using `AskUserQuestion` or `ask_user` tool with type of `choice` to provide a list of choices so that user can choose:
+After writing the Design Brief: call `kit_save_handoff(type: "brainstorm", content: <full PRD markdown>, slug: <feature-slug>)` immediately — do not ask for approval first. The tool returns the saved file path. Then present the execution menu as an interactive TUI menu using arrow keys, (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
 
 ```
 ✅ Design Brief saved → `<returned-path>`
@@ -256,7 +256,6 @@ What would you like to do next?
 
 1) Execute plan phase  — Start /plan with this Design Brief
 2) Done                — No further action
-3) [Custom]            — Type anything to continue the conversation
 ```
 
 **On user selection:**

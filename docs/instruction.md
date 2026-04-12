@@ -49,7 +49,7 @@ When you need to ask the user a question, present options, or clarify requiremen
 1. **Re-ground:** State the current context, the active project/feature, and the current plan/task. (1-2 sentences).
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called. Assume the user hasn't looked at the screen in 20 minutes.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]`. Always prefer the complete option over shortcuts (refer to the Completeness Principle). Include `Completeness: X/10` for each option (10 = handles all edge cases/tests, 3 = dangerous shortcut).
-4. **Options:** Provide lettered options:
+4. **Options:** Provide lettered options as an interactive TUI menu using arrow keys (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
    `A) [Option description] (human: ~X / Claude: ~Y)`
    `B) [Option description] (human: ~X / Claude: ~Y)`
 

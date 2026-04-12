@@ -35,7 +35,7 @@ version: 1.0.0
 
 4. Call `kit_save_handoff(type: "ticket", content: <formatted brief>, slug: "<extracted_id>")`.
 
-5. The tool returns the saved file path. Present the execution menu using `AskUserQuestion` or `ask_user` tool with type of `choice` to provide a list of choices so that user can choose:
+5. The tool returns the saved file path. Present the execution choices as an interactive TUI menu using arrow keys (use `AskUserQuestion` tool or `ask_user` with type of `choice`) with the following format:
 
 ```
 ✅ Ticket brief saved → `<returned-path>`
@@ -44,7 +44,6 @@ What would you like to do next?
 
 1) Plan        — Start /plan with this ticket
 2) Done        — No further action
-3) [Custom]    — Type anything to continue
 ```
 
 **On user selection:**
