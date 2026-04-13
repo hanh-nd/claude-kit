@@ -1,12 +1,15 @@
-name: Publish NPM Package
+name: Publish Marketplace Plugins
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'plugins/**'
+      - '.github/workflows/publish.yml'
 
 jobs:
-  build-and-publish:
+  publish-node-plugins:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,6 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm
         run: npm install -g npm@latest
@@ -26,8 +30,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Build agent-kit
+        run: npm run build -w @hanhnd/agent-kit
 
-      - name: Publish to NPM
-        run: npm publish --provenance --access public
+      - name: Publish @hanhnd/agent-kit
+        run: npm publish -w @hanhnd/agent-kit --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

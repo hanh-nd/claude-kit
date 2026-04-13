@@ -3,13 +3,11 @@
   "owner": {
     "name": "hanhnd"
   },
-  "metadata": {
-    "description": "Super Engineer — a team of AI agents for software development"
-  },
   "plugins": [
     {
-      "name": "ak",
-      "source": "./"
+      "name": "agent-kit",
+      "source": "plugins/agent-kit",
+      "description": "Super Engineer - Team of AI Agents"
     }
   ]
 }
