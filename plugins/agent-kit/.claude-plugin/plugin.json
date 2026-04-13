@@ -6,6 +6,5 @@
     "name": "hanhnd"
   },
   "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"],
-  "repository": "https://github.com/hanh-nd/agent-kit",
   "mcpServers": "./.claude-plugin/mcp.json"
 }

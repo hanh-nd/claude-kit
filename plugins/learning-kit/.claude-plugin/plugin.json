@@ -1,0 +1,10 @@
+{
+  "name": "lk",
+  "version": "0.1.0",
+  "description": "Personal Learning Kit — AI-guided learning with NotebookLM",
+  "author": {
+    "name": "hanhnd"
+  },
+  "keywords": ["learning", "notebooklm", "obsidian", "feynman", "roadmap"],
+  "mcpServers": "./.claude-plugin/mcp.json"
+}

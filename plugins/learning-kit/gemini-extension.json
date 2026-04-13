@@ -1,0 +1,12 @@
+{
+  "name": "learning-kit",
+  "version": "0.1.0",
+  "description": "Personal Learning Kit — AI-guided learning with NotebookLM",
+  "mcpServers": {
+    "notebooklm": {
+      "command": "notebooklm-mcp",
+      "args": [],
+      "trust": true
+    }
+  }
+}

@@ -4,9 +4,10 @@ A collection of specialized AI agents for software development, research, and le
 
 ## Available Plugins
 
-| Plugin                               | Description                                                 | Language     |
-| :----------------------------------- | :---------------------------------------------------------- | :----------- |
-| [**agent-kit**](./plugins/agent-kit) | Super Engineer - Team of AI Agents for software development | Node.js (TS) |
+| Plugin                                     | Description                                                 | Language     |
+| :----------------------------------------- | :---------------------------------------------------------- | :----------- |
+| [**agent-kit**](./plugins/agent-kit)       | Super Engineer - Team of AI Agents for software development | Node.js (TS) |
+| [**learning-kit**](./plugins/learning-kit) | Learning Kit - Team of AI Agents for software development   | Node.js (TS) |
 
 ## Installation (Claude Code)
 
@@ -19,7 +20,7 @@ claude plugin marketplace add https://github.com/hanh-nd/agent-kit
 Then install individual plugins:
 
 ```bash
-claude plugin install ak
+claude plugin install [plugin-name]
 ```
 
 ## Installation (Gemini)
@@ -27,7 +28,7 @@ claude plugin install ak
 To install as a Gemini extension:
 
 ```bash
-gemini extension install https://github.com/hanh-nd/agent-kit/plugins/agent-kit
+gemini extension install https://github.com/hanh-nd/agent-kit/plugins/[plugin-name]
 ```
 
 ## Development

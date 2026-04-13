@@ -147,7 +147,7 @@ BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
 If you want to reuse the commands with [Gemini CLI](https://geminicli.com) (for `/ak:delegate` to Gemini), install it using:
 
 ```bash
-gemini extension install https://github.com/hanh-nd/agent-kit
+gemini extension install https://github.com/hanh-nd/agent-kit/plugins/agent-kit
 ```
 
 ---
