@@ -6,8 +6,13 @@
   "plugins": [
     {
       "name": "agent-kit",
-      "source": "plugins/agent-kit",
+      "source": "./plugins/agent-kit",
       "description": "Super Engineer - Team of AI Agents"
+    },
+    {
+      "name": "learning-kit",
+      "source": "./plugins/learning-kit",
+      "description": "The Scholar - AI learning agent for mastering new subjects"
     }
   ]
 }

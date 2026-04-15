@@ -7,7 +7,7 @@ A collection of specialized AI agents for software development, research, and le
 | Plugin                                     | Description                                                 | Language     |
 | :----------------------------------------- | :---------------------------------------------------------- | :----------- |
 | [**agent-kit**](./plugins/agent-kit)       | Super Engineer - Team of AI Agents for software development | Node.js (TS) |
-| [**learning-kit**](./plugins/learning-kit) | Learning Kit - Team of AI Agents for software development   | Node.js (TS) |
+| [**learning-kit**](./plugins/learning-kit) | The Scholar - AI learning agent for mastering new subjects  | Node.js (TS) |
 
 ## Installation (Claude Code)
 
