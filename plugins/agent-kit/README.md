@@ -68,7 +68,7 @@ You don't need to run the wiki manually. Five hooks keep it fed automatically:
 
 ```bash
 claude plugin marketplace add https://github.com/hanh-nd/agent-kit
-claude plugin install ak
+claude plugin install agent-kit
 ```
 
 The plugin fetches from GitHub, registers the MCP server automatically, and makes all commands available immediately.
@@ -91,8 +91,8 @@ BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
 
 To use multiple profiles, add `[work]`, `[personal]`, etc. sections and set `KIT_PROFILE=work` in your environment.
 
-To update: `claude plugin update ak`
-To uninstall: `claude plugin uninstall ak`
+To update: `claude plugin update agent-kit`
+To uninstall: `claude plugin uninstall agent-kit`
 
 ---
 
@@ -113,7 +113,7 @@ npm run build
 
 ```bash
 claude plugin marketplace add /absolute/path/to/agent-kit
-claude plugin install ak
+claude plugin install agent-kit
 ```
 
 This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `kit-agents` entry to `settings.json` — the plugin handles that.

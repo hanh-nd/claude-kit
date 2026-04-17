@@ -46,13 +46,13 @@ The Learning Kit follows a specific 3-phase workflow to ensure deep mastery and 
 
 ```bash
 claude plugin marketplace add https://github.com/hanh-nd/agent-kit
-claude plugin install lk
+claude plugin install learning-kit
 ```
 
 The plugin fetches from GitHub, registers the MCP server automatically, and makes all commands available immediately.
 
-To update: `claude plugin update lk`
-To uninstall: `claude plugin uninstall lk`
+To update: `claude plugin update learning-kit`
+To uninstall: `claude plugin uninstall learning-kit`
 
 ---
 
@@ -73,7 +73,7 @@ npm run build
 
 ```bash
 claude plugin marketplace add /absolute/path/to/agent-kit
-claude plugin install lk
+claude plugin install learning-kit
 ```
 
 This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `notebooklm` entry to `settings.json` — the plugin handles that.
