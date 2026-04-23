@@ -10,14 +10,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
 
-import { getWorkspaceRoot } from '../utils/utils.js';
+import { getWorkspaceRoot, mcpJson, mcpText } from '../utils/utils.js';
 import { commandExists, sanitizeOutput, validatePath } from './security.js';
 
 // Configurable timeout via environment variable (default: 5 minutes)
 const AGENT_TIMEOUT = parseInt(process.env.KIT_AGENT_TIMEOUT || '300000', 10);
 
 interface AgentJob {
-  id: string;
   agent: 'gemini' | 'claude';
   process: ChildProcess;
   startedAt: Date;
@@ -28,9 +27,6 @@ interface AgentJob {
 
 const jobRegistry = new Map<string, AgentJob>();
 
-/**
- * Generate a URL-safe slug from a task string (first ~6 words, max 48 chars)
- */
 function taskSlug(task: string): string {
   return task
     .toLowerCase()
@@ -42,11 +38,6 @@ function taskSlug(task: string): string {
     .slice(0, 48);
 }
 
-/**
- * Initialize a live-streaming log file for an agent job.
- * Writes the header synchronously so the file exists immediately,
- * then opens an append-mode WriteStream for real-time chunk writing.
- */
 function initAgentLog(
   workspaceRoot: string,
   slug: string,
@@ -63,16 +54,7 @@ function initAgentLog(
   return { logPath: path.relative(workspaceRoot, logFile), logStream };
 }
 
-/**
- * Register agent delegation tools with MCP server
- */
 export function registerAgentTools(server: McpServer): void {
-  // ═══════════════════════════════════════════════════════════════
-  // TOOL: TRIGGER AGENT
-  // Delegates a task to an external agent CLI (gemini or claude).
-  // Auto-detects if task is a file path and reads it as context.
-  // Falls back to the alternate agent if requested one is missing.
-  // ═══════════════════════════════════════════════════════════════
   server.tool(
     'kit_trigger_agent',
     '!Important: Trigger only when user explicitly asks to delegate a task to an external agent CLI (gemini or claude). The task can be a direct message or a path to a handoff file (.agent-kit/handoffs/plans/plan-xyz.md). Falls back to the other agent CLI if the requested one is not installed.',
@@ -84,11 +66,14 @@ export function registerAgentTools(server: McpServer): void {
           'Task message or path to a handoff file (e.g., ".agent-kit/handoffs/plans/plan-xyz.md")'
         ),
     },
-    async ({ agent, task }) => {
-      try {
-        const workspaceRoot = getWorkspaceRoot();
+    async ({ agent, task }, extra) => {
+      const workspaceRoot = getWorkspaceRoot();
+      let job: AgentJob | undefined;
+      let logPath: string | undefined;
+      let killChild: (() => void) | undefined;
 
-        // Detect if task is a file path — resolve and read if it exists
+      try {
+        // Resolve task: read file if path, otherwise use as-is
         let prompt = task;
         const resolvedTask = path.resolve(workspaceRoot, task);
         if (fs.existsSync(resolvedTask) && fs.statSync(resolvedTask).isFile()) {
@@ -96,13 +81,11 @@ export function registerAgentTools(server: McpServer): void {
             validatePath(task, workspaceRoot);
             prompt = fs.readFileSync(resolvedTask, 'utf-8');
           } catch (err) {
-            return {
-              content: [{ type: 'text' as const, text: `Error reading task file: ${err}` }],
-            };
+            return mcpText(`Error reading task file: ${err}`);
           }
         }
 
-        // Determine which agent to use — fallback if requested not available
+        // Resolve agent with fallback
         let usedAgent = agent;
         let fallbackReason: string | undefined;
 
@@ -116,27 +99,15 @@ export function registerAgentTools(server: McpServer): void {
               agent === 'gemini'
                 ? 'Install Gemini CLI: https://github.com/google-gemini/gemini-cli'
                 : 'Install Claude CLI: npm install -g @anthropic-ai/claude-code';
-            return {
-              content: [
-                {
-                  type: 'text' as const,
-                  text: JSON.stringify(
-                    {
-                      agent,
-                      status: 'error',
-                      output: '',
-                      error: `Neither ${agent} nor the fallback agent CLI is installed. ${installHint}`,
-                    },
-                    null,
-                    2
-                  ),
-                },
-              ],
-            };
+            return mcpJson({
+              agent,
+              status: 'error',
+              output: '',
+              error: `Neither ${agent} nor the fallback agent CLI is installed. ${installHint}`,
+            });
           }
         }
 
-        // Execute the agent CLI with the prompt
         // Gemini: -y (--yolo) for auto-accept, -p for headless prompt
         // Claude: --dangerously-skip-permissions for auto-accept, -p/--print for headless
         const agentArgs =
@@ -144,97 +115,74 @@ export function registerAgentTools(server: McpServer): void {
             ? ['-y', '-p', prompt]
             : ['--dangerously-skip-permissions', '-p', prompt];
 
-        const slug = taskSlug(task);
-        const { logPath, logStream } = initAgentLog(workspaceRoot, slug, usedAgent);
+        const { logPath: lp, logStream } = initAgentLog(workspaceRoot, taskSlug(task), usedAgent);
+        logPath = lp;
 
         const jobId = randomUUID();
-
         const child = spawn(usedAgent, agentArgs, {
           cwd: workspaceRoot,
           env: { ...process.env, GEMINI_WORKSPACE: workspaceRoot },
         });
 
-        const job: AgentJob = {
-          id: jobId,
+        job = {
           agent: usedAgent as 'gemini' | 'claude',
           process: child,
           startedAt: new Date(),
           chunks: [],
           logStream,
-          timeoutHandle: setTimeout(() => {
-            child.kill('SIGTERM');
-          }, AGENT_TIMEOUT),
+          timeoutHandle: setTimeout(() => child.kill('SIGTERM'), AGENT_TIMEOUT),
         };
-
         jobRegistry.set(jobId, job);
 
-        try {
-          await new Promise<void>((resolve, reject) => {
-            child.stdout?.on('data', (data) => {
-              job.chunks.push(data.toString());
-              job.logStream.write(data);
-            });
-
-            child.stderr?.on('data', (data) => {
-              job.chunks.push(data.toString());
-              job.logStream.write(data);
-            });
-
-            child.on('close', (code) => {
-              if (code === 0) resolve();
-              else reject(new Error(`Process exited with code ${code}`));
-            });
-
-            child.on('error', reject);
-          });
-
-          const output = job.chunks.join('');
-          const safeOutput = sanitizeOutput(output);
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify(
-                  {
-                    agent: usedAgent,
-                    status: fallbackReason ? 'fallback' : 'success',
-                    log: logPath,
-                    output: safeOutput,
-                    ...(fallbackReason && { fallback_reason: fallbackReason }),
-                  },
-                  null,
-                  2
-                ),
-              },
-            ],
-          };
-        } catch (error) {
-          throw error;
-        } finally {
-          job.logStream.end();
-          clearTimeout(job.timeoutHandle);
-          jobRegistry.delete(jobId);
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(
-                {
-                  agent,
-                  status: 'error',
-                  output: '',
-                  error: msg,
-                },
-                null,
-                2
-              ),
-            },
-          ],
+        // Kill child if the MCP request is cancelled (e.g. user presses ESC)
+        killChild = () => {
+          child.kill('SIGTERM');
+          setTimeout(() => child.kill('SIGKILL'), 5000).unref();
         };
+        if (extra.signal.aborted) killChild();
+        else extra.signal.addEventListener('abort', killChild);
+
+        await new Promise<void>((resolve, reject) => {
+          child.stdout?.on('data', (data) => {
+            job!.chunks.push(data.toString());
+            job!.logStream.write(data);
+          });
+          child.stderr?.on('data', (data) => {
+            job!.chunks.push(data.toString());
+            job!.logStream.write(data);
+          });
+          child.on('close', (code, signal) => {
+            if (code === 0) resolve();
+            else
+              reject(
+                new Error(`Process exited with code ${code}${signal ? ` (signal: ${signal})` : ''}`)
+              );
+          });
+          child.on('error', reject);
+        });
+
+        return mcpJson({
+          agent: usedAgent,
+          status: fallbackReason ? 'fallback' : 'success',
+          log: logPath,
+          output: sanitizeOutput(job.chunks.join('')),
+          ...(fallbackReason && { fallback_reason: fallbackReason }),
+        });
+      } catch (error) {
+        if (extra.signal.aborted) {
+          return mcpJson({
+            agent,
+            status: 'cancelled',
+            log: logPath,
+            output: sanitizeOutput(job?.chunks.join('') ?? ''),
+          });
+        }
+        const msg = error instanceof Error ? error.message : String(error);
+        return mcpJson({ agent, status: 'error', output: '', error: msg });
+      } finally {
+        if (killChild) extra.signal.removeEventListener('abort', killChild);
+        job?.logStream.end();
+        if (job) clearTimeout(job.timeoutHandle);
       }
     }
   );

@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
 
-import { getWorkspaceRoot } from '../utils/utils.js';
+import { getWorkspaceRoot, mcpText } from '../utils/utils.js';
 import { DEFAULT_EXTENSIONS } from './config.js';
 
 /**
@@ -43,13 +43,9 @@ export function registerCoreTools(server: McpServer): void {
         const filePath = path.join(handoffDir, filename);
         fs.writeFileSync(filePath, content, 'utf8');
 
-        return {
-          content: [{ type: 'text' as const, text: `✅ Saved to: ${filePath}` }],
-        };
+        return mcpText(`✅ Saved to: ${filePath}`);
       } catch (error) {
-        return {
-          content: [{ type: 'text' as const, text: `Error saving handoff: ${error}` }],
-        };
+        return mcpText(`Error saving handoff: ${error}`);
       }
     }
   );

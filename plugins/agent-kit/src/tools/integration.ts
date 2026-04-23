@@ -9,6 +9,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { getCredential } from '../utils/credentials.js';
+import { mcpText } from '../utils/utils.js';
 import { adfToMarkdown } from '../utils/parser.js';
 import { sanitize } from './security.js';
 
@@ -63,67 +64,19 @@ const JiraTicketSchema = z.object({
   fields: JiraFieldsSchema,
 });
 
-function buildJiraBasicAuth(): string {
-  const email = getCredential('ATLASSIAN_USER_EMAIL');
-  const token = getCredential('ATLASSIAN_API_TOKEN');
-  if (!email || !token) {
-    throw new Error('Missing ATLASSIAN_USER_EMAIL or ATLASSIAN_API_TOKEN');
-  }
+function buildBasicAuth(emailVar: string, tokenVar: string): string {
+  const email = getCredential(emailVar);
+  const token = getCredential(tokenVar);
+  if (!email || !token) throw new Error(`Missing ${emailVar} or ${tokenVar}`);
   return 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
 }
 
-function buildBitbucketBasicAuth(): string {
-  const email = getCredential('BITBUCKET_USER_EMAIL');
-  const token = getCredential('BITBUCKET_API_TOKEN');
-  if (!email || !token) {
-    throw new Error('Missing BITBUCKET_USER_EMAIL or BITBUCKET_API_TOKEN');
-  }
-  return 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64');
-}
-
-async function callAtlassianRestApi(url: string): Promise<unknown> {
-  const auth = buildJiraBasicAuth();
-  const resp = await fetch(url, { headers: { Authorization: auth, Accept: 'application/json' } });
-  if (resp.status === 401) {
-    throw new Error('❌ Auth failed: check ATLASSIAN_USER_EMAIL and ATLASSIAN_API_TOKEN');
-  }
-  if (resp.status === 404) {
-    throw new Error(`❌ Not found: ${url}`);
-  }
-  if (!resp.ok) {
-    throw new Error(`❌ API error ${resp.status}: ${await resp.text()}`);
-  }
-  return await resp.json();
-}
-
-async function callBitbucketRestApi(url: string): Promise<unknown> {
-  const auth = buildBitbucketBasicAuth();
-  const resp = await fetch(url, { headers: { Authorization: auth, Accept: 'application/json' } });
-  if (resp.status === 401) {
-    throw new Error('❌ Auth failed: check BITBUCKET_USER_EMAIL and BITBUCKET_API_TOKEN');
-  }
-  if (resp.status === 404) {
-    throw new Error(`❌ Not found: ${url}`);
-  }
-  if (!resp.ok) {
-    throw new Error(`❌ API error ${resp.status}: ${await resp.text()}`);
-  }
-  return await resp.json();
-}
-
-async function callBitbucketDiffApi(url: string): Promise<string> {
-  const auth = buildBitbucketBasicAuth();
-  const resp = await fetch(url, { headers: { Authorization: auth, Accept: 'text/plain' } });
-  if (resp.status === 401) {
-    throw new Error('❌ Auth failed: check BITBUCKET_USER_EMAIL and BITBUCKET_API_TOKEN');
-  }
-  if (resp.status === 404) {
-    throw new Error(`❌ Not found: ${url}`);
-  }
-  if (!resp.ok) {
-    throw new Error(`❌ API error ${resp.status}: ${await resp.text()}`);
-  }
-  return await resp.text();
+async function callRestApi(url: string, auth: string, accept = 'application/json'): Promise<unknown> {
+  const resp = await fetch(url, { headers: { Authorization: auth, Accept: accept } });
+  if (resp.status === 401) throw new Error(`❌ Auth failed (401): ${url}`);
+  if (resp.status === 404) throw new Error(`❌ Not found: ${url}`);
+  if (!resp.ok) throw new Error(`❌ API error ${resp.status}: ${await resp.text()}`);
+  return accept === 'text/plain' ? resp.text() : resp.json();
 }
 
 export function registerIntegrationTools(server: McpServer): void {
@@ -148,24 +101,10 @@ export function registerIntegrationTools(server: McpServer): void {
     },
     async ({ input, workspace, repoSlug, includeDiff }) => {
       try {
-        const bbEmail = getCredential('BITBUCKET_USER_EMAIL');
-        const bbToken = getCredential('BITBUCKET_API_TOKEN');
-        if (!bbEmail || !bbToken) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ Missing BITBUCKET_USER_EMAIL or BITBUCKET_API_TOKEN. Set them in ~/.claude/agent-kit or as environment variables.`,
-              },
-            ],
-          };
-        }
-
         let ws: string | undefined;
         let repo: string | undefined;
         let prId: number | undefined;
 
-        // Try URL parse
         const urlMatch = input.match(/bitbucket\.org\/([^/]+)\/([^/]+)\/pull-requests\/(\d+)/);
         if (urlMatch) {
           ws = urlMatch[1];
@@ -178,32 +117,22 @@ export function registerIntegrationTools(server: McpServer): void {
         }
 
         if (!ws) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ workspace is required. Pass it as a parameter or set BITBUCKET_DEFAULT_WORKSPACE in your MCP env config.`,
-              },
-            ],
-          };
+          return mcpText(
+            `❌ workspace is required. Pass it as a parameter or set BITBUCKET_DEFAULT_WORKSPACE in your MCP env config.`
+          );
         }
-
         if (!repo || !prId) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ Could not parse PR URL. Expected: bitbucket.org/{ws}/{repo}/pull-requests/{id}`,
-              },
-            ],
-          };
+          return mcpText(
+            `❌ Could not parse PR URL. Expected: bitbucket.org/{ws}/{repo}/pull-requests/{id}`
+          );
         }
 
         const safeWs = sanitize(ws);
         const safeRepo = sanitize(repo);
+        const auth = buildBasicAuth('BITBUCKET_USER_EMAIL', 'BITBUCKET_API_TOKEN');
 
         const prUrl = `https://api.bitbucket.org/2.0/repositories/${safeWs}/${safeRepo}/pullrequests/${prId}`;
-        const jsonData = await callBitbucketRestApi(prUrl);
+        const jsonData = await callRestApi(prUrl, auth);
 
         const parseResult = BitbucketPrSchema.safeParse(jsonData);
         if (!parseResult.success) {
@@ -220,7 +149,7 @@ ${pr.description || 'No description'}`;
 
         if (includeDiff) {
           const diffUrl = `https://api.bitbucket.org/2.0/repositories/${safeWs}/${safeRepo}/pullrequests/${prId}/diff`;
-          const diff = await callBitbucketDiffApi(diffUrl);
+          const diff = (await callRestApi(diffUrl, auth, 'text/plain')) as string;
           const DIFF_FILE_THRESHOLD = 50_000;
 
           if (diff.length < DIFF_FILE_THRESHOLD) {
@@ -236,10 +165,9 @@ ${pr.description || 'No description'}`;
           }
         }
 
-        return { content: [{ type: 'text' as const, text: output }] };
+        return mcpText(output);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: 'text' as const, text: errorMsg }] };
+        return mcpText(error instanceof Error ? error.message : String(error));
       }
     }
   );
@@ -253,65 +181,26 @@ ${pr.description || 'No description'}`;
     },
     async ({ ticketId }) => {
       try {
-        const cloudId = getCredential('ATLASSIAN_CLOUD_ID');
-        const userEmail = getCredential('ATLASSIAN_USER_EMAIL');
-        const apiToken = getCredential('ATLASSIAN_API_TOKEN');
-
-        if (!cloudId || !userEmail || !apiToken) {
-          const missing = [
-            !cloudId && 'ATLASSIAN_CLOUD_ID',
-            !userEmail && 'ATLASSIAN_USER_EMAIL',
-            !apiToken && 'ATLASSIAN_API_TOKEN',
-          ]
-            .filter(Boolean)
-            .join(', ');
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ Missing ${missing}. Create an API Token at id.atlassian.com/manage-profile/security/api-tokens.`,
-              },
-            ],
-          };
-        }
-
         const safeTicketId = ticketId.match(/^[A-Z]+-\d+$/)?.[0];
         if (!safeTicketId) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ Invalid ticket ID format: ${ticketId}\n\nExpected format: PROJ-123`,
-              },
-            ],
-          };
+          return mcpText(`❌ Invalid ticket ID format: ${ticketId}\n\nExpected format: PROJ-123`);
         }
 
+        const cloudId = getCredential('ATLASSIAN_CLOUD_ID');
+        if (!cloudId) throw new Error('Missing ATLASSIAN_CLOUD_ID');
+
+        const auth = buildBasicAuth('ATLASSIAN_USER_EMAIL', 'ATLASSIAN_API_TOKEN');
         const url = `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue/${safeTicketId}`;
-        const jsonData = await callAtlassianRestApi(url);
+        const jsonData = await callRestApi(url, auth);
 
         const parseResult = JiraTicketSchema.safeParse(jsonData);
         if (!parseResult.success) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ Invalid Jira response format: ${parseResult.error.message}`,
-              },
-            ],
-          };
+          return mcpText(`❌ Invalid Jira response format: ${parseResult.error.message}`);
         }
         const ticket = parseResult.data;
 
         if (ticket.errorMessages && ticket.errorMessages.length > 0) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `❌ Ticket not found: ${ticketId}\n\n${ticket.errorMessages.join('\n')}`,
-              },
-            ],
-          };
+          return mcpText(`❌ Ticket not found: ${ticketId}\n\n${ticket.errorMessages.join('\n')}`);
         }
 
         const output = `## 🎫 ${ticketId}: ${ticket.fields.summary}
@@ -332,10 +221,9 @@ ${
 ### Labels
 ${ticket.fields.labels?.join(', ') || 'None'}`;
 
-        return { content: [{ type: 'text' as const, text: output }] };
+        return mcpText(output);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: 'text' as const, text: `Error: ${errorMsg}` }] };
+        return mcpText(`Error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   );
