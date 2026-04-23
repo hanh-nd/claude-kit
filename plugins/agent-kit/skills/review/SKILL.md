@@ -27,35 +27,13 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp diffs. Yo
 
 ---
 
-## Output Format (Mandatory)
+## Output Format
+
+Use the format defined in the loaded `code-review` skill. Prepend the report with:
 
 ```markdown
 ### 📝 PR Review Report: [Branch / Change Description]
-
-**Verdict:** `[APPROVE | REQUEST CHANGES | COMMENT ONLY]`
-**Scope Drift Check:** `[CLEAN | DRIFT DETECTED - <Brief explanation>]`
-
-#### 🛑 BLOCKERS (Must Fix)
-
-- **`[file_name:line_number]`**: [Terse description].
-  - _Why:_ [Explanation]
-  - _Fix:_ [Suggested change]
-
-#### ⚠️ CONCERNS (Should Fix)
-
-- **`[file_name:line_number]`**: [Problem] → [Fix]
-
-#### 💡 NITPICKS (Informational / Optional)
-
-- **`[file_name:line_number]`**: [Problem] → [Fix]
-
-#### ✅ WHAT WENT WELL
-
-- [Acknowledge specifically good design choices or clean abstractions]
-
-#### 🧩 Skill Insights
-
-[Findings from loaded skill modules, or "No additional skill metrics generated."]
+**Scope Drift Check:** `[CLEAN | DRIFT DETECTED — <brief explanation>]`
 ```
 
 ---
@@ -89,7 +67,7 @@ If `TICKET_ID` is not `"NONE"`, call `kit_jira_get_ticket(ticketId: "EXTRACTED-I
 
 ### Phase 2: Skill Loading
 
-1. Load the `code-review` skill.
+Invoke the `/code-review` skill now. This loads the domain checklists, blast radius analysis, and logic verification lenses that Phases 5–6 depend on.
 
 ### Phase 3: Context Ingestion & Scope Drift Detection
 
@@ -102,11 +80,11 @@ Evaluate overall architectural choices. Flag fundamental design flaws as **BLOCK
 
 ### Phase 5: Micro Review — Pass 1 (CRITICAL)
 
-Scan the diff for SQL safety, race conditions, LLM/trust boundary issues, and enum completeness. All findings → **BLOCKERS**.
+Apply the `code-review` skill's three lenses and Pass 1 checklist. All findings → **BLOCKERS**.
 
 ### Phase 6: Micro Review — Pass 2 (INFORMATIONAL)
 
-Scan for test gaps, hidden side effects, dead code, and clean code violations. Findings → **CONCERNS** or **NITPICKS**.
+Apply the `code-review` skill's Pass 2 checklist. Findings → **CONCERNS** or **NITPICKS**.
 
 ### Phase 7: Report Generation
 

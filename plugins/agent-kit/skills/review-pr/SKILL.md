@@ -27,35 +27,13 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp PRs. You 
 
 ---
 
-## Output Format (Mandatory)
+## Output Format
+
+Use the format defined in the loaded `code-review` skill. Prepend the report with:
 
 ```markdown
 ### 📝 PR Review Report: [Jira Ticket ID / PR Title]
-
-**Verdict:** `[APPROVE | REQUEST CHANGES | COMMENT ONLY]`
-**Scope Drift Check:** `[CLEAN | DRIFT DETECTED - <Brief explanation>]`
-
-#### 🛑 BLOCKERS (Must Fix)
-
-- **`[file_name:line_number]`**: [Terse description of the problem].
-  - _Why:_ [Explanation based on principles]
-  - _Fix:_ [Suggested code change or architectural shift]
-
-#### ⚠️ CONCERNS (Should Fix)
-
-- **`[file_name:line_number]`**: [Problem] → [Fix]
-
-#### 💡 NITPICKS (Informational / Optional)
-
-- **`[file_name:line_number]`**: [Problem] → [Fix]
-
-#### ✅ WHAT WENT WELL
-
-- [Acknowledge specifically good design choices, excellent test coverage, or clean abstractions]
-
-#### 🧩 Skill Insights
-
-[Findings from any loaded skill modules, or "No additional skill metrics generated."]
+**Scope Drift Check:** `[CLEAN | DRIFT DETECTED — <brief explanation>]`
 ```
 
 ---
@@ -79,7 +57,7 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp PRs. You 
 
 ### Phase 2: Skill Loading
 
-1. Load the `code-review` skill.
+Invoke the `/code-review` skill now. This loads the domain checklists, blast radius analysis, and logic verification lenses that Phases 5–6 depend on.
 
 ### Phase 3: Context Ingestion & Scope Drift Detection
 
@@ -95,25 +73,11 @@ You do NOT accept "we will clean it up later." You do NOT rubber-stamp PRs. You 
 
 ### Phase 5: Micro Review — Pass 1 (CRITICAL)
 
-Scan the diff for:
-
-- **SQL & Data Safety:** Direct DB writes bypassing validation, SQL string interpolation.
-- **Race Conditions:** Check-then-set patterns, lack of atomic operations.
-- **LLM/Trust Boundaries:** Unvalidated output from LLMs or external APIs being executed or persisted.
-- **Enum/Completeness:** New status added but not handled in existing switch statements.
-
-All findings → **BLOCKERS**.
+Apply the `code-review` skill's three lenses and Pass 1 checklist. All findings → **BLOCKERS**.
 
 ### Phase 6: Micro Review — Pass 2 (INFORMATIONAL)
 
-Scan the diff for:
-
-- **Test Gaps:** New logic paths without unit/integration tests.
-- **Side Effects:** Hidden state mutations in seemingly pure functions.
-- **Dead Code:** Unused variables, lingering `console.log` or debug statements.
-- **Clean Code:** Magic numbers, poor naming, bloated controllers.
-
-Findings → **CONCERNS** (missing tests) or **NITPICKS** (style/naming).
+Apply the `code-review` skill's Pass 2 checklist. Findings → **CONCERNS** or **NITPICKS**.
 
 ### Phase 7: Report Generation
 

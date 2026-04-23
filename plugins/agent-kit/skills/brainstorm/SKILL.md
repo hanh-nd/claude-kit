@@ -4,7 +4,7 @@ description: 'Strategic architectural brainstorming — from raw idea to enginee
 version: 1.0.0
 ---
 
-# 💡 Brainstorm
+# 💡 Ultrathink Brainstorm
 
 **Topic / Requirement:** $ARGUMENTS
 
