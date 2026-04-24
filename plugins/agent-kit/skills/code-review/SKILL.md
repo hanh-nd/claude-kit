@@ -2,146 +2,213 @@
 name: code-review
 version: 3.0.0
 effort: max
-description: |
-  Domain expertise for code reviews. Provides critical/informational checklists, blast radius analysis, and logic verification for any pipeline that loads it. Used as a sub-skill by ak:review and ak:review-pr; also invocable standalone for ad-hoc diff review.
+description: Rigorous code review of diffs, pull requests, or commits with evidence-backed findings. Use whenever the user asks to review a diff, review a PR, check a commit, audit code changes, assess whether code is ready to merge, or evaluate a pull request. Also loadable as a sub-skill by higher-level review pipelines that handle fetching and orchestration. Catches critical issues (data safety, concurrency, trust boundaries, state completeness, destructive operations) and informational concerns (hidden side effects, dead code, test parity, magic values) while flagging scope drift from stated intent. Language-agnostic and domain-agnostic — applies to backend, frontend, infra, data pipelines, and agent code alike.
 ---
 
-Whether you were loaded by a review pipeline or invoked directly: this skill injects domain expertise and three cognitive lenses. It does not define a new pipeline — it enriches how you execute whatever review workflow is already in context.
+# Code Review
 
----
+You review code the way a strict principal engineer does: skeptically, with evidence, and without rubber-stamping. The absolute bar is codebase health — it must improve or stay the same, never decrease. You review the code, not the author. Every finding includes `file:line` and the reasoning chain that led to it. Every category you claim to have checked includes a clearance line proving you looked.
 
-## Your Standard
-
-The absolute bar is codebase health: it must improve or stay the same — never decrease. You do not accept "we'll clean it up later." You review the _code_, not the developer. Explain the _why_ behind every finding so the author learns, not just fixes.
-
-**A passing review is demonstrated evidence that you understood what the code does, traced its execution, and verified correctness. A finding you cannot back up with a file path and a reasoning chain is a guess. A clearance with no trace is a skipped check.**
+A finding without evidence is a guess. A category without a clearance is a skipped check.
 
 ---
 
-## Three Lenses to Apply During Every Review
+## Inputs
 
-### 1. Blast Radius Before Category Checking
+Three things are required before review. If a parent pipeline invoked this skill, it supplies them. If invoked directly, request whatever is missing:
 
-Before pattern-matching for security or concurrency issues, search the codebase for every file that imports or calls a changed symbol. Most regression bugs aren't in the changed lines — they live in callers that silently assumed the old behavior.
+1. **The diff** — actual code changes, as unified diff or equivalent.
+2. **The intent** — PR description, ticket, commit messages, or a direct statement of what the change is supposed to do.
+3. **Codebase access** — read access to files outside the diff, so callers and consumers can be checked. Without this, Blast Radius analysis degrades; note this in the report footer.
 
-If callers exist that aren't updated in the diff but are affected by the change (signature changed, export removed, behavior altered), that's a **BLOCKER** — the PR is incomplete. For brand-new code with no callers yet, note that you checked and move on.
+If intent cannot be recovered, prepend to the final report:
 
-### 2. Logic Before Patterns
-
-Confirming no SQL injection exists doesn't tell you whether the function is correct. For each non-trivial changed function: form a mental model of what it's supposed to do (from name, signature, PR description, or calling context), then trace every branch in the full body to verify the implementation actually matches.
-
-Look for: missing code paths, logic inversions, off-by-one errors, mutation before validation, conditions that are vacuously true, loops that exit too early.
-
-> This is where most logic bugs live. Pattern-matching against a security checklist is not a substitute for tracing what the code actually does.
-
-### 3. Evidence Over Assertion
-
-For every Pass 1 and Pass 2 category, either produce a finding or an explicit clearance:
-
-- **Finding:** `file:line` — what you saw, why it matters, suggested fix.
-- **Clearance:** `"[Category]: Checked — traced X() at path:line through Y(), confirmed Z."`
+> ⚠️ No stated intent (no PR description, ticket, or commit message). Reviewing technical semantics only. Scope Drift cannot be assessed.
 
 ---
 
-## Pass 1: Critical Checklist (→ BLOCKERS)
+## Execution — Four Ordered Phases
 
-Any finding here MUST be a BLOCKER and results in REQUEST CHANGES.
+Run in order. Do not skip. Phase 4 is not optional — it's where the review catches what the first pass missed.
 
-### SQL & Data Safety
+### Phase 1 — Frame the Change
 
-- **String interpolation in SQL:** Flag raw string-building in queries (even with `.to_i`/`.to_f`). Demand parameterized queries.
-- **Bypassing model validations:** Flag direct DB writes that skip app-level validation (Rails: `update_column`, Django: `QuerySet.update()`, Prisma raw queries).
-- **N+1 queries:** Flag lazy loading inside loops. Demand eager loading or batching.
-- **Schema mutations in app code:** Flag schema changes that should be in migration files.
+Before touching any checklist, form a mental model:
 
-### Race Conditions & Concurrency
+- What is the stated intent? (one sentence from ticket/PR description)
+- What does the diff actually do? (one sentence synthesizing the changes)
+- Do these match?
 
-- **TOCTOU:** Flag check-then-set patterns that should be atomic (`WHERE` + `update_all` instead of a single atomic operation).
-- **Missing locks:** Flag unprotected mutations of shared financial or critical state.
-- **Non-idempotent background jobs:** Flag jobs that mutate state without transactions or idempotency keys — if a job fails halfway, can it safely retry?
+Produce a **Scope Drift** assessment: `CLEAN` (diff matches intent) or `DRIFT` (diff contains changes outside stated intent — name specific files/hunks).
 
-### LLM Output & Trust Boundaries
+Unrelated changes smuggled into an otherwise-legitimate PR are a real problem: they expand blast radius, bypass review focus, and correlate with incident-causing bugs. Flag drift even when the drift itself looks harmless.
 
-- **Unvalidated output:** Flag LLM or external API output that is parsed, executed, or persisted without schema validation (Zod, Pydantic, etc.).
-- **Prompt injection:** Flag prompts that concatenate raw user input without XML tags or strict delimiters.
-- **Raw eval/execution:** Flag any system that directly executes LLM-generated code without a sandboxed environment.
+### Phase 2 — Blast Radius
 
-### Enum & Value Completeness
+For every changed symbol whose contract is observable outside the diff — function signatures, exported constants, enum values, state machine transitions, public methods, database columns, API schemas, event payloads — search the codebase for consumers.
 
-When a new state, enum value, or status is introduced: search files **outside** the diff for `switch` statements, frontend mappings, and DB constraints that reference it. An unhandled new value in existing code is a critical blocker.
+If a consumer exists outside the diff and isn't updated to match the new contract, that's a **BLOCKER**. The PR is incomplete. For brand-new symbols with no consumers yet, note that the check was performed and move on.
+
+Most regression bugs don't live in the changed lines. They live in callers that silently assumed the old behavior.
+
+### Phase 3 — Category Sweep
+
+Apply the two checklists below. Pass 1 findings are BLOCKERS. Pass 2 findings are CONCERNS or NITPICKS based on severity.
+
+For every category, produce either a finding or a clearance:
+
+- **Finding:** `file:line` — problem, why it matters, suggested fix.
+- **Clearance:** one line — `"[Category]: Checked — [what was traced or searched], confirmed [what was found]."`
+
+Clearances go in the Coverage section of the final report. They exist so the review is auditable — a reader can see what was actually examined, not just what was flagged.
+
+#### Pass 1 — Critical (→ BLOCKERS)
+
+**Injection & Untrusted Input**
+
+- Untrusted input flowing into an interpreter (query languages, shells, templating engines, deserializers, dynamic code execution, regex constructed at runtime) without parameterization, escaping, or schema validation.
+- Validation layers bypassed by direct writes (raw storage writes skipping application-level validation, schema mutations outside migration files, authorization checks skipped via lower-level APIs).
+
+**Concurrency & Atomicity**
+
+- Check-then-act patterns on shared state that should be atomic.
+- Missing locks or transactions around multi-step mutations of critical state (balances, counters, inventory, state transitions).
+- Non-idempotent operations that can be retried or run concurrently. If a job fails halfway or runs twice, does the system end up in a valid state?
+
+**Trust Boundaries**
+
+- Output from external systems (LLMs, remote APIs, webhooks, message queues, user uploads) parsed, persisted, or executed without schema validation.
+- Untrusted text concatenated into instructions without delimiters or escaping (prompt injection, template injection, header injection).
+- Secrets, tokens, or PII appearing in logs, error messages, URLs, telemetry, or committed files.
+
+**State Completeness**
+
+- New enum value, state, status, event type, error code, feature flag, or configuration key introduced without updating every consumer that must handle it. Search outside the diff for exhaustive matches, lookup tables, UI mappings, schema constraints, documentation, and migration scripts.
+
+**Destructive & Irreversible Operations**
+
+- Deletes, truncates, schema changes, or data migrations without rollback paths, safeguards, dry-run modes, or recovery plans.
+- Operations executed outside the transaction scope they belong to, leaving partial writes on failure.
+
+**Error Handling That Hides Failures**
+
+- Broad exception catches that swallow errors which should propagate.
+- Default values that mask upstream failures (returning empty collection when the underlying call errored, returning success status when the operation partially failed).
+- Error paths that log but don't alert, retry, or fail on unrecoverable conditions.
+
+#### Pass 2 — Informational (→ CONCERNS or NITPICKS)
+
+**Logic & Correctness**
+
+- Missing branches, off-by-one conditions, inverted comparisons, vacuously true or unreachable conditions.
+- Loops that exit too early, iterate the wrong collection, or mutate during iteration.
+- Functions where the implementation doesn't match the name or signature's implied contract.
+
+**Hidden Side Effects**
+
+- State mutations inside functions that appear to be pure readers, validators, or getters.
+- Argument mutation instead of returning a new value, when callers don't expect it.
+- I/O, logging, or telemetry inside code paths advertised as pure.
+
+**Magic Values**
+
+- Hardcoded numbers or strings in conditional logic that should be named constants, enums, or configuration.
+- Repeated literal values that represent the same concept but aren't linked.
+
+**Dead Code & Debug Residue**
+
+- Unused variables, parameters, imports, or exports.
+- Commented-out blocks, debug/trace statements, or TODOs older than the ticket.
+- Logically impossible conditions (`if false`, guarded by a check that already ran).
+
+**Test Parity**
+
+- New logic paths without tests. Every non-trivial branch should have coverage.
+- Flaky patterns: time-dependent assertions without a frozen clock, network calls without mocks, assertions on unsorted collections, randomness without seeding, shared mutable fixtures.
+- Before reporting a missing test, search conventional test locations — tests may exist in a different file than expected.
+
+**Performance Hotspots**
+
+- Repeated work inside loops, render paths, or request handlers that could be hoisted or memoized.
+- Nested iteration where a set, map, or index would change the complexity class.
+- Synchronous I/O in paths that should be async, or unnecessary async in hot paths.
+- Large payloads fetched when a field projection would suffice.
+
+**Naming & Clarity**
+
+- Names that lie: a function named `validate` that also mutates, a flag `isEnabled` with inverted semantics, a variable named for its type rather than its role.
+- Comments that describe what the code does instead of why it does it that way.
+- Over-abstracted interfaces introduced for a single current caller.
+
+### Phase 4 — Self-Critique
+
+After producing the initial finding list, stop and answer three questions:
+
+1. **Anchoring check** — did the first interesting bug cause other files to be skimmed? Re-examine the files that received the least attention.
+2. **Category coverage** — list the Pass 1 and Pass 2 categories that don't yet have clearances. Go back and either clear them or produce findings.
+3. **Intent re-check** — re-read the ticket/PR description with the diff in hand. Is there anything the ticket required that the diff doesn't address?
+
+Add any new findings to the report and tag them `[self-critique]` so the reader knows they survived a second pass.
 
 ---
 
-## Pass 2: Informational Checklist (→ CONCERNS or NITPICKS)
+## Suppression List — Do Not Flag
 
-### Conditional Side Effects
-
-- Flag hidden state mutations inside functions that appear to be pure getters or validators.
-- Flag direct argument mutation instead of returning a new copy (unless explicitly designed for performance).
-
-### Magic Numbers & String Coupling
-
-- Flag hardcoded numbers or strings in conditional logic. They should be named constants or enums.
-
-### Dead Code
-
-- Flag unused variables, lingering `console.log`/`debugger` statements, commented-out code blocks.
-- Flag logically impossible `if` checks.
-
-### Test Parity
-
-- Flag new logic paths without tests. Every branch must be covered.
-- Flag flaky test risks (e.g., `Time.now` without freezing, unsorted array assertions).
-- Flag missing mocks for external HTTP calls.
-- **Before reporting a missing test:** search for the test file — it may exist in a different location.
-
-### LLM-Specific
-
-- Flag vague prompt instructions ("be helpful") that should be explicit directives.
-- Flag context bloat: feeding an entire file to an LLM when only a snippet is needed.
-
-### Frontend
-
-- Flag `O(n*m)` lookups inside render loops.
-- Flag inline styles that should be CSS classes.
-
----
-
-## Suppression List — Do Not Flag These
-
-- Redundancy that aids readability (e.g., a `present?` check before a length check).
-- Missing comments explaining why a threshold was chosen — thresholds change, comments rot.
-- Tests that cover multiple guard clauses in one assertion.
+- Redundancy that aids readability (e.g., a nil-check before a length check).
+- Missing comments explaining why a threshold value was chosen — thresholds change, explanatory comments rot.
+- Tests that cover multiple guard clauses in a single assertion.
 - Harmless no-ops.
-- Issues in file A that are correctly mitigated in file B (read the full diff before commenting).
-- Assertions that could be "tighter" if they already cover core behavior.
+- Issues in file A that are correctly mitigated in file B — read the full diff before commenting.
+- Assertions that could be "tighter" when they already cover the core behavior.
+- Style preferences that aren't part of the codebase's existing convention.
 
 ---
 
 ## Output Format
 
 ```markdown
-**Verdict:** `[APPROVE | REQUEST CHANGES | COMMENT ONLY]`
+### 📝 Code Review Report
 
-#### 🛑 BLOCKERS (Must Fix)
+**Verdict:** `APPROVE | REQUEST CHANGES | COMMENT ONLY`
+**Scope Drift:** `CLEAN | DRIFT — <brief description>`
 
-- **`file:line`** — [Problem].
-  - _Why:_ [Explanation]
-  - _Fix:_ [Suggested change]
+#### 🛑 BLOCKERS (must fix before merge)
 
-#### ⚠️ CONCERNS (Should Fix)
+- **`file:line`** — [problem]
+  - _Why:_ [explanation]
+  - _Fix:_ [concrete suggestion]
 
-- **`file:line`** — [Problem] → [Fix]
+#### ⚠️ CONCERNS (should fix)
 
-#### 💡 NITPICKS (Informational / Optional)
+- **`file:line`** — [problem] → [fix]
 
-- **`file:line`** — [Problem] → [Fix]
+#### 💡 NITPICKS (optional)
+
+- **`file:line`** — [problem] → [fix]
 
 #### ✅ WHAT WENT WELL
 
-- [Specifically good design choices]
+- [specific good decisions worth reinforcing]
 
-#### 🧩 Skill Insights
+#### 🔍 Coverage
 
-[Any additional findings from checklists, or "No additional insights."]
+- [Category]: Checked — [what was traced], confirmed [result].
+- [Category]: Checked — [what was traced], confirmed [result].
+- …
 ```
+
+**Verdict rules:**
+
+- Any BLOCKER → `REQUEST CHANGES`.
+- CONCERNS only, no BLOCKERS → `COMMENT ONLY`, or `APPROVE` if concerns are minor and non-blocking.
+- NITPICKS only → `APPROVE`.
+
+---
+
+## Conduct
+
+- Review the code, not the author.
+- No hedging. "I think this might be a problem" is not a finding. Either it is a problem with evidence, or it isn't.
+- Explain the why behind every finding — the author should learn, not just patch.
+- Praise specific good decisions in WHAT WENT WELL. Vague praise teaches nothing.
+- When the codebase is unavailable or the intent is missing, say so in the report footer — never pretend to have checked what couldn't be checked.

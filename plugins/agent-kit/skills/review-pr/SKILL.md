@@ -1,97 +1,90 @@
 ---
 name: ak:review-pr
-description: 'Deep Bitbucket PR review with Jira alignment and 2-pass analysis'
 version: 1.0.0
+description: Fetch a PR with its Jira context, check out its branch locally for full codebase access, invoke the code-review skill, and return a complete review. Use whenever the user wants a deep review of a PR by URL or identifier, or asks to "review PR X", "check PR X", "is PR X ready to merge", or "audit this pull request".
 ---
 
-# 🔍 Review PR
+# Review PR
 
 **PR Target:** $ARGUMENTS
 
----
-
-## Your Identity
-
-You are a **Strict Principal Engineer**. Your primary directive: the overall health of the codebase must improve or stay the same — it must never decrease.
-
-You do NOT accept "we will clean it up later." You do NOT rubber-stamp PRs. You review changes against the stated intent (Jira Ticket / PR Description) and ruthlessly flag scope drift, over-engineering, and missing tests.
-
-### Core Cognitive Principles
-
-1. **Jira/Intent Alignment:** Code must do exactly what the ticket requires — nothing more, nothing less. "While I was in there" changes that expand the blast radius must be flagged as Scope Drift.
-2. **Design over Syntax:** The most important aspect is overall design. Does this change belong here? Is it over-engineered? Are edge cases handled?
-3. **The 2-Pass Filter:**
-   - _Pass 1 (Critical):_ SQL injections, data safety, concurrency, trust boundaries → **BLOCKERS**.
-   - _Pass 2 (Informational):_ Naming, test coverage, dead code, magic numbers → **NITPICKS**.
-4. **Terse & Objective Tone:** No hedging ("I think", "maybe"). State the problem clearly and provide the exact fix. Praise good design when you see it.
-
----
-
-## Output Format
-
-Use the format defined in the loaded `code-review` skill. Prepend the report with:
-
-```markdown
-### 📝 PR Review Report: [Jira Ticket ID / PR Title]
-**Scope Drift Check:** `[CLEAN | DRIFT DETECTED — <brief explanation>]`
-```
+This skill is a thin orchestrator. It handles fetching the PR, pulling its Jira ticket, and setting up the local codebase so the `code-review` skill can run with full context. Review criteria, severity levels, output format, and judgment all live in `code-review` — this skill does not duplicate or override them.
 
 ---
 
 ## Execution Pipeline
 
-### Phase 1: Context Acquisition (MANDATORY — do this before looking at any code)
+### Phase 1 — Context Acquisition
 
-1. **Fetch PR Details + Diff:** Call `kit_get_bitbucket_pr(input: "$ARGUMENTS", includeDiff: true)` → returns PR metadata and unified diff in one response. If the tool returns an error, STOP and report.
-2. **Fetch Business Requirements:** If a Jira/Ticket ID (e.g. `PROJ-123`) is found in the PR title, description, or branch name, call `kit_jira_get_ticket(ticketId: "EXTRACTED-ID")`.
-3. **Fallback:** If no PR description, commit intent, or Jira ticket is found, append to final output:
-   > ⚠️ **Warning:** Missing business context (No PR description or Ticket). Reviewing based on technical semantics only.
-4. **Branch Setup:** Using the `{workspace}`, `{repoSlug}`, and `{sourceBranch}` from Step 1:
-   - Run `git branch --show-current` → save as `{originalBranch}`.
-   - Run `git status --porcelain` → if output is non-empty, mark `checkoutState = UNHAPPY` (dirty working tree).
-   - Run `git remote get-url origin` → if it does not contain both `{workspace}` and `{repoSlug}`, mark `checkoutState = UNHAPPY` (wrong repo).
-   - **HAPPY** (not UNHAPPY): run `git fetch origin && git checkout {sourceBranch} && git reset --hard origin/{sourceBranch}`.
-     Set `checkoutState = CHECKED_OUT`. Full codebase context is now available via `Read`, `Grep`, and `Glob`.
-   - **UNHAPPY**: skip checkout. Do NOT stash or force. Add to the final report footer:
-     > ⚠️ Codebase context unavailable (dirty working tree or mismatched repo). Review based on diff only.
+Gather the inputs `code-review` needs:
 
-### Phase 2: Skill Loading
+1. **PR details + diff.** Call `kit_get_bitbucket_pr(input: "$ARGUMENTS", includeDiff: true)`. Capture PR metadata (`workspace`, `repoSlug`, `sourceBranch`, `destinationBranch`, `title`, `description`, `author`) and the unified diff. On tool error, stop and report the error to the user — do not fall back to partial data.
 
-Invoke the `/code-review` skill now. This loads the domain checklists, blast radius analysis, and logic verification lenses that Phases 5–6 depend on.
+2. **Jira ticket (if referenced).** If a ticket ID matching `[A-Z]+-\d+` appears in the PR title, description, or branch name, call `kit_jira_get_ticket(ticketId: "EXTRACTED-ID")` and capture the ticket body. This becomes part of the intent passed to the child skill.
 
-### Phase 3: Context Ingestion & Scope Drift Detection
+3. **Intent availability.** If no PR description, commit messages, or Jira ticket exists, record this — the child skill will emit its own missing-intent warning.
 
-- Read the Jira ticket description or PR summary.
-- Analyze the diff against the ticket intent.
-- Identify **Scope Drift** (unrelated changes) and **Missing Requirements** (skipped acceptance criteria).
+### Phase 2 — Environment Setup
 
-### Phase 4: Macro Review (Design & Complexity)
+Check out the source branch locally so `code-review` has full codebase access (required for Blast Radius analysis):
 
-- Evaluate overall architectural choices.
-- Does this PR introduce unjustified complexity? Are models/services interacting correctly? Is there over-engineering?
-- Record fundamental design flaws as **BLOCKERS**.
+1. `git branch --show-current` → save as `originalBranch`.
+2. `git status --porcelain` → if non-empty, mark `checkoutState = UNHAPPY` (dirty working tree; checkout would destroy uncommitted work).
+3. `git remote get-url origin` → if the URL does not contain both `workspace` and `repoSlug` from Phase 1, mark `checkoutState = UNHAPPY` (wrong repo).
+4. If not marked `UNHAPPY`:
+   - `git fetch origin`
+   - `git checkout {sourceBranch}`
+   - `git reset --hard origin/{sourceBranch}`
+   - Set `checkoutState = CHECKED_OUT`.
+5. If `UNHAPPY`: skip checkout. Never stash, never force. Record the reason (`dirty working tree` or `mismatched repo`).
 
-### Phase 5: Micro Review — Pass 1 (CRITICAL)
+### Phase 3 — Invoke `code-review`
 
-Apply the `code-review` skill's three lenses and Pass 1 checklist. All findings → **BLOCKERS**.
+Load the `code-review` skill and hand it:
 
-### Phase 6: Micro Review — Pass 2 (INFORMATIONAL)
+- **Diff** — from Phase 1.
+- **Intent** — PR description and Jira ticket body (when available). If neither exists, pass what you have and let the child skill handle the missing-intent case.
+- **Codebase access** — full if `checkoutState = CHECKED_OUT`, degraded if `UNHAPPY`. Tell the child which mode applies so its Blast Radius phase can adjust.
 
-Apply the `code-review` skill's Pass 2 checklist. Findings → **CONCERNS** or **NITPICKS**.
+The child owns framing, Scope Drift assessment, Blast Radius, Pass 1 and Pass 2 sweep, self-critique, and final report formatting. Do not re-run those phases here and do not second-guess the child's verdict.
 
-### Phase 7: Report Generation
+### Phase 4 — Report Assembly
 
-Synthesize all findings. Format output strictly per the Output Format above.
+Prepend this PR header to the child skill's report:
 
-- At least one BLOCKER → Verdict MUST be `REQUEST CHANGES`.
-- Only NITPICKS → Verdict can be `APPROVE` with comments.
-- No further code generation unless user explicitly requests a patch for a specific finding.
+```markdown
+## 📝 PR Review: {PR Title}
 
-### Phase 8: Branch Restore
+- **PR:** [{workspace}/{repoSlug}#{PR number}]({PR URL})
+- **Branch:** `{sourceBranch}` → `{destinationBranch}`
+- **Ticket:** `{TICKET-ID}` — {ticket title, if available}
+- **Author:** {PR author}
+```
 
-After the report is generated, **before returning it to the user**:
+Append the child skill's full report below the header, unchanged. Do not rewrite or summarize the child's findings.
 
-- If `checkoutState = CHECKED_OUT`: run `git checkout {originalBranch}` to restore the original branch.
-- If `checkoutState = UNHAPPY` (no checkout occurred): skip this phase.
+If `checkoutState = UNHAPPY`, append this to the report footer:
 
-> Run this even if the review encountered errors mid-way.
+> ⚠️ Codebase context unavailable ({reason}). Blast Radius and callsite verification could not run. Review is diff-only.
+
+### Phase 5 — Environment Restore (always runs)
+
+This phase runs before returning the report, and must run even if Phases 1–4 errored partway through. Treat it as cleanup that survives failure:
+
+- If `checkoutState = CHECKED_OUT`: `git checkout {originalBranch}`.
+- If `checkoutState = UNHAPPY`: nothing to restore; skip.
+
+If the restore command itself fails, surface that failure clearly in the final output so the user knows their git state needs manual recovery. A silent failure here leaves the user on an unexpected branch — worse than the original review problem.
+
+**Implementation rule:** before moving to Phase 1, register in your working memory that Phase 5 is mandatory. If you encounter an error mid-pipeline, do not terminate the response without executing Phase 5 first.
+
+---
+
+## What this skill does NOT do
+
+To keep the boundary with `code-review` clean:
+
+- It does not define review criteria, severity levels, category checklists, or output sections — those belong to `code-review`.
+- It does not produce findings of its own. If a PR-level concern exists that the child skill missed, the fix is to improve `code-review`, not to duplicate logic here.
+- It does not mutate the PR (no comments posted, no approve/reject actions). The review is advisory; the human decides.
+- It does not re-assess Scope Drift, Blast Radius, or category coverage. The child skill reports those once, in its own format.
