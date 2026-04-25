@@ -54,7 +54,7 @@ Each entry looks like:
 
 ```
 ## [YYYY-MM-DDTHH:MM:SS] handoff | {type}-{slug}
-- type: {brainstorm | plan | ticket}
+- type: {brainstorm | plan | ticket | research}
 - slug: {slug}
 - path: {relative path to the handoff file from project root}
 - summary: {one-line summary}
@@ -88,7 +88,7 @@ For inbox entries, the `path` field points to the actual handoff document. For e
 
 Read all raw material. Before touching any file, answer:
 
-- **What entities appear?** Named features, services, integrations, or components being actively built. Signal: has a proper name, decisions are being made about it. Handoff types map naturally: brainstorm = discovery, plan = blueprint, ticket = task.
+- **What entities appear?** Named features, services, integrations, or components being actively built. Signal: has a proper name, decisions are being made about it. Handoff types map naturally: research = verification, brainstorm = discovery, plan = blueprint, ticket = task.
 - **Synthesize Lifecycle & Rationale:** Distinguish between active, parked, and rejected ideas:
   - **active:** The brainstorm is followed by a `plan` or `ticket`.
   - **rejected:** The brainstorm has no subsequent plan AND the agent identified a blocker, red-flag, or high-risk trade-off in the conversation. Use the agent's own critique as the rationale.
@@ -247,7 +247,7 @@ If no issues: `✅ Wiki is healthy. No broken links, orphans, or contradictions 
 ## Lifecycle
 
 {active | parked | rejected | in-progress | complete | deprecated}
-{Link the stages: [[brainstorm-slug]] → [[plan-slug]] → [[ticket-slug]]}
+{Link the stages: [[research-slug]] → [[brainstorm-slug]] → [[plan-slug]] → [[ticket-slug]]}
 
 ## Rationale (for rejected/parked)
 

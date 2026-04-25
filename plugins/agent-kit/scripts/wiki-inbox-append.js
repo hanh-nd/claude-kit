@@ -35,9 +35,10 @@ export function buildInboxEntry(toolInput) {
     const safeSlug = slug.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
     const handoffDir = path.join(KIT_PATH, 'handoffs', `${type}s`);
     if (fs.existsSync(handoffDir)) {
+      const slugPattern = new RegExp(`^${type}-([0-9T-]{19}-)?${safeSlug}\\.md$`);
       const files = fs
         .readdirSync(handoffDir)
-        .filter((f) => f.endsWith(`-${safeSlug}.md`))
+        .filter((f) => slugPattern.test(f))
         .sort(); // ISO timestamp prefix → lexicographic sort = chronological
       if (files.length > 0) {
         filePath = path.join(handoffDir, files[files.length - 1]);

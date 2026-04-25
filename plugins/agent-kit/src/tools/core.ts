@@ -23,24 +23,39 @@ export function registerCoreTools(server: McpServer): void {
     'kit_save_handoff',
     'Save a brainstorm, plan, or ticket handoff artifact to .agent-kit/handoffs/. Returns the saved file path to use in next-step instructions.',
     {
-      type: z.enum(['brainstorm', 'plan', 'ticket']).describe('Handoff type'),
+      type: z.enum(['brainstorm', 'plan', 'ticket', 'research']).describe('Handoff type'),
       content: z.string().describe('Full markdown content to save'),
       slug: z
         .string()
-        .describe('Short identifier for the filename, e.g. "user-auth" or "PROJ-123"'),
+        .describe(
+          'Short identifier for the filename, e.g. "user-auth" or "PROJ-123". Do NOT append version numbers (v2, v3, etc); the tool will automatically update the existing file if it exists.'
+        ),
     },
     async ({ type, content, slug }) => {
       try {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const safeSlug = slug.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
-        const filename = `${type}-${timestamp}-${safeSlug}.md`;
         const handoffDir = path.join(getWorkspaceRoot(), '.agent-kit', 'handoffs', `${type}s`);
 
         if (!fs.existsSync(handoffDir)) {
           fs.mkdirSync(handoffDir, { recursive: true });
         }
 
-        const filePath = path.join(handoffDir, filename);
+        const files = fs.readdirSync(handoffDir);
+        const slugPattern = new RegExp(`^${type}-([0-9T-]{19}-)?${safeSlug}\\.md$`);
+        const existingFile = files
+          .filter((f) => slugPattern.test(f))
+          .sort()
+          .pop();
+
+        let filePath: string;
+        if (existingFile) {
+          filePath = path.join(handoffDir, existingFile);
+        } else {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const filename = `${type}-${timestamp}-${safeSlug}.md`;
+          filePath = path.join(handoffDir, filename);
+        }
+
         fs.writeFileSync(filePath, content, 'utf8');
 
         return mcpText(`✅ Saved to: ${filePath}`);
