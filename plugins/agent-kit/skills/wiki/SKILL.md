@@ -1,15 +1,29 @@
 ---
 name: ak:wiki
 description: >
-  Maintains a persistent, compounding project intelligence wiki that accumulates knowledge across sessions — architectural decisions, feature history, patterns, edge cases. Use this skill whenever the user wants to: compile session logs into organized wiki pages (/wiki compile), recall past decisions or feature context (/wiki query {question}), or health-check the wiki (/wiki lint). Trigger this any time the user says "what did we decide about", "what's the status of", "catch me up on", "why do we use", "what patterns do we follow", or asks about something that happened in a previous session. Default with no arguments runs compile.
-version: 2.0.0
+  Maintains a persistent, compounding project wiki anchored to the codebase — not to handoff streams. The wiki annotates what exists in the code (entities), the patterns that constrain it (concepts), how the user wants the agent to work (preferences), and short reference notes (glossary). Use when the user wants to: compile session logs into wiki pages (`/wiki compile`), recall past decisions or feature context (`/wiki query {question}`), or health-check the wiki (`/wiki lint`). Trigger when the user says "what did we decide about", "what's the status of", "catch me up on", "why do we use", "what patterns do we follow", "what did we say about my preference for", or asks about something from a previous session. Default with no arguments runs compile.
+version: 3.1.0
 ---
 
 # 📖 Wiki
 
 **Operation:** $ARGUMENTS
 
-The project wiki is a persistent, compounding artifact — unlike re-reading raw handoffs each session, the wiki's cross-references are already built, contradictions already flagged, and the synthesis already reflects everything that's been worked on. Every compile makes it richer. The goal is not filing; it's _synthesis that saves future sessions from re-exploring the same ground_.
+The wiki is the codebase's compounding annotation. It tracks **what exists** (entities), **why it works the way it does** (concepts), **how the user wants to work** (preferences), and **what external terms mean here** (glossary). Every page is a noun. Work events update the noun's page — they do not become new pages.
+
+The goal is not filing. It is _synthesis that saves future sessions from re-deriving the same conclusions_.
+
+---
+
+## Core Mental Model — Codebase-First Anchoring
+
+Five rules that govern every write to the wiki. Violating any of them is the failure mode this skill exists to prevent.
+
+1. **The codebase is the source of truth. The wiki annotates it.** If a wiki claim cannot be traced to a file, a decision artifact, or a stated preference, the claim does not belong in the wiki.
+2. **Entity pages are nouns that exist in the codebase.** A file, a directory, a module, a service, a feature, a domain object. Slugs MUST derive from the codebase noun: `credentials-utility`, `kit-jira-tools`, `ak-plan-skill`. Slugs MUST NOT derive from work events (`-refactor`, `-redesign`, `-migration`, `-fix`) or from ticket IDs (`yr-24781`, `proj-1234`).
+3. **Work events update the entity; they do not become entities.** A refactor of `credentials-utility` is logged in the entity's `Events` section. It does not produce a separate `credential-manager-refactor.md`.
+4. **A handoff bundle resolves to a single target.** When `brainstorm-X`, `plan-X`, and `ticket-X` all describe the same work, they update the SAME entity (the thing being built or changed) — not three separate entities.
+5. **Not every handoff deserves a page.** Routine tickets with no synthesis value go into `log.md` only.
 
 ---
 
@@ -17,9 +31,9 @@ The project wiki is a persistent, compounding artifact — unlike re-reading raw
 
 Detect the operation from `$ARGUMENTS`:
 
-- `/wiki` or `/wiki compile` → **Compile** (ingest raw → build/update wiki)
-- `/wiki query {question}` → **Query** (search wiki + synthesize answer)
-- `/wiki lint` → **Lint** (health-check for issues + suggest next directions)
+- `/wiki` or `/wiki compile` → **Compile** (ingest raw → update wiki).
+- `/wiki query {question}` → **Query** (search wiki + synthesize answer).
+- `/wiki lint` → **Lint** (health check + anti-pattern detection + suggested next moves).
 
 Default (empty or unrecognized): run **Compile**.
 
@@ -30,49 +44,53 @@ Default (empty or unrecognized): run **Compile**.
 ```
 .agent-kit/wiki/
   raw/
-    inbox.md                 # append-only handoff log (written by PostToolUse hook)
-    conv_*.txt               # exported conversations (/export before /compact)
+    inbox.md                 # append-only handoff log (PostToolUse hook)
+    conv_*.txt               # exported conversations
   compiled/
-    index.md                 # content catalog — one line per page, loaded into every session
-    log.md                   # chronological record of compiles and queries (append-only)
-    entities/
-      {slug}.md              # per-feature/service/component pages
+    index.md                 # category-organized catalog (loaded into every session)
+    log.md                   # chronological compile/query record
+    preferences/
+      {slug}.md              # how the user wants the agent to work
     concepts/
-      {slug}.md              # architectural decisions, patterns, recurring rules
+      {slug}.md              # patterns, architectural decisions, rules
+    entities/
+      {slug}.md              # codebase nouns
+    glossary/
+      {slug}.md              # short reference entries
   archive/
-    YYYY-MM.md               # processed inbox entries, verbatim (append-only per month)
+    YYYY-MM.md               # processed inbox entries, verbatim
+    conversations/           # processed conv_*.txt files
 ```
 
-**Slug rules:** Always lowercase kebab-case. Prefer descriptive over short: `jira-integration`, `fail-open-pattern`, `skill-as-markdown`. A slug, once created, never changes — it is the permanent key for all cross-links across every page in the wiki.
+**Slug rules.** Lowercase kebab-case. Descriptive over short. **Stable forever** — once a slug exists, every cross-link in every page depends on it. Anti-patterns enforced by lint: slugs ending in `-refactor`, `-redesign`, `-migration`, `-update`, `-fix`, or matching `^[a-z]+-\d+$` (ticket IDs).
 
 ---
 
 ## Inbox Entry Format
 
-The `inbox.md` file is written by the PostToolUse hook after each `kit_save_handoff` call.
-Each entry looks like:
+Written by the `PostToolUse` hook after each `kit_save_handoff` call:
 
 ```
 ## [YYYY-MM-DDTHH:MM:SS] handoff | {type}-{slug}
 - type: {brainstorm | plan | ticket | research}
 - slug: {slug}
-- path: {relative path to the handoff file from project root}
+- path: {relative path to handoff file}
 - summary: {one-line summary}
 ```
 
-When compiling, the `path` field can be used to read the full handoff document for richer context than the one-line summary alone.
+When compiling, the `path` field points to the full handoff document — read it for richer context than the summary alone.
 
 ---
 
 ## Operation: Compile
 
-**Goal:** Ingest unprocessed raw entries → build/update wiki pages → archive → leave the wiki richer than you found it.
+**Goal:** Ingest unprocessed raw → update wiki pages → archive → leave the wiki richer than you found it. **Not** "create a page per handoff."
 
-### Step 1: Check for work
+### Step 1 — Check for Work
 
-Read `.agent-kit/wiki/raw/inbox.md`. List all `wiki/raw/conv_*.txt` files (Glob).
+Read `.agent-kit/wiki/raw/inbox.md`. List all `wiki/raw/conv_*.txt` files via Glob.
 
-If inbox is empty AND no conv\_\*.txt exist:
+If both are empty:
 
 ```
 Nothing to compile — inbox is empty.
@@ -80,87 +98,144 @@ Nothing to compile — inbox is empty.
 
 Stop.
 
-For large `conv_*.txt` files (>500 lines), focus on sections with decisions, conclusions, or "we always / the rule is / because of" language rather than reading every exchange.
+For large `conv_*.txt` files (>500 lines), focus on sections containing decisions, conclusions, or "we always / the rule is / because" language — not every exchange.
 
-For inbox entries, the `path` field points to the actual handoff document. For entries where the summary alone is insufficient, read the handoff file for deeper context.
+### Step 2 — Bundle Related Handoffs
 
-### Step 2: Synthesize before writing
+Group inbox entries that share a slug family:
 
-Read all raw material. Before touching any file, answer:
+- `brainstorm-multi-angle-protocol`, `plan-multi-angle-protocol`, `ticket-multi-angle-protocol` → ONE bundle.
+- A standalone `ticket-fix-jira-pagination` with no related plan/brainstorm → its own bundle.
 
-- **What entities appear?** Named features, services, integrations, or components being actively built. Signal: has a proper name, decisions are being made about it. Handoff types map naturally: research = verification, brainstorm = discovery, plan = blueprint, ticket = task.
-- **Synthesize Lifecycle & Rationale:** Distinguish between active, parked, and rejected ideas:
-  - **active:** The brainstorm is followed by a `plan` or `ticket`.
-  - **rejected:** The brainstorm has no subsequent plan AND the agent identified a blocker, red-flag, or high-risk trade-off in the conversation. Use the agent's own critique as the rationale.
-  - **parked:** The brainstorm has no subsequent plan and no explicit blockers (a "stale" or "for later" idea).
-- **Verify against Codebase (Reality Check):** For any entity with a `plan` or `ticket` status, verify the existence of mentioned files/directories:
-  - If files exist and have content: status remains `active` or `in-progress`.
-  - If files are missing but a plan exists: downgrade status to `parked` and add a `⚠️ Reality Gap: Plan exists but files are missing` marker.
-  - If a feature was previously `complete` but its files are now gone: mark as `deprecated`.
-- **What concepts emerge?** Architectural decisions, patterns, or rules that will constrain future choices. Signal: "we always...", "the rule is...", the same pattern appearing in two or more features (that's when it earns its own concept page vs staying as a bullet on an entity).
-- **What cross-links exist?** Which entities implement which concepts? Which entities relate to each other?
-- **What's new vs confirmatory?** For pages that already exist, does this material extend, confirm, or contradict them?
+A bundle is the unit of triage. All members of a bundle must resolve to the same target page (or be classified together as routine).
 
-Build a working inventory: `(type, slug, status, rationale, sources[], key-facts[], links-to[])` before writing.
+### Step 3 — Triage Each Bundle
 
-### Step 3: Update or create entity pages
+Classify every bundle into one or more outcomes before writing anything. Most bundles are a single outcome; some legitimately produce two (e.g. an entity update plus a new concept). Decide the full set up front — never start writing partway through triage.
 
-For each entity in the inventory, check `wiki/compiled/entities/{slug}.md`:
+| Outcome | Trigger                                                                                                  | Action                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **A**   | The bundle changes or extends an existing codebase noun.                                                 | Update that entity page. Log work in `Events`.                    |
+| **B**   | The bundle creates a genuinely new component, file, service, or feature.                                 | Create a new entity page. Slug = the codebase noun, not the slug. |
+| **C**   | The bundle reveals or hardens a pattern, architectural decision, or rule applicable across the codebase. | Create or update a concept page.                                  |
+| **D**   | The bundle records a user preference (coding style, output style, voice, retry behavior, etc.).          | Create or update a preference page.                               |
+| **E**   | The bundle adds reference knowledge (an external API shape, a domain term, a third-party concept).       | Create or update a glossary entry.                                |
+| **F**   | Routine task with no synthesis value (typo fix, dependency bump, version update).                        | `log.md` entry only. No page change.                              |
 
-- **Exists:** Read it. Merge new decisions, edge cases, status, and cross-links. If new material contradicts an existing claim, add this marker rather than silently overwriting: `> ⚠️ Contradiction: {new claim} — from {source-slug}`. Update `Last updated` date and increment `Sources` count.
-- **New:** Create using the entity page format below. Be specific — a good entity page is useful to someone who missed all the sessions that produced it.
+A bundle may produce multiple outcomes (e.g. an A entity update + a C new concept). Triage all outcomes before any write.
 
-### Step 4: Update or create concept pages
+#### Unexecuted Handoffs — Additional Routing
 
-Same process for concepts using the concept page format. Concept pages are the wiki's connective tissue — they explain _why_ things are the way they are and point to every feature where a pattern appears.
+A handoff bundle that did not (and will not) produce code is still wiki-worthy if the _decision itself_ has lasting value. The triage above is about **content type**; this is about **execution state**. Both apply.
 
-### Step 5: Rebuild index.md
+| Survives non-execution                                                                  | Route to                                                                                                                       |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| A principle that generalizes (e.g. "we always reject X for Y reason")                   | Outcome C — concept page captures the rule.                                                                                    |
+| An alternative considered for an existing entity (e.g. "we thought about token tables") | Outcome A — that entity's `Considered & Rejected` section (see Entity Page Format).                                            |
+| Pure exploration, no conclusion                                                         | Outcome F — log only. Lint surfaces stale F entries (>90 days, no follow-up) for revive/formalize/archive.                     |
+| Phantom entity (a brainstorm for something that does not exist and may never)           | **Never produces an entity page.** The slug rule (codebase noun must exist) blocks this structurally. Route to F or C instead. |
 
-Overwrite `wiki/compiled/index.md`:
+Future-tense entities are the same drift as task-tense entities — different timeline, same failure. If the brainstorm describes a thing that does not yet exist in `src/`, you cannot create an entity for it. Wait until the code exists; the brainstorm becomes Events on the entity at that point.
+
+### Step 4 — Target Entity Resolution (for outcomes A and B)
+
+Before creating any entity page:
+
+1. **List existing entities.** Read `entities/` directory.
+2. **Identify the codebase noun the bundle targets.** If the work touches `src/utils/credentials.ts`, the noun is `credentials-utility`. If the work creates a new file `src/tools/multi-angle.ts`, the noun is `multi-angle-tool` or whatever the canonical name is.
+3. **Resolve.** If the noun already has an entity page → outcome is A (update + log Event). If it does not → outcome is B (create new page with codebase-noun slug).
+
+**Slug derivation rules:**
+
+- ✅ Use codebase nouns: `credentials-utility`, `kit-jira-tools`, `ak-plan-skill`, `auth-middleware`.
+- ❌ Never use the handoff slug: `multi-angle-protocol-code-review` is a handoff slug, not an entity. The entity might be `ak-code-review-skill`.
+- ❌ Never use work verbs: `-refactor`, `-redesign`, `-migration`, `-update`, `-fix`, `-cleanup`.
+- ❌ Never use ticket IDs: `yr-24781`, `proj-1234`. (Ticket IDs go in the Event line as the source citation.)
+
+If the codebase noun is genuinely ambiguous, prefer the most descriptive specific name and document the choice in the entity page's Summary.
+
+### Step 5 — Verify Against Codebase (Reality Check)
+
+For every entity page being created or updated:
+
+- Confirm the cited files/directories exist. Use Read or Glob.
+- If files exist with content → status `active` or `complete`.
+- If a plan exists but the files are missing → set status to `parked` and add `> ⚠️ Reality Gap: Plan exists but {path} is missing` near the top.
+- If files were previously documented and are now gone → set status to `deprecated` and add `> ⚠️ Reality Gap: {path} no longer exists in the codebase`.
+
+This step is what makes the wiki self-correcting. Skip it and the wiki diverges from the code.
+
+### Step 6 — Apply Outcomes
+
+For each triaged bundle, apply its outcome using the corresponding page format (see "Page Formats" section).
+
+**Per-page rules:**
+
+- **Existing page:** Read it. Merge new decisions, edge cases, and cross-links. If new material contradicts an existing claim, add `> ⚠️ Contradiction: {new claim} — from {source-slug}` rather than silently overwriting. Increment `Sources` count, update `Last updated`.
+- **New page:** Use the page format for the chosen category. Be specific — a good page is useful to someone who missed every session that produced it.
+- **Idempotent:** Re-compiling the same bundle never duplicates content. If a decision is already listed, skip it.
+
+### Step 7 — Rebuild `index.md`
+
+Overwrite `wiki/compiled/index.md` with category-ordered structure. Preferences load first because they trump everything else in subsequent code sessions.
 
 ```markdown
 # Project Wiki Index
 
-> Last compiled: {YYYY-MM-DD} | {N} entities | {M} concepts
+> Last compiled: {YYYY-MM-DD} | {P} preferences | {C} concepts | {E} entities | {G} glossary
 
-## Entities
+## 👤 Preferences (Always Apply)
 
-- [[{slug}]](entities/{slug}.md) — {one-line summary} | updated: {date} | sources: {N}
+- [[{slug}]](preferences/{slug}.md) — {one-line rule} | updated: {date}
 
-## Concepts
+## 🏛️ Concepts (Architectural Decisions & Patterns)
 
-- [[{slug}]](concepts/{slug}.md) — {one-line summary} | updated: {date} | sources: {N}
+- [[{slug}]](concepts/{slug}.md) — {one-line summary} | seen in: {N} entities | updated: {date}
+
+## 🧱 Entities (Codebase Nouns)
+
+- [[{slug}]](entities/{slug}.md) — {one-line summary} | status: {active|complete|deprecated} | updated: {date} | sources: {N}
+
+## 📚 Glossary
+
+- [[{slug}]](glossary/{slug}.md) — {one-line definition} | updated: {date}
 ```
 
-### Step 6: Append to log.md
+Within each section, sort by `updated` descending — most recently touched first. This gives a code session both the always-loaded preferences and a "what's been moving lately" view.
 
-Append to `wiki/compiled/log.md` (create if absent):
+### Step 8 — Append to `log.md`
 
 ```
 ## [{YYYY-MM-DD}] compile
-- Inbox entries: {N} | Conversations: {M}
+- Bundles: {N} | Conversations: {M}
+- Outcomes: A:{n} B:{n} C:{n} D:{n} E:{n} F-routine:{n} F-exploration:{n}
 - Updated: {slug, slug, ...}
 - Created: {slug, slug, ...}
+- F-routine (logged only): {summary, summary, ...}
+- F-exploration (logged only): {handoff-slug — one-line topic, ...}
 ```
 
-### Step 7: Archive and clear
+The outcome breakdown makes it easy to spot drift over time (e.g. lots of B's = unusual creation rate; lots of F-explorations = many parked ideas to revisit). F-routine and F-exploration are logged separately because lint treats them differently — routine tasks never go stale; explorations do.
 
-Append processed inbox entries verbatim to `wiki/archive/{YYYY-MM}.md`.
-Move `conv_*.txt` files to `wiki/archive/conversations/` with Bash `mv`.
-Overwrite `wiki/raw/inbox.md` with an empty file.
+### Step 9 — Archive and Clear
 
-### Step 8: Report
+- Append processed inbox entries verbatim to `wiki/archive/{YYYY-MM}.md`.
+- Move `conv_*.txt` files to `wiki/archive/conversations/` via `mv`.
+- Overwrite `wiki/raw/inbox.md` with an empty file.
+
+### Step 10 — Report
 
 ```
 ✅ Wiki compiled.
-  Sources: {N} inbox entries + {M} conversations
-  Pages updated: {list}
-  Pages created: {list}
+  Sources: {N} bundles + {M} conversations
+  Updated: {list}
+  Created: {list}
+  Routine (no page): {count}
 
-{2-3 sentence synthesis: what's new, what's confirmed, any notable cross-feature patterns}
+{2–3 sentences synthesizing what's new, what's confirmed, any cross-feature patterns or contradictions surfaced.}
 ```
 
-The synthesis paragraph is what makes this more than a filing operation. Write it as a briefing for someone returning from two weeks away.
+The synthesis paragraph is what makes this more than filing. Write it as a briefing for someone returning from two weeks away.
 
 ---
 
@@ -168,142 +243,207 @@ The synthesis paragraph is what makes this more than a filing operation. Write i
 
 **Goal:** Synthesize a well-cited answer from the compiled wiki.
 
-1. Check if `wiki/compiled/index.md` exists. If it doesn't, say so and offer:
-   - Run `/wiki compile` first to build the wiki, OR
-   - Scan `wiki/raw/inbox.md` directly for a quick (less complete) answer.
-2. Read `index.md`. Identify up to 5 pages most relevant to the question (match on titles and one-line summaries).
-3. Read the identified pages in full.
-4. Synthesize an answer with inline `[[slug]]` citations. Every claim should be traceable.
+1. If `wiki/compiled/index.md` doesn't exist, say so and offer: run `/wiki compile` first, OR scan `wiki/raw/inbox.md` directly for a quick (less complete) answer.
+2. Read `index.md`. Identify up to 5 pages most relevant to the question — match across all four categories.
+3. Read those pages in full.
+4. Synthesize an answer with inline `[[slug]]` citations. Every claim must be traceable.
 5. If the answer is substantive (more than a direct fact), offer:
    ```
-   Save this analysis as a wiki page? (y/n)
+   Save this analysis as a wiki page? (concept | glossary | n)
    ```
-   If yes: write to `concepts/query-{slug}.md` using the concept page format, update `index.md` with the new entry, append to `log.md`.
-   If no: do nothing further.
+
+   - `concept` → write to `concepts/{slug}.md` if it's a pattern/decision.
+   - `glossary` → write to `glossary/{slug}.md` if it's reference knowledge.
+   - `n` → do nothing.
+     Update `index.md` and append to `log.md` on save.
 
 ---
 
 ## Operation: Lint
 
-**Goal:** Find health issues and surface what to do next.
+**Goal:** Surface health issues, codebase-anchoring violations, and suggested next moves.
 
-1. Read `wiki/compiled/index.md` to enumerate all pages.
-2. **Broken links:** Scan every compiled page for `[[target]]` where the linked file doesn't exist.
-3. **Orphan pages:** Find compiled pages that no other compiled page links to via `[[slug]]`.
-4. **Unresolved contradictions:** Scan for `⚠️ Contradiction:` or `⚠️ Reality Gap:` markers across all pages — these are flagged but unresolved, list them for human attention.
-5. **Shadow Features:** Find directories/files in `src/` that have significant logic but no corresponding entity page in the wiki.
-6. **Stale inbox:** Check `wiki/raw/inbox.md` for entries with timestamps older than 7 days.
-7. **Missing concept pages:** Find `[[slug]]` references in entity pages that have no corresponding `concepts/{slug}.md`.
-8. **Suggested investigations:** Based on the gaps and orphans found, suggest 2-3 specific questions worth exploring or topics worth compiling next. The wiki is a map of what's known — lint should point toward what isn't.
+Run all checks. Group findings by severity.
+
+1. **Anti-pattern slugs** (BLOCKER): entity slugs ending in `-refactor`, `-redesign`, `-migration`, `-update`, `-fix`, `-cleanup`, or matching `^[a-z]+-\d+$`. These are work events or ticket IDs masquerading as entities. Suggest a target codebase noun and recommend merging the page's content into that entity's `Events` section.
+2. **Codebase orphans** (BLOCKER): entity slugs whose `Anchors` section points to files that don't exist in `src/`. Either rename to a real anchor, archive the page, or fold into another entity.
+3. **Broken links**: `[[target]]` references where the linked file doesn't exist.
+4. **Page orphans**: pages with no inbound `[[slug]]` references from any other page. Consider linking or archiving.
+5. **Unresolved markers**: scan for `⚠️ Contradiction:` or `⚠️ Reality Gap:` across all pages. List for human resolution.
+6. **Shadow features**: directories or files in `src/` with significant logic but no entity page. Flag as candidates for the next compile.
+7. **Stale inbox**: entries older than 7 days.
+8. **Missing concept pages**: `[[slug]]` references in entity pages with no corresponding `concepts/{slug}.md`.
+9. **Stale explorations**: F-exploration entries in `log.md` older than 90 days with no follow-up handoff referencing the same topic. Surface for revive (move into a concept or new entity), formalize (promote the rejection rationale into a concept), or archive (note as abandoned in `log.md`).
+10. **Suggested investigations**: based on gaps and orphans, propose 2–3 specific topics worth compiling next.
 
 **Output:**
 
 ```
 ## Wiki Health Report — {YYYY-MM-DD}
 
+### 🚫 BLOCKER — Anti-Pattern Slugs ({N})
+- entities/{slug}.md → suggested rename to `{codebase-noun}` and merge into `entities/{codebase-noun}.md` Events section.
+
+### 🚫 BLOCKER — Codebase Orphans ({N})
+- entities/{slug}.md → Anchor `{path}` does not exist. Action: rename | archive | fold.
+
 ### 🔗 Broken Links ({N})
-- {page}: [[{target}]] → file not found
-
-### 🏝️ Orphan Pages ({N})
-- {page}: no inbound links — consider linking from related pages or archiving
-
-### ⚠️ Unresolved Contradictions ({N})
-- {page}: flagged contradiction on "{topic}" — human resolution needed
-
-### 🏗️ Reality Gaps ({N})
-- {page}: documented as {status} but files {path} are missing or empty
-
+### 🏝️ Page Orphans ({N})
+### ⚠️ Unresolved Contradictions / Reality Gaps ({N})
 ### 🕵️ Shadow Features ({N})
-- {path}: source code exists but no wiki entity page found — consider compiling
-
 ### 📥 Stale Inbox
-...
-
 ### 📄 Missing Concept Pages ({N})
-- [[{slug}]] referenced in {page} but concepts/{slug}.md doesn't exist
+### 🧊 Stale Explorations ({N})
+- {handoff-slug} ({YYYY-MM-DD}, {topic}) — action: revive | formalize | archive
 
 ### 🔍 Suggested Investigations
-- {specific question or topic worth exploring next, based on gaps found}
+- {specific question or topic worth compiling next}
 
 ### Recommendations
-- {prioritized action items}
+- {prioritized actions}
 ```
 
-If no issues: `✅ Wiki is healthy. No broken links, orphans, or contradictions found.`
+If no issues: `✅ Wiki is healthy. No anti-patterns, orphans, or contradictions found.`
 
 ---
 
-## Entity Page Format
+## Page Formats
+
+### Entity Page Format (`entities/{slug}.md`)
 
 ```markdown
-# {Feature/Entity Name}
+# {Codebase Noun}
 
-> Last updated: {YYYY-MM-DD} | Sources: {N}
+> Last updated: {YYYY-MM-DD} | Sources: {N} | Status: {active | complete | deprecated | parked}
 
 ## Summary
 
-{1-2 sentences: what this is and why it exists}
+{1–2 sentences: what this is in the codebase. Cite the canonical file path inline.}
 
-## Lifecycle
+## Anchors
 
-{active | parked | rejected | in-progress | complete | deprecated}
-{Link the stages: [[research-slug]] → [[brainstorm-slug]] → [[plan-slug]] → [[ticket-slug]]}
-
-## Rationale (for rejected/parked)
-
-{Synthesized reason for rejection or why the idea is parked} — [[source-slug]]
+- Primary: `{file or directory path}`
+- Related: `{path}`, `{path}`
 
 ## Key Decisions
 
-- {Specific decision} — [[source-slug]]
+- {Specific decision} — `{file:line}` or [[source-slug]]
 
 ## Edge Cases & Risks
 
-- {Edge case or risk} — [[source-slug]]
+- {Edge case or risk} — `{file:line}` or [[source-slug]]
+
+## Considered & Rejected
+
+- {YYYY-MM-DD} — {alternative considered} — rejected because {rationale} — [[handoff-slug]]
+
+## Events
+
+- {YYYY-MM-DD} — {kind: brainstorm | plan | ticket | refactor | bugfix | migration} — {one-line description} — [[handoff-slug]]
+- {YYYY-MM-DD} — {kind} — {description} — [[handoff-slug]]
 
 ## Open Questions
 
-- {Something not yet resolved}
+- {Unresolved}
 
 ## Related
 
-- [[concept-slug]] — {why related}
+- [[concept-slug]] — {applies here because…}
 - [[entity-slug]] — {relationship}
 ```
 
----
+The `Events` log is critical: it preserves work history without spawning event-named pages. Cite handoff slugs inline; the handoffs themselves remain in `.agent-kit/handoffs/`.
 
-## Concept Page Format
+### Concept Page Format (`concepts/{slug}.md`)
 
 ```markdown
-# {Pattern/Decision Name}
+# {Pattern / Decision Name}
 
-> Last updated: {YYYY-MM-DD} | Seen in: {N} features
+> Last updated: {YYYY-MM-DD} | Seen in: {N} entities
 
 ## What It Is
 
-{Plain explanation — someone who missed these sessions should understand it}
+{Plain explanation — readable by someone who missed every session that produced it.}
 
 ## Why We Use It
 
-{Rationale — what problem it solves, what alternative was considered}
+{Rationale — what problem it solves, what alternatives were rejected.}
 
 ## Where Applied
 
-- [[entity-slug]] — {how the concept manifests here}
+- [[entity-slug]] — {how the pattern manifests here, with `file:line` if useful}
 
 ## Contradictions / Open Questions
 
-- {Any unresolved tension or edge case}
+- {Any unresolved tension}
+```
+
+### Preference Page Format (`preferences/{slug}.md`)
+
+```markdown
+# {Preference Title}
+
+> Last updated: {YYYY-MM-DD} | Confirmed in: {N} sessions | Status: {active | superseded | retired}
+
+## Rule
+
+{One-line directive — what the agent must do or avoid.}
+
+## Why
+
+{The rationale the user gave or that emerged from sessions.}
+
+## How To Apply
+
+- {When this kicks in}
+- {Where it does NOT apply}
+
+## Sources
+
+- [[source-slug]] — {what was said or decided}
+
+## Supersedes / Superseded By
+
+- {[[other-pref-slug]] — if applicable}
+```
+
+### Glossary Page Format (`glossary/{slug}.md`)
+
+**When a term earns a glossary page (threshold rule):**
+
+- Referenced from 2+ other wiki pages (cross-cutting reference), OR
+- Project-specific usage is non-obvious enough to warrant a paragraph of explanation.
+
+If neither holds, the term stays inline in whichever page mentions it — do **not** create a glossary page. Single-mention terms with obvious meaning bloat the wiki without earning their footprint.
+
+```markdown
+# {Term}
+
+> Last updated: {YYYY-MM-DD}
+
+## Definition
+
+{1–3 sentences. Cite source if external.}
+
+## In This Project
+
+{How it appears in our code or decisions, with `file:line` citations if applicable.}
+
+## See Also
+
+- [[entity-slug]] — {how related}
 ```
 
 ---
 
 ## Rules
 
+- **Codebase-first anchoring.** Every entity slug derives from a codebase noun. Work events update entities; they never become entities. (See Core Mental Model.)
 - **Never modify raw sources.** `wiki/raw/` and `wiki/archive/` are write-once (append to archive, clear inbox after compile, move conv files — never edit existing content).
 - **Fail gracefully.** Missing files → skip and note in the report, never abort.
-- **Idempotent pages.** Re-compiling the same entries updates a page, never duplicates content.
+- **Idempotent pages.** Re-compiling the same bundle updates a page, never duplicates content.
 - **No auto-resolution of contradictions.** Add `⚠️ Contradiction:` markers, let the human decide.
-- **Cite everything.** Every key decision or risk needs a `[[slug]]` source link.
-- **Stable slugs.** Once created, slugs never change — renaming a slug breaks every page that links to it.
+- **Cite everything.** Every key decision or risk needs a `[[slug]]` source link or `file:line` reference.
+- **Stable slugs.** Once created, slugs never change — renaming a slug breaks every page that links to it. Choose carefully on first creation; lint surfaces anti-patterns for migration with human review.
+- **Routine work logs only.** Outcome-F bundles never produce pages. The compile log records that they happened.
+- **Preferences first in the index.** They trump every other category in subsequent code sessions.
