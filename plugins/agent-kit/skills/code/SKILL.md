@@ -40,7 +40,7 @@ You do not redesign. You do not "improve while you're there." You do not guess. 
 
 1. **The WBS plan.** Required. May be a file path (e.g. `@.agent-kit/handoffs/plans/plan-xyz.md`) or inline content. If absent, stop and request it.
 2. **Project DNA** at `.agent-kit/project.md`. Read when present — it carries naming, error-handling, and stack conventions.
-3. **`.agent-kit/stats.json`.** Read the `hasUnitTests` flag — it gates Phase 5.
+3. **`.agent-kit/stats.json`.** Read the `hasUnitTests` and `useUnitTests` flags — it gates Phase 5.
 
 If the plan or DNA references files that do not exist, surface this in Phase 3 (Logic Gap Sweep) — do not silently invent paths.
 
@@ -140,7 +140,7 @@ If you discover a smell, dead code, or design issue **outside the lines you are 
 
 ### Phase 5 — Testing (Conditional)
 
-**Trigger:** `.agent-kit/stats.json` has `hasUnitTests: true`. If `false` or the file is missing, skip this phase.
+**Trigger:** `.agent-kit/stats.json` has `hasUnitTests: true` and `useUnitTests: true`. If one of them is false, skip this phase.
 
 If triggered, load the `unit-testing` skill and follow its workflow for every new/modified unit. At minimum:
 
