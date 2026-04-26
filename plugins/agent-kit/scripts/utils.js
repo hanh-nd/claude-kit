@@ -59,12 +59,10 @@ export function spawnBackground(scriptUrl, args = []) {
  * @returns {Promise<{ messages: Array<{ role: string, content: string }> }>}
  */
 export function parseTranscript(transcriptPath) {
-  if (transcriptPath.endsWith('.jsonl')) {
-    return parseClaudeTranscript(transcriptPath);
-  }
-  if (transcriptPath.endsWith('.json')) {
+  if (transcriptPath.includes('.gemini')) {
     return parseGeminiTranscript(transcriptPath);
   }
+  return parseClaudeTranscript(transcriptPath);
 }
 
 function parseClaudeTranscript(transcriptPath) {
@@ -119,25 +117,34 @@ function parseClaudeTranscript(transcriptPath) {
 function parseGeminiTranscript(transcriptPath) {
   try {
     const content = fs.readFileSync(transcriptPath, 'utf8');
-    const { messages: rawMessages = [] } = JSON.parse(content);
-
+    const lines = content.trim().split('\n');
     const messages = [];
-    for (const msg of rawMessages) {
-      if (msg.type === 'user' || msg.type === 'gemini') {
-        let contentText = '';
-        const msgContent = msg.displayContent || msg.content;
-        if (typeof msgContent === 'string') {
-          contentText = msgContent;
-        } else if (Array.isArray(msgContent)) {
-          contentText = msgContent.map((block) => block.text).join('\n');
-        }
 
-        if (contentText) {
-          messages.push({
-            role: msg.type,
-            content: contentText,
-          });
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      try {
+        const msg = JSON.parse(line);
+
+        if (msg.type === 'user' || msg.type === 'gemini') {
+          let contentText = '';
+          const msgContent = msg.displayContent || msg.content;
+          if (typeof msgContent === 'string') {
+            contentText = msgContent;
+          } else if (Array.isArray(msgContent)) {
+            contentText = msgContent.map((block) => block.text).join('\n');
+          }
+
+          if (contentText) {
+            messages.push({
+              role: msg.type,
+              content: contentText,
+            });
+          }
         }
+      } catch {
+        // Skip malformed lines
+        continue;
       }
     }
 
