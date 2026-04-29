@@ -1,7 +1,7 @@
 ---
 name: ak:plan
 description: 'Create an intern-proof implementation blueprint from a Design Brief or raw requirements'
-version: 3.0.0
+version: 3.1.0
 ---
 
 # 🏛️ Plan
@@ -118,7 +118,7 @@ Output as **State 1: Discovery & Scope Challenge.**
 4. **Missing edge cases.** What failure modes or test coverage gaps weren't addressed in the initial ask?
 
 ```markdown
-### Step 0: Scope Challenge & Discovery: [Feature Name]
+### Phase 2: Scope Challenge & Discovery: [Feature Name]
 
 - **Goal & Acceptance Criteria:** [Draft of the goal and list of ACs for user validation]
 - **Verified Context:** [Existing systems, files, and patterns relevant to the feature]
@@ -145,10 +145,11 @@ List all critical issues. Present choices as an interactive TUI menu using arrow
 
 **Gate:** Scope must be agreed before proceeding. **Stop and wait** for user selection. Do NOT start Phase 3 until Phase 2 decisions are resolved.
 
-### Phase 3: Structured Review (MANDATORY for Medium/Complex)
+### Phase 3: Structured Review
 
 Walk through four pillars sequentially. Apply severity-based routing throughout.
-**Stop and wait for user selection** after each section before moving to the next.
+**3A and 3C are mandatory — never skip regardless of task complexity. 3B and 3D may be abbreviated or skipped for simple tasks with no relevant issues.**
+**Stop and wait for user selection** after each section that has issues before moving to the next. If a section has zero issues, state that and proceed without waiting.
 
 **3A. Architecture Review**
 
@@ -163,10 +164,10 @@ Walk through four pillars sequentially. Apply severity-based routing throughout.
 
 **3C. Test Review**
 
-- Diagram all new UX flows, data flows, codepaths, and branching outcomes
-- For each path in the diagram: verify a corresponding test exists or is planned
-- For each new codepath, describe the failure mode and evaluate: (a) does a test cover it? (b) is there error handling? (c) would the failure be silent or visible to the user?
-- If any failure mode has no test AND no error handling AND would be silent → flag as **critical gap**
+- Diagram all new UX flows, data flows, codepaths, and branching outcomes.
+- **Derive behavioral contracts from Acceptance Criteria.** For each AC, produce one falsifiable contract: `Given [precondition], [subject] MUST [observable outcome]`. Contracts are derived from what the feature promises — not invented.
+- **Map failure modes to contracts.** For each failure mode identified in 3A, identify which contract covers it. An uncontracted failure mode is a coverage gap.
+- For each coverage gap: does explicit error handling exist? Would failure be silent (no log, no user-facing signal, no exception propagation)? If both true → **critical gap. A WBS task addressing it must appear in Section 2 of the blueprint — a flagged-but-unplanned gap is an incomplete plan.**
 
 **3D. Performance Review**
 
@@ -175,13 +176,26 @@ Walk through four pillars sequentially. Apply severity-based routing throughout.
 - Caching opportunities
 - Slow or high-complexity code paths
 
-**Skip rule:** If a section has zero issues, say so and move on. For simple tasks, 3B and 3D can be abbreviated or skipped if not relevant.
+**Skip rule:** If a section has zero issues, state that and proceed without waiting for user input.
 
 ### Phase 4: Blueprint Generation
 
 Once scope is locked and review issues resolved, transition to **State 2: Intern-Proof Blueprint.**
 
-Draft the WBS strictly bottom-up. Tasks must be granular — not "Implement the logic" but "Map the array of `User` objects to `UserDTO`, filtering out items where `isActive` is false. Throw `ValidationError` if the array is empty."
+**Generation strategy — two explicit steps to prevent quality degradation:**
+
+- **Step 4.1:** Generate Section 0 (Goal & ACs), Section 1 (Architecture & Contracts), and Section 2 (WBS) in full. Output and stop — do not proceed to Section 3 until Step 4.1 is complete.
+- **Step 4.2:** Re-read the full WBS in Section 2 above before writing a single word of Section 3. Then generate Section 3 (Test Plan), Section 3.5 (AC Coverage Check), and Section 4 (Completion Summary).
+
+This split exists because Section 3's Behavioral Contracts and the AC Coverage Check must derive from the finalized WBS — not from a half-formed mental model of it.
+
+---
+
+Draft the WBS layer-by-layer, foundation first. Tasks must be granular and expressed as **function/method contracts**: lock the public interface (name, input types, output type, error cases) — do NOT prescribe the implementation algorithm inside the function body. The *what* is the plan's domain; the *how* is the implementer's domain.
+
+- ❌ Too vague: "Implement the user mapping logic"
+- ❌ Prescribes algorithm: "Map the array of `User` objects to `UserDTO`, filtering out items where `isActive` is false. Throw `ValidationError` if the array is empty."
+- ✅ Contract style: "Implement `UserMapper.toDTO(users: User[]): UserDTO[]` — returns only active users. Throws `ValidationError` if input is empty."
 
 **Identifier rule:** Public identifiers (types, function names, file paths) referenced in WBS tasks must be verified via `Read` first. If a file does not exist yet, state explicitly: "New file — create with these specs." Internal logic should be expressed as business rules (inputs, outputs, error cases) — avoid prescribing local variable names, which the implementing engineer should own. Never guess public identifiers — a wrong name produces broken code downstream. Diagram liberally: include Mermaid diagrams for data flow, state machines, dependency graphs, and processing pipelines, and flag where diagrams should be embedded in code comments.
 
@@ -210,19 +224,30 @@ Draft the WBS strictly bottom-up. Tasks must be granular — not "Implement the 
 - **Layer 1: Foundation & Types**
   - [ ] [P] Task 1.1: In `[file_path]`, export interface `[Name]` containing `[fields]`.
 - **Layer 2: Core Logic & Edge Cases**
-  - [ ] [P] Task 2.1: In `[file_path]`, create function `[Name]`.
-    - _Logic:_ [Step-by-step]
-    - _Edge Case:_ [If X is null, throw Y error]
+  - [ ] [P] Task 2.1: In `[file_path]`, implement `[Name]([input]: [InputType]): [ReturnType]`
+    - _Contract:_ [What it must return given valid input — I/O invariants only, no algorithm]
+    - _Error:_ [Exception type and the exact condition that triggers it]
   - [ ] [S: 2.1] Task 2.2: [Task that depends on 2.1]
 - **Layer 3: Integration & Presentation**
   - [ ] [S: 2.1, 2.2] Task 3.1: [Specific integration steps]
 
 #### 3. Test Plan
 
-- **New Codepaths Diagram:** [Mermaid diagram of all new paths requiring tests]
-- **Required Unit Tests:** [Exact scenarios per codepath]
-- **Edge Cases to Mock:** [Dependencies to mock, states to simulate]
-- **Critical Gaps:** [Any failure modes with no test + no error handling + silent failure]
+- **Codepath Diagram:** [Mermaid diagram of all new paths — annotated with which behavioral contract each path exercises]
+- **Behavioral Contracts:** [Derived from ACs — one falsifiable contract per AC]
+  - `Given [precondition], [subject] MUST [observable outcome]` → covers AC [N]
+  - `Given [precondition], [subject] MUST NOT [outcome]` → covers failure mode [N]
+- **Coverage Gaps:** [Failure modes from Section 1 with no covering contract — each must have a corresponding WBS task in Section 2 or an explicit error handler]
+- **Critical Gaps:** [Coverage gaps where no error handling exists AND failure would be silent — each must have a WBS task in Section 2]
+
+#### 3.5 AC Coverage Check
+
+Before proceeding to Section 4, verify: for each AC listed in Section 0, at least one WBS task in Section 2 covers it. List the mapping explicitly:
+
+- AC 1 → Task [N.N]
+- AC 2 → Task [N.N]
+
+If any AC has no covering task → add the missing task to Section 2 before continuing.
 
 #### 4. Completion Summary
 
