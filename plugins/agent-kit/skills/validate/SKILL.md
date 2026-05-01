@@ -1,7 +1,7 @@
 ---
 name: ak:validate
 description: 'PRIMARY ENTRY POINT whenever the user appends `with /validate` (or any equivalent: `, with /validate`, `+ /validate`, `then /validate`) to ANY other slash command — load THIS skill BEFORE the producer skill it modifies. The orchestrator owns the full flow: it invokes the producer, captures the output, spawns a fresh-eyes validator subagent, and runs a bounded PASS/FAILED feedback loop. Examples that MUST trigger this skill first: `/plan ticket YR-1234 with /validate`, `/code @plan.md with /validate`, `/brainstorm idea with /validate`. Also handles standalone `/validate <artifact> --against <expectation>`. Producer-agnostic — judges any artifact (plan, code, brainstorm, delegate output) against a stated expectation. Verdict is binary: PASS or FAILED. If you find yourself reading this skill AFTER a producer has already run (because dispatch missed the modifier), recover by switching to Mode B on the existing artifact — see Activation Priority section.'
-version: 1.2.0
+version: 1.3.0
 ---
 
 # 🛡️ Validate
@@ -40,18 +40,7 @@ The producer skill does not know it is being wrapped. The orchestration is invis
 
 ### The Failure Mode (and Recovery)
 
-The dispatcher sometimes loads only the producer (e.g. `ak:plan`) because the leading slash command is the most prominent token in the user's message, and runs it to completion — never returning to `ak:validate`. The user then has to manually remind the agent to validate.
-
-**If you are reading this skill AFTER the producer has already produced its artifact** (e.g. plan was saved, code was written, and only now is `ak:validate` loading), do the following:
-
-1. **Acknowledge the dispatch miss to the user** — one line, no apology theater. Example: `Note: dispatched late — running validation on the existing artifact.`
-2. **Switch to Mode B.** The artifact and expectation are both in hand:
-   - Artifact = whatever the producer just saved/edited.
-   - Expectation = the producer's input (the ticket, brief, or plan it was given).
-3. **Run a single-shot validation.** No loop — Mode B is single-shot by design (Trade-off #3). The producer already finished; there is no clean way to feed FAILED findings back to it without re-running it from scratch, which would force the user through the interactive gates again.
-4. **In the final report, set `Mode: A→B (recovered)`** so the audit trail records the dispatch miss.
-
-This recovery is a fail-safe, not the happy path. It loses the loop's repair ability. The next run should fire `ak:validate` first — re-read this section.
+**If you are reading this skill AFTER the producer has already run:** acknowledge in one line (`Note: dispatched late — running validation on the existing artifact.`), switch to Mode B using the existing artifact and the producer's original input as the expectation, and set `Mode: A→B (recovered)` in the final report. This is single-shot — no loop, because the producer cannot be re-run cleanly without forcing the user through interactive gates again.
 
 ### Hard Rule for the Dispatcher
 
@@ -203,15 +192,13 @@ If the producer halts on its own (Logic Gap, Hard Stop), surface the producer's 
 
 ### Phase 4 — Validator Spawn
 
-Spawn a **fresh subagent** using the `Agent` tool. The subagent receives only:
+Spawn the `validator` subagent via the `Agent` tool. Pass:
 
-1. The frozen expectation (from Phase 2).
-2. The artifact (Phase 3 output, or Mode B input).
-3. The Validator Prompt (verbatim — see below).
+1. **Expectation**: the frozen expectation from Phase 2 (path or inline content).
+2. **Artifact**: the artifact path (Phase 3 output, or Mode B input).
+3. **Artifact type**: infer from the artifact content (see type detection in the subagent definition).
 
-Critical: the subagent has **no access to the producer's reasoning, the user's history, or any prior loop iterations.** It judges this artifact on this expectation, fresh.
-
-For code artifacts, the subagent has tool access to run `npm run lint` / `npm test` (or repo equivalents detected from `package.json` / `.agent-kit/project.md`). For non-code artifacts, the subagent works from the file content alone.
+The subagent runs in full isolation — no conversation history, no producer reasoning trace. It returns a verdict block.
 
 ### Phase 5 — Verdict Handling
 
@@ -288,7 +275,7 @@ The validator's report is emitted **unchanged** in:
 - Phase 7 final report.
 - Any user-visible summary.
 
-Forbidden: paraphrasing, "the validator means…", omitting findings deemed minor by the orchestrator, reordering findings by perceived priority. The validator already classified every finding as a BLOCKER (it does not emit non-blockers — see Validator Prompt). The orchestrator does not get to re-classify.
+Forbidden: paraphrasing, "the validator means…", omitting findings deemed minor by the orchestrator, reordering findings by perceived priority. The validator already classified every finding as a BLOCKER (it does not emit non-blockers — see `validator` subagent definition). The orchestrator does not get to re-classify.
 
 ### Rule 2 — Structural PASS
 
@@ -319,85 +306,6 @@ If the user wants to change the expectation, they re-invoke `ak:validate` with n
 
 ---
 
-## Validator Prompt (Verbatim — Used in Phase 4)
-
-The Agent-tool spawn passes this prompt to the subagent. It is a self-contained contract — the subagent has no other context.
-
-```
-You are a Quality Validator. You have no prior history with this artifact, this user, or this producer.
-
-# Inputs
-- Expectation: <attached path or inline content>
-- Artifact: <attached path or inline content>
-- Artifact type: <inferred — wbs-plan | design-brief | source-code | test-suite | report | other>
-
-# Your Job
-Judge whether the artifact meets the expectation. Verdict is binary: PASS or FAILED.
-
-# Evaluation Lenses (apply all that fit the artifact type)
-
-1. **Goal Coverage** — every requirement, acceptance criterion, or constraint in the expectation has a corresponding part in the artifact. Missing requirement → BLOCKER.
-
-2. **Internal Consistency** — the artifact does not contradict itself. Examples:
-   - WBS plan: a `[P]` task that also lists `[S: ...]` dependencies.
-   - Source code: an import for a symbol the file does not export, a type signature that mismatches its caller.
-   - Brief: a constraint in the goal contradicted by a later assumption.
-   Contradictions → BLOCKER.
-
-3. **Completeness** — no `TODO`, `// ... rest here`, `pass`, or placeholder comments. Every edge case the expectation explicitly called out is handled (verify by tracing the artifact). Missing edge case → BLOCKER.
-
-4. **Scope Discipline** — the artifact does not introduce work the expectation explicitly marked as out-of-scope. Scope drift → BLOCKER.
-
-5. **Evidence by Execution (code artifacts only)** — run the project's lint and test scripts (`npm run lint`, `npm test`, or whatever `package.json` / `.agent-kit/project.md` specifies). Failures introduced by this artifact → BLOCKER. Pre-existing baseline failures → noted, not a blocker.
-
-# Verdict Format
-
-You MUST return exactly this structure. No prose outside it.
-
-## Verdict
-`PASS` or `FAILED`
-
-## Findings
-For FAILED only. List every BLOCKER. No CONCERNs, no NITPICKs — this is a gate, not a polish.
-
-- **BLOCKER** — `<file:line>` — <what is wrong> — <which expectation requirement it violates> — <one-line fix direction>
-
-## Clearances
-Required even on PASS. One line per lens you applied:
-
-- Goal Coverage: Checked — <what you traced>, <what you confirmed>.
-- Internal Consistency: Checked — <what you traced>, <what you confirmed>.
-- Completeness: Checked — <what you traced>, <what you confirmed>.
-- Scope Discipline: Checked — <what you traced>, <what you confirmed>.
-- Evidence by Execution: Checked — `<command>` exited with code `<n>`, output: `<summary>`. (Code artifacts only.)
-
-# Hard Rules
-
-- A finding without `file:line` (or section anchor for non-code) is invalid — drop it.
-- A clearance without specifics ("Looked at it, seems fine") is invalid — re-check.
-- "Could be better" is not a BLOCKER. Only "does not meet the expectation" is.
-- If the expectation is itself contradictory or unverifiable, return `FAILED` with a single BLOCKER pointing at the expectation, not the artifact.
-```
-
----
-
-## Artifact Type Detection
-
-Infer from the artifact alone — never from the producer skill name.
-
-| Signal                                                | Inferred type  | Lenses applied                                                      |
-| ----------------------------------------------------- | -------------- | ------------------------------------------------------------------- |
-| Markdown with `## WBS`, `[P]`, `[S: id]`              | `wbs-plan`     | Goal Coverage, Internal Consistency, Completeness, Scope Discipline |
-| Markdown with `## Acceptance Criteria`, `## Approach` | `design-brief` | Goal Coverage, Internal Consistency, Completeness                   |
-| `.ts`, `.js`, `.py`, etc., or a diff                  | `source-code`  | All five lenses (incl. Evidence by Execution)                       |
-| `.test.ts`, `.spec.ts`, etc.                          | `test-suite`   | All five lenses; assertion-quality check (no tautological tests)    |
-| Markdown report, no plan/brief markers                | `report`       | Goal Coverage, Internal Consistency, Completeness                   |
-| Anything else                                         | `other`        | Goal Coverage, Internal Consistency, Completeness                   |
-
-If the artifact is genuinely ambiguous (e.g. a markdown file that mixes plan and code), apply all applicable lenses and note the ambiguity in the Verdict Trace.
-
----
-
 ## Loop Budget
 
 | Setting      | Default | Override      |
@@ -425,13 +333,10 @@ If the artifact is genuinely ambiguous (e.g. a markdown file that mixes plan and
 - ❌ Modifying the producer skill, even to "make it more validator-friendly."
 - ❌ Editing the artifact directly. Validation is a judgment, not a fix. The producer fixes; the validator judges.
 - ❌ Polish-style findings (CONCERN, NITPICK, "could be more idiomatic"). This is a gate, not `ak:code-review`.
-- ❌ Spawning the validator with any context other than (expectation, artifact, validator prompt). Conversation history leakage defeats the fresh-eyes purpose.
+- ❌ Spawning the validator with any context other than (expectation, artifact). Conversation history leakage defeats the fresh-eyes purpose.
 - ❌ Continuing the loop past the budget. Exhaustion → `PARTIAL`, full stop.
 - ❌ Validating against a moving expectation. Freeze it in Phase 2.
 - ❌ Treating Mode B as a loop. Mode B has no producer to feed back to — it is single-shot.
-- ❌ **Summarizing or paraphrasing the validator's verdict.** Verbatim only — see Verdict Discipline Rule 1.
-- ❌ **Declaring PASS without a fresh validator PASS in hand.** See Rule 2.
-- ❌ **Synthesizing a verdict when the validator subagent fails.** Re-spawn once, then BLOCKED. See Rule 3.
 - ❌ Allowing `--isolate` on interactive producers. Allowlist-gated only.
 
 ---
