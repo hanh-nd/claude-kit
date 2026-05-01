@@ -57,7 +57,7 @@ function initAgentLog(
 export function registerAgentTools(server: McpServer): void {
   server.tool(
     'kit_trigger_agent',
-    '!Important: Trigger only when user explicitly asks to delegate a task to an external agent CLI (gemini or claude). The task can be a direct message or a path to a handoff file (.agent-kit/handoffs/plans/plan-xyz.md). Falls back to the other agent CLI if the requested one is not installed.',
+    '!Important: Trigger only when user explicitly asks to delegate a task to an external agent CLI (gemini or claude). The task can be a direct message or a path to a handoff file (.agent-kit/handoffs/plans/plan-xyz.md).',
     {
       agent: z.enum(['gemini', 'claude']).describe('The agent CLI to invoke: "gemini" or "claude"'),
       task: z
@@ -85,43 +85,33 @@ export function registerAgentTools(server: McpServer): void {
           }
         }
 
-        // Resolve agent with fallback
-        let usedAgent = agent;
-        let fallbackReason: string | undefined;
-
         if (!commandExists(agent)) {
-          const fallback = agent === 'gemini' ? 'claude' : 'gemini';
-          if (commandExists(fallback)) {
-            usedAgent = fallback as 'gemini' | 'claude';
-            fallbackReason = `${agent} CLI not installed, fell back to ${fallback}`;
-          } else {
-            const installHint =
-              agent === 'gemini'
-                ? 'Install Gemini CLI: https://github.com/google-gemini/gemini-cli'
-                : 'Install Claude CLI: npm install -g @anthropic-ai/claude-code';
-            return mcpJson({
-              agent,
-              status: 'error',
-              output: '',
-              error: `Neither ${agent} nor the fallback agent CLI is installed. ${installHint}`,
-            });
-          }
+          const installHint =
+            agent === 'gemini'
+              ? 'Install Gemini CLI: https://github.com/google-gemini/gemini-cli'
+              : 'Install Claude CLI: npm install -g @anthropic-ai/claude-code';
+          return mcpJson({
+            agent,
+            status: 'error',
+            output: '',
+            error: `${agent} CLI is not installed. ${installHint}`,
+          });
         }
 
         // Gemini: -y (--yolo) for auto-accept, -p for headless prompt
         // Claude: --dangerously-skip-permissions for auto-accept, -p/--print for headless
         const agentArgs =
-          usedAgent === 'gemini'
+          agent === 'gemini'
             ? ['-y', '-p', prompt]
             : ['--dangerously-skip-permissions', '-p', prompt];
 
-        const { logPath: lp, logStream } = initAgentLog(workspaceRoot, taskSlug(task), usedAgent);
+        const { logPath: lp, logStream } = initAgentLog(workspaceRoot, taskSlug(task), agent);
         logPath = lp;
 
         const jobId = randomUUID();
         // detached=true on Unix creates a new process group so we can kill the
         // entire tree (CLI + its sub-agents) with process.kill(-pid, signal).
-        const child = spawn(usedAgent, agentArgs, {
+        const child = spawn(agent, agentArgs, {
           cwd: workspaceRoot,
           env: { ...process.env, GEMINI_WORKSPACE: workspaceRoot },
           detached: process.platform !== 'win32',
@@ -140,7 +130,7 @@ export function registerAgentTools(server: McpServer): void {
         };
 
         job = {
-          agent: usedAgent as 'gemini' | 'claude',
+          agent: agent as 'gemini' | 'claude',
           process: child,
           startedAt: new Date(),
           chunks: [],
@@ -177,11 +167,10 @@ export function registerAgentTools(server: McpServer): void {
         });
 
         return mcpJson({
-          agent: usedAgent,
-          status: fallbackReason ? 'fallback' : 'success',
+          agent,
+          status: 'success',
           log: logPath,
           output: sanitizeOutput(job.chunks.join('')),
-          ...(fallbackReason && { fallback_reason: fallbackReason }),
         });
       } catch (error) {
         if (extra.signal.aborted) {

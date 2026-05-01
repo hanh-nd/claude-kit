@@ -30,4 +30,9 @@ Examples:
 
 Call `kit_trigger_agent(agent: <agent>, task: <task>)`.
 
-Report the full output to the user. If the agent fell back to an alternate CLI (e.g., gemini not installed → claude), note this clearly with the `fallback_reason`.
+Report the full output to the user.
+
+## Rules
+- If the agent fails to process (e.g., timed out or requested CLI is not installed), clearly report the error and terminate execution.
+- Do NOT retry the execution if the agent fails.
+- Do NOT post-process, summarize, or modify the agent's output. Report the exact, raw output to the user.
