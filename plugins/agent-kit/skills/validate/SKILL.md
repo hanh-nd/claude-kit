@@ -228,7 +228,7 @@ Increment the attempt counter. Return to Phase 4 (validator spawn) with the prod
 
 ### Phase 7 — Final Report
 
-Emit a single report at the end of the loop. The validator's final report is included **verbatim** — no rewriting, no summarization, no "interpretation."
+Emit a single report at the end of the loop. The validator's final report is included **verbatim** — no rewriting, no summarization, no "interpretation." Do not save the report, just print it out.
 
 ```markdown
 ## 🛡️ Validate Report
