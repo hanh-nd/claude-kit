@@ -8,23 +8,23 @@
 
 | Command                           | Description                                                          |
 | --------------------------------- | -------------------------------------------------------------------- |
-| `/ak:brainstorm [idea]`           | Strategic architectural analysis                                     |
-| `/ak:clarify <file or task>`      | Clarify requirements                                                 |
-| `/ak:plan [file or idea]`         | Create an implementation blueprint                                   |
-| `/ak:code [file or task]`         | Implement from a plan                                                |
-| `/ak:code-simplify`               | Simplify modified code for readability                               |
-| `/ak:code-refactor`               | Refactor modified code for readability                               |
-| `/ak:validate [artifact]`         | Validate artifacts against expectations (or append `with /validate`) |
-| `/ak:research [topic]`            | Research a topic                                                     |
-| `/ak:review-pr [PR URL]`          | Review a pull request                                                |
-| `/ak:review`                      | Review uncommitted local changes                                     |
-| `/ak:debate [subject]`            | Run adversarial debate (Gilfoyle vs Dinesh vs Judge)                 |
-| `/ak:ticket [ID]`                 | Fetch a Jira ticket and plan from it                                 |
-| `/ak:git`                         | Git commit, branch, and PR workflow                                  |
-| `/ak:init`                        | Create the project overview file                                     |
-| `/ak:orchestrate [file or idea]`  | Orchestrate agents to solve problems span across multiple projects   |
-| `/ak:delegate <agent> <task>`     | Delegate a task to Gemini or Claude CLI                              |
-| `/ak:wiki [compile\|query\|lint]` | Maintain a persistent, compounding project knowledge wiki            |
+| `/brainstorm [idea]`           | Strategic architectural analysis                                     |
+| `/clarify <file or task>`      | Clarify requirements                                                 |
+| `/plan [file or idea]`         | Create an implementation blueprint                                   |
+| `/code [file or task]`         | Implement from a plan                                                |
+| `/code-simplify`               | Simplify modified code for readability                               |
+| `/code-refactor`               | Refactor modified code for readability                               |
+| `/validate [artifact]`         | Validate artifacts against expectations (or append `with /validate`) |
+| `/research [topic]`            | Research a topic                                                     |
+| `/review-pr [PR URL]`          | Review a pull request                                                |
+| `/review`                      | Review uncommitted local changes                                     |
+| `/debate [subject]`            | Run adversarial debate (Gilfoyle vs Dinesh vs Judge)                 |
+| `/ticket [ID]`                 | Fetch a Jira ticket and plan from it                                 |
+| `/git`                         | Git commit, branch, and PR workflow                                  |
+| `/init`                        | Create the project overview file                                     |
+| `/orchestrate [file or idea]`  | Orchestrate agents to solve problems span across multiple projects   |
+| `/delegate <agent> <task>`     | Delegate a task to Gemini or Claude CLI                              |
+| `/wiki [compile\|query\|lint]` | Maintain a persistent, compounding project knowledge wiki            |
 
 ---
 
@@ -46,9 +46,9 @@ You don't need to run the wiki manually. Five hooks keep it fed automatically:
 
 | Command                          | Description                                                           |
 | -------------------------------- | --------------------------------------------------------------------- |
-| `/ak:wiki` or `/ak:wiki compile` | Ingest raw inbox + conversation exports → build/update wiki pages     |
-| `/ak:wiki query {question}`      | Search the wiki and synthesize a cited answer                         |
-| `/ak:wiki lint`                  | Health-check: broken links, orphan pages, contradictions, stale inbox |
+| `/wiki` or `/wiki compile` | Ingest raw inbox + conversation exports → build/update wiki pages     |
+| `/wiki query {question}`      | Search the wiki and synthesize a cited answer                         |
+| `/wiki lint`                  | Health-check: broken links, orphan pages, contradictions, stale inbox |
 
 ### Directory Structure
 
@@ -58,7 +58,7 @@ You don't need to run the wiki manually. Five hooks keep it fed automatically:
 │   ├── inbox.md          # Auto-appended by PostToolUse hook (handoff logs)
 │   └── conv_*.md         # Exported by PreCompact hook (conversation transcripts)
 ├── compiled/
-│   └── *.md              # Structured wiki pages built by /ak:wiki compile
+│   └── *.md              # Structured wiki pages built by /wiki compile
 └── archive/
     └── *.md              # Old raw files moved here after compilation
 ```
@@ -140,14 +140,14 @@ BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
 **4. Verify**
 
 ```
-/ak:brainstorm test idea
+/brainstorm test idea
 ```
 
 ---
 
 ### Option 3: Install as Gemini Extension (Optional)
 
-If you want to reuse the commands with [Gemini CLI](https://geminicli.com) (for `/ak:delegate` to Gemini), install it using:
+If you want to reuse the commands with [Gemini CLI](https://geminicli.com) (for `/delegate` to Gemini), install it using:
 
 ```bash
 git clone https://github.com/hanh-nd/agent-kit.git
@@ -184,7 +184,7 @@ Credentials are stored in `~/.claude/credentials` (INI format). Keys can also be
 
 ### Jira (via Atlassian REST API)
 
-Used by `/ak:ticket` and `/ak:review-pr`.
+Used by `/ticket` and `/review-pr`.
 
 | Key                    | Description                                                                                                                              |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -194,7 +194,7 @@ Used by `/ak:ticket` and `/ak:review-pr`.
 
 ### Bitbucket Cloud (via Bitbucket REST API)
 
-Used by `/ak:review-pr`.
+Used by `/review-pr`.
 
 | Key                           | Description                                                                                                                              |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |

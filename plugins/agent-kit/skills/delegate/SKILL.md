@@ -1,5 +1,5 @@
 ---
-name: ak:delegate
+name: delegate
 description: 'Delegate a task to an external agent CLI (Gemini or Claude) with optional handoff context'
 version: 1.0.0
 ---

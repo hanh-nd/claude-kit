@@ -1,5 +1,5 @@
 ---
-name: ak:wiki
+name: wiki
 description: Maintains a persistent project wiki anchored to the codebase — annotating entities, architectural patterns, user preferences, and glossary. Commands `compile` (default), `query {question}`, `lint`. Trigger when the user asks about past decisions, feature context, or project conventions.
 version: 3.2.0
 ---

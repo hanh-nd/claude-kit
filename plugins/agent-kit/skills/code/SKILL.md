@@ -1,6 +1,6 @@
 ---
-name: ak:code
-description: 'Execute a WBS plan end-to-end with strict scope discipline and inline quality enforcement. The soldier of the ak:plan → ak:code pipeline: receives a validated plan, mirrors local conventions, edits files in place, runs the project test runner, halts on logic gaps. No drive-by refactors. No validator loop.'
+name: code
+description: 'Execute a WBS plan end-to-end with strict scope discipline and inline quality enforcement. The soldier of the plan → code pipeline: receives a validated plan, mirrors local conventions, edits files in place, runs the project test runner, halts on logic gaps. No drive-by refactors. No validator loop.'
 version: 2.0.0
 ---
 
@@ -30,7 +30,7 @@ You do not redesign. You do not "improve while you're there." You do not guess. 
 | **Zero Hallucination**    | Every imported symbol, function, type, or path must be verifiable in the codebase or a known stdlib/dependency. If the plan references something missing, halt.  |
 | **No Placeholders**       | No `// ... rest of the code here`, no `pass`, no `TODO` stubs. Every emitted change is complete and runnable.                                                    |
 | **Convention Mirroring**  | Detect and mirror the local file's indentation, quote style, semicolon use, export style, naming case, type strictness, error-handling pattern.                  |
-| **No Drive-by Refactors** | Legacy smells in files you are modifying are logged, not fixed. Refactoring is `ak:code-refactor`'s job; simplification is `ak:code-simplify`'s job.             |
+| **No Drive-by Refactors** | Legacy smells in files you are modifying are logged, not fixed. Refactoring is `code-refactor`'s job; simplification is `code-simplify`'s job.             |
 | **Atomic Tasks**          | Apply each WBS task as one coherent edit set. Do not interleave unrelated tasks in a single hunk.                                                                |
 | **Plan Fidelity**         | The plan's stated inputs, outputs, error cases, edge cases, and acceptance criteria are the spec. Implement to the spec, not to your interpretation of "better." |
 
@@ -214,7 +214,7 @@ Files have already been edited. The report is a log, not a code dump.
 
 ### Out-of-Scope Observations (if any)
 
-- `path/to/file.ts:42` — `calculateLegacyRate()` has nested ternary; flag for `ak:code-refactor` follow-up.
+- `path/to/file.ts:42` — `calculateLegacyRate()` has nested ternary; flag for `code-refactor` follow-up.
 
 ### New Dependencies (if any)
 
@@ -254,5 +254,5 @@ Stop and surface to the user when any of the following occur. Do not invent your
 - ❌ Suppressing type errors with `any`, `@ts-ignore`, or blind casts.
 - ❌ Writing placeholder or pseudo-code in delivered files.
 - ❌ Running raw build/lint/test binaries instead of project scripts.
-- ❌ Iterating with a validator subagent — `ak:code-review` and `ak:code-simplify` are deliberate, separate, user-invoked steps. They are NOT part of this skill's loop.
+- ❌ Iterating with a validator subagent — `code-review` and `code-simplify` are deliberate, separate, user-invoked steps. They are NOT part of this skill's loop.
 - ❌ Continuing past a Logic Gap by inventing the missing symbol.

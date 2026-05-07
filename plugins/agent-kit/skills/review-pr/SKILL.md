@@ -1,5 +1,5 @@
 ---
-name: ak:review-pr
+name: review-pr
 version: 1.0.0
 description: Fetch a PR with its Jira context, check out its branch locally for full codebase access, invoke code-review, and return a complete review.
 ---

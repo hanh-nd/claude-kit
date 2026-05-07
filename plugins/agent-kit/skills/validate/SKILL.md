@@ -1,5 +1,5 @@
 ---
-name: ak:validate
+name: validate
 description: 'PRIMARY ENTRY POINT when the user appends `with /validate` to any other command. Invokes the producer skill, captures its output, spawns a validator subagent, and runs a bounded PASS/FAILED feedback loop. Also handles standalone `/validate <artifact> --against <expectation>`.'
 version: 1.3.0
 ---
@@ -16,7 +16,7 @@ You are a **Quality Gate Orchestrator**. Your only job is to ensure that an arti
 
 You operate at a layer above the producer skills. You do **not** rewrite plans, refactor code, or polish prose. You do **not** judge "could be better." You judge "does it meet the bar — yes or no." If no, you hand the producer the validator's diagnosis and let it try again, up to a bounded budget.
 
-You are **producer-agnostic**. You do not care whether the artifact came from `ak:plan`, `ak:code`, `ak:brainstorm`, Gemini via `ak:delegate`, or a human. You judge the artifact, not its author.
+You are **producer-agnostic**. You do not care whether the artifact came from `plan`, `code`, `brainstorm`, Gemini via `delegate`, or a human. You judge the artifact, not its author.
 
 ---
 
@@ -26,14 +26,14 @@ This skill has a known dispatch failure mode. Read this section before doing any
 
 ### The Rule
 
-When the user's message contains `with /validate` (or any of: `, with /validate`, `+ /validate`, `then /validate`, `&& /validate`), **`ak:validate` is the entry point** — not the producer skill it modifies. The dispatch order is:
+When the user's message contains `with /validate` (or any of: `, with /validate`, `+ /validate`, `then /validate`, `&& /validate`), **`validate` is the entry point** — not the producer skill it modifies. The dispatch order is:
 
 1. User: `/plan ticket YR-1234 with /validate`
-2. **Load `ak:validate` FIRST** — it owns the orchestration.
-3. `ak:validate` Phase 1 parses: producer = `ak:plan`, args = `ticket YR-1234`.
-4. `ak:validate` Phase 3 invokes `ak:plan` (in main context — interactive gates intact).
-5. `ak:plan` runs end-to-end, returns its artifact.
-6. `ak:validate` Phase 4 spawns the validator subagent.
+2. **Load `validate` FIRST** — it owns the orchestration.
+3. `validate` Phase 1 parses: producer = `plan`, args = `ticket YR-1234`.
+4. `validate` Phase 3 invokes `plan` (in main context — interactive gates intact).
+5. `plan` runs end-to-end, returns its artifact.
+6. `validate` Phase 4 spawns the validator subagent.
 7. Loop or PASS.
 
 The producer skill does not know it is being wrapped. The orchestration is invisible to it. **You** are the one who has to remember.
@@ -44,7 +44,7 @@ The producer skill does not know it is being wrapped. The orchestration is invis
 
 ### Hard Rule for the Dispatcher
 
-If the user's message contains `with /validate` (or any equivalent ordering listed above), `ak:validate` MUST load before the producer's skill. Loading both in parallel is acceptable; loading only the producer is the bug this section exists to prevent.
+If the user's message contains `with /validate` (or any equivalent ordering listed above), `validate` MUST load before the producer's skill. Loading both in parallel is acceptable; loading only the producer is the bug this section exists to prevent.
 
 ---
 
@@ -52,7 +52,7 @@ If the user's message contains `with /validate` (or any equivalent ordering list
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  Orchestrator (this skill — `ak:validate`)                   │
+│  Orchestrator (this skill — `validate`)                   │
 │  • Parses invocation, resolves expectation                   │
 │  • Drives the producer ↔ validator loop                      │
 │  • Owns budget, exhaustion handling, final report            │
@@ -76,9 +76,9 @@ If the user's message contains `with /validate` (or any equivalent ordering list
 
 These are deliberate design choices, not oversights. Do not "fix" them without understanding why they exist.
 
-1. **Producer runs in main context by default.** Reason: interactive producers (`ak:plan` with raw ticket, `ak:brainstorm`) require user turn-taking via `AskUserQuestion`. `Agent`-tool subagents are autonomous and cannot turn-take with the human. Forcing interactive producers into subagent shape causes one of: skipped user gates (defeats the skill), deadlock waiting for input that cannot arrive, or invented assumptions (violates anti-assumption mandate). Independence is recovered at the **validator** layer (always fresh) and through **verdict discipline** (binding, verbatim — see below).
+1. **Producer runs in main context by default.** Reason: interactive producers (`plan` with raw ticket, `brainstorm`) require user turn-taking via `AskUserQuestion`. `Agent`-tool subagents are autonomous and cannot turn-take with the human. Forcing interactive producers into subagent shape causes one of: skipped user gates (defeats the skill), deadlock waiting for input that cannot arrive, or invented assumptions (violates anti-assumption mandate). Independence is recovered at the **validator** layer (always fresh) and through **verdict discipline** (binding, verbatim — see below).
 
-2. **`--isolate` is opt-in, allowlist-gated.** For producers known to be non-interactive (`ak:code`, `ak:delegate`), the user can opt into running the producer as a subagent for stronger end-to-end independence. The allowlist exists because there is no reliable way to detect mid-run that a subagent is about to ask the user a question.
+2. **`--isolate` is opt-in, allowlist-gated.** For producers known to be non-interactive (`code`, `delegate`), the user can opt into running the producer as a subagent for stronger end-to-end independence. The allowlist exists because there is no reliable way to detect mid-run that a subagent is about to ask the user a question.
 
 3. **Mode B is single-shot.** No loop, because there is no producer to feed feedback back to. The artifact came from a previous session or an external tool that this orchestrator cannot re-invoke.
 
@@ -99,7 +99,7 @@ User appends `with /validate` to a producer command:
 
 The orchestrator:
 
-1. Routes the producer command to its skill (e.g. `ak:plan`, `ak:code`).
+1. Routes the producer command to its skill (e.g. `plan`, `code`).
 2. Captures the producer's output (artifact + expectation it was given).
 3. Spawns the validator subagent against (artifact, expectation).
 4. Loops on FAILED until PASS or budget exhausted.
@@ -165,10 +165,10 @@ If `--isolate` is set, the producer must run as a subagent for full end-to-end i
 
 | Producer        | `--isolate` allowed? | Reason                                                                |
 | --------------- | -------------------- | --------------------------------------------------------------------- |
-| `ak:code`       | ✅ Yes               | Non-interactive — executes a finalized plan, no user gates.           |
-| `ak:delegate`   | ✅ Yes               | Hands off to Gemini/Claude CLI; no in-loop user interaction.          |
-| `ak:plan`       | ❌ No                | Interactive — Phase 2 Scope Challenge requires user input.            |
-| `ak:brainstorm` | ❌ No                | Interactive by design.                                                |
+| `code`       | ✅ Yes               | Non-interactive — executes a finalized plan, no user gates.           |
+| `delegate`   | ✅ Yes               | Hands off to Gemini/Claude CLI; no in-loop user interaction.          |
+| `plan`       | ❌ No                | Interactive — Phase 2 Scope Challenge requires user input.            |
+| `brainstorm` | ❌ No                | Interactive by design.                                                |
 | Unknown skill   | ❌ No                | Default-deny. User must explicitly add to allowlist via skill update. |
 
 If `--isolate` is set on a non-allowlisted producer, halt:
@@ -302,7 +302,7 @@ The expectation captured in Phase 2 is the contract for the entire loop. The orc
 - Drop criteria the producer struggles with ("we'll defer that one").
 - Re-read the expectation source between attempts to "refresh" it.
 
-If the user wants to change the expectation, they re-invoke `ak:validate` with new inputs. The current run halts.
+If the user wants to change the expectation, they re-invoke `validate` with new inputs. The current run halts.
 
 ---
 
@@ -332,7 +332,7 @@ If the user wants to change the expectation, they re-invoke `ak:validate` with n
 
 - ❌ Modifying the producer skill, even to "make it more validator-friendly."
 - ❌ Editing the artifact directly. Validation is a judgment, not a fix. The producer fixes; the validator judges.
-- ❌ Polish-style findings (CONCERN, NITPICK, "could be more idiomatic"). This is a gate, not `ak:code-review`.
+- ❌ Polish-style findings (CONCERN, NITPICK, "could be more idiomatic"). This is a gate, not `code-review`.
 - ❌ Spawning the validator with any context other than (expectation, artifact). Conversation history leakage defeats the fresh-eyes purpose.
 - ❌ Continuing the loop past the budget. Exhaustion → `PARTIAL`, full stop.
 - ❌ Validating against a moving expectation. Freeze it in Phase 2.
@@ -343,7 +343,7 @@ If the user wants to change the expectation, they re-invoke `ak:validate` with n
 
 ## Interplay With Other Skills
 
-- **Producer skills** (`ak:plan`, `ak:code`, `ak:brainstorm`, `ak:delegate`) — untouched by this skill. They never need to know they are being wrapped.
-- **`ak:code-review`** — runs _after_ `ak:validate` passes, when the user wants polish review. Validator catches "wrong"; code-review catches "could be better."
-- **`ak:code-refactor` / `ak:code-simplify`** — same as code-review: post-validate quality work, not part of this loop.
-- **`unit-testing`** (sub-skill) — already triggered inside `ak:code` when `hasUnitTests` and `useUnitTests` are both true. Validator does not re-trigger it; it just runs the test script and reads the result.
+- **Producer skills** (`plan`, `code`, `brainstorm`, `delegate`) — untouched by this skill. They never need to know they are being wrapped.
+- **`code-review`** — runs _after_ `validate` passes, when the user wants polish review. Validator catches "wrong"; code-review catches "could be better."
+- **`code-refactor` / `code-simplify`** — same as code-review: post-validate quality work, not part of this loop.
+- **`unit-testing`** (sub-skill) — already triggered inside `code` when `hasUnitTests` and `useUnitTests` are both true. Validator does not re-trigger it; it just runs the test script and reads the result.

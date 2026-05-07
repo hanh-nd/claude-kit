@@ -1,5 +1,5 @@
 ---
-name: ak:debate
+name: debate
 description: Adversarial validation layer — spawns Gilfoyle (attacker), Dinesh (defender), and a Judge to stress-test a prior skill output through multi-round structured debate. Use to challenge a prior analysis, review, or plan before acting on it.
 version: 1.0.0
 ---
@@ -31,7 +31,7 @@ If the originating skill's SKILL.md is available, read it to see what the agent 
 Synthesize into a compact block you'll pass to both debaters:
 
 ```
-ORIGINATING SKILL: [skill name, e.g., ak:review-pr]
+ORIGINATING SKILL: [skill name, e.g., review-pr]
 EVALUATION DIMENSIONS: [what the primary agent evaluated, e.g., correctness, coverage, severity accuracy]
 VERDICT MODEL: [e.g., REQUEST CHANGES with CRITICAL/MAJOR/MINOR tiers]
 METHODOLOGY CHECKLIST: [what the primary agent was supposed to check per its own SKILL.md]

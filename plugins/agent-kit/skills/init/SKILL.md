@@ -1,5 +1,5 @@
 ---
-name: ak:init
+name: init
 description: Extract a compact DNA Profile from a codebase — stack, architecture, conventions, error handling, testing patterns, and business terminology — so downstream agents produce code that matches the project's existing style and structure.
 version: 1.0.0
 ---

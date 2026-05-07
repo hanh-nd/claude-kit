@@ -1,7 +1,7 @@
 ---
-name: ak:code-refactor
+name: code-refactor
 version: 1.0.0
-description: Structural refactoring — questions the current design, reshapes signatures, removes obsolete abstractions, and deletes dead code while preserving reachable behavior. Distinct from ak:code-simplify (which improves expression within the existing structure) this skill questions the structure itself.
+description: Structural refactoring — questions the current design, reshapes signatures, removes obsolete abstractions, and deletes dead code while preserving reachable behavior. Distinct from code-simplify (which improves expression within the existing structure) this skill questions the structure itself.
 ---
 
 ## Core thesis
@@ -10,18 +10,18 @@ description: Structural refactoring — questions the current design, reshapes s
 
 This skill does not find things to clean up. It asks whether the current shape of a component is the right shape, and proposes structural changes when it isn't. Surface-level smells are treated as evidence, not as the thing to fix.
 
-The skill's primary failure mode is **bottom-up cataloguing**: listing four symptoms, proposing four independent fixes, and missing that all four trace back to one upstream design decision. Guard against this above all else. Premise-first diagnosis is what makes this skill different from `ak:code-simplify`, not "being bolder."
+The skill's primary failure mode is **bottom-up cataloguing**: listing four symptoms, proposing four independent fixes, and missing that all four trace back to one upstream design decision. Guard against this above all else. Premise-first diagnosis is what makes this skill different from `code-simplify`, not "being bolder."
 
-## Relationship to `ak:code-simplify`
+## Relationship to `code-simplify`
 
 These skills are orthogonal, not a spectrum.
 
-- `ak:code-simplify` operates **within** the current structure. Accept the design, improve the expression. Signatures preserved, call sites untouched.
-- `ak:code-refactor` operates **on** the current structure. Question the design, reshape it if wrong. Signatures negotiable, call sites reshape atomically.
+- `code-simplify` operates **within** the current structure. Accept the design, improve the expression. Signatures preserved, call sites untouched.
+- `code-refactor` operates **on** the current structure. Question the design, reshape it if wrong. Signatures negotiable, call sites reshape atomically.
 
 A piece of code can need either, both, or neither. They do not interpolate.
 
-If a user request is fundamentally about code expression (long method, unclear variable names, dedup within a function, style), route to `ak:code-simplify`. If it involves questioning whether the current decomposition is right, this skill applies.
+If a user request is fundamentally about code expression (long method, unclear variable names, dedup within a function, style), route to `code-simplify`. If it involves questioning whether the current decomposition is right, this skill applies.
 
 ## When to use
 
@@ -35,7 +35,7 @@ If a user request is fundamentally about code expression (long method, unclear v
 
 ## When NOT to use
 
-- **Pure style / within-function dedup / extraction that preserves signatures** → use `ak:code-simplify`.
+- **Pure style / within-function dedup / extraction that preserves signatures** → use `code-simplify`.
 - **Full rewrites** → this is not a rewrite skill. Say so and stop.
 - **Adding features** → refactor first (separate run), then add features.
 - **Performance work** → behavior preservation is the contract; perf changes can break it.
@@ -116,8 +116,8 @@ _Dead code:_
 
 **Do not flag:**
 
-- "Old-looking" style — that's `ak:code-simplify`'s job
-- Long functions without signature problems — that's `ak:code-simplify`'s job
+- "Old-looking" style — that's `code-simplify`'s job
+- Long functions without signature problems — that's `code-simplify`'s job
 - "Could use a design pattern here" — speculative abstractions are the #1 refactor failure mode
 - Defensive code without evidence of unreachability
 
@@ -194,7 +194,7 @@ Produce a terse, factual report:
 - What was skipped and why (including reverts from test regressions)
 - Anything flagged UNCERTAIN and left alone, with enough context for the user to decide manually
 - Pre-existing test failures in the baseline that look related to the refactor area (if any), flagged so the user can investigate separately
-- Suggested follow-ups, if any (e.g., "after this refactor, `ak:code-simplify` could now dedupe within `processOrder`")
+- Suggested follow-ups, if any (e.g., "after this refactor, `code-simplify` could now dedupe within `processOrder`")
 
 No self-congratulation. The report is an audit trail.
 
@@ -218,7 +218,7 @@ No self-congratulation. The report is an audit trail.
 
 - Delete UNCERTAIN code (no _visible_ references but dynamic dispatch possible)
 - Introduce speculative abstractions not demanded by 3+ concrete use cases
-- Extract, dedup, rename within a function on live code — that's `ak:code-simplify`
+- Extract, dedup, rename within a function on live code — that's `code-simplify`
 - Modify tests to make them pass a refactored signature
 - Change behavior on any live code path, even if current behavior seems wrong
 - Touch code behind reflection, `eval`, `getattr`, `method_missing`, decorator metaprogramming, codegen

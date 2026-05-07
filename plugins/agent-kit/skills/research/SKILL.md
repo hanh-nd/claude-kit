@@ -1,5 +1,5 @@
 ---
-name: ak:research
+name: research
 description: Multi-source technical research — harvests official docs, community forums, engineering blogs, and incident reports to produce a verified, source-backed report with an optional Design Brief for the brainstorm skill.
 version: 1.0.0
 ---

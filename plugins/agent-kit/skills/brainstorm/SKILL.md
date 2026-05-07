@@ -1,5 +1,5 @@
 ---
-name: ak:brainstorm
+name: brainstorm
 description: 'Strategic architectural brainstorming — from raw idea to engineer-ready PRD'
 version: 1.0.0
 effort: max

@@ -1,6 +1,6 @@
 ---
-name: ak:clarify
-description: "Business clarification — reads code as evidence of current behavior to find gaps the requirement left silent. Not a planner. Output: a Clarification Brief that captures the user's resolutions on those gaps and feeds ak:plan."
+name: clarify
+description: "Business clarification — reads code as evidence of current behavior to find gaps the requirement left silent. Not a planner. Output: a Clarification Brief that captures the user's resolutions on those gaps and feeds plan."
 version: 3.0.0
 ---
 
@@ -14,7 +14,7 @@ version: 3.0.0
 
 You are a **business clarifier**, not a code archaeologist or a planner. The acceptance criteria are the rail. Your job is to walk each AC line and, for each one, end with the **business questions the ticket didn't answer** identified and resolved by the user.
 
-The code is **evidence of current business behavior** — nothing more. You read it to verify what the system does today so you can compare that against what the ticket specifies. You do **not** read it to identify where to edit, name owners, or specify implementation changes — those are `ak:plan`'s job.
+The code is **evidence of current business behavior** — nothing more. You read it to verify what the system does today so you can compare that against what the ticket specifies. You do **not** read it to identify where to edit, name owners, or specify implementation changes — those are `plan`'s job.
 
 For each AC item, the walk must establish:
 
@@ -47,7 +47,7 @@ The user enters the loop only when something is **decision-resolvable** (the AC 
 
 - **No implementation, no planning.** Clarify produces a Clarification Brief — a business artifact. No code, no WBS, no file/line targets in the brief, no "do X at booking.js:142" in the output. Implementation locations may appear in the conversation walk as evidence (so the user can challenge "the code currently does X at booking.js:142"), but never in the final brief.
 
-**Output:** A Clarification Brief (`.md` file) that `ak:plan` consumes directly. Written only after the Saturation Gate passes.
+**Output:** A Clarification Brief (`.md` file) that `plan` consumes directly. Written only after the Saturation Gate passes.
 
 ---
 
@@ -59,7 +59,7 @@ ticket       ├─►  CLARIFY  ─►  plan  ─►  code
 raw input   ─┘
 ```
 
-Optional but recommended when the AC has unknowns. `ak:plan` will accept assumptions where clarify won't; clarify exists to surface and resolve those assumptions _before_ WBS time.
+Optional but recommended when the AC has unknowns. `plan` will accept assumptions where clarify won't; clarify exists to surface and resolve those assumptions _before_ WBS time.
 
 ---
 
@@ -69,7 +69,7 @@ Optional but recommended when the AC has unknowns. `ak:plan` will accept assumpt
 
 | Input type                          | Where the AC lives                                                                                                                                                                            |
 | :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design Brief (from `ak:brainstorm`) | **AC items** = §2 Scope IN list (one bullet → one AC item). **Pre-resolved gaps** = §4 Edge Cases & Failure Modes table — attach to relevant AC items, do **not** re-sweep them in Phase 2.C. |
+| Design Brief (from `brainstorm`) | **AC items** = §2 Scope IN list (one bullet → one AC item). **Pre-resolved gaps** = §4 Edge Cases & Failure Modes table — attach to relevant AC items, do **not** re-sweep them in Phase 2.C. |
 | Jira ticket                         | "Requirements" / "Acceptance Criteria" section                                                                                                                                                |
 | Raw input                           | **Ask the user.** First message: "Before I dig in — what does success look like? Give me the acceptance criteria, even rough bullets."                                                        |
 
@@ -132,7 +132,7 @@ AC-4. WHEN PM declines a pendingConfirm booking
 
 ### Design Brief Pre-Resolved Gaps
 
-When the input is a `ak:brainstorm` Design Brief, attach §4 Edge Cases & Failure Modes rows to the AC items they apply to. These are user-validated decisions from the brainstorm phase — they are **not** open gaps to re-ask in Phase 2.C.
+When the input is a `brainstorm` Design Brief, attach §4 Edge Cases & Failure Modes rows to the AC items they apply to. These are user-validated decisions from the brainstorm phase — they are **not** open gaps to re-ask in Phase 2.C.
 
 Mapping rule:
 
@@ -390,7 +390,7 @@ If the gate cannot pass because AC items are stuck at `asked-pending` (user dise
 
 - **Refuse to write the brief.**
 - Output status `NEEDS_INPUT` and list the unresolved AC items.
-- Tell the user: "Cannot write a brief while these AC items are open. Either answer, defer to a stakeholder, or run `/plan` directly — `ak:plan` will accept assumptions where I won't."
+- Tell the user: "Cannot write a brief while these AC items are open. Either answer, defer to a stakeholder, or run `/plan` directly — `plan` will accept assumptions where I won't."
 
 Blocking = AC items the user cannot resolve and cannot defer. Clarify is opt-in; invoking it is consent to engage.
 

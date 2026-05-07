@@ -1,7 +1,7 @@
 ---
-name: ak:code-simplify
+name: code-simplify
 version: 1.0.0
-description: Improve readability within the existing structure — better names, guard clauses, dead-code removal, magic-value consolidation, comment hygiene — without changing external behavior or signatures. Routes to ak:code-refactor if the change requires altering a signature or reversing a design decision.
+description: Improve readability within the existing structure — better names, guard clauses, dead-code removal, magic-value consolidation, comment hygiene — without changing external behavior or signatures. Routes to code-refactor if the change requires altering a signature or reversing a design decision.
 ---
 
 # Code Simplify
@@ -12,12 +12,12 @@ Improve the readability of existing code without changing what it does or how it
 
 **The primary failure mode this skill guards against is pattern-matching on hunks.** A rule like "rename `data` to something specific" fires correctly only when you've read the whole file and understand what `data` holds in context. Reading the diff hunk alone produces confident-looking bad renames.
 
-## Relationship to `ak:code-refactor`
+## Relationship to `code-refactor`
 
 These skills are orthogonal, not a spectrum.
 
-- `ak:code-simplify` works **within** the current structure. Signatures preserved (external ABI: types, arity, observable side effects, error surface). Call sites untouched.
-- `ak:code-refactor` works **on** the current structure. Signatures negotiable, call sites reshape atomically, design premise on the table.
+- `code-simplify` works **within** the current structure. Signatures preserved (external ABI: types, arity, observable side effects, error surface). Call sites untouched.
+- `code-refactor` works **on** the current structure. Signatures negotiable, call sites reshape atomically, design premise on the table.
 
 If triage reveals that the real improvement requires signature changes, cross-file merges, or reversing a design choice, this skill **stops and routes out** rather than degrading the change into a within-signature half-measure.
 
@@ -63,7 +63,7 @@ For each modified unit, classify what's present. Use these categories — and on
 - Comments that restate what the code does in English ("What" comments).
 - Comments that contradict the current code.
 
-**Simplify-out-of-scope — route to `ak:code-refactor`:**
+**Simplify-out-of-scope — route to `code-refactor`:**
 
 - Function signature is wrong (misnamed, parameters unused at all call sites, boolean flag splitting the function into two behaviors, return type leaks implementation detail).
 - Two functions in the same file or module that serve the same domain purpose.
@@ -144,7 +144,7 @@ Revert any change that fails self-review. Reverts tagged `[self-review]` in the 
 
 - **[self-review]** Explaining variable `isActiveAdmin` — used once, inlined version reads clearly in context.
 
-### Route-Out to `ak:code-refactor`
+### Route-Out to `code-refactor`
 
 - `processOrder()` in `order.service.ts` takes a boolean `isExpress` that splits the function into two different behaviors. This is a signature-level issue — outside simplify's scope.
 - `getUserData()` wraps `fetchUser()` with no transformation. Wrapper collapse requires call-site updates.
@@ -163,9 +163,9 @@ If the triage exited early with `No changes needed` or route-out-only, the log i
 
 ## What this skill does NOT do
 
-- **Does not change signatures.** Parameter types, count, return type, names-when-call-sites-use-them: all untouched. Route to `ak:code-refactor`.
+- **Does not change signatures.** Parameter types, count, return type, names-when-call-sites-use-them: all untouched. Route to `code-refactor`.
 - **Does not merge or split functions.** Cross-function shape is structural, not expressive.
-- **Does not introduce new abstractions.** No new helpers, no new base classes, no new patterns. If you want one, `ak:code-refactor` is the tool.
+- **Does not introduce new abstractions.** No new helpers, no new base classes, no new patterns. If you want one, `code-refactor` is the tool.
 - **Does not modify tests.** If a test is wrong, that's a separate concern.
 - **Does not optimize performance.** Readability over micro-performance.
 - **Does not fix bugs.** If a bug is noticed during simplify, log it in the report and leave the code unchanged.
