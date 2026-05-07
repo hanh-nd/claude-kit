@@ -1,7 +1,7 @@
 ---
 name: ak:review
 version: 1.0.0
-description: Review local uncommitted code changes (both staged and unstaged) with auto-detected Jira context from the current branch. Use whenever the user wants to review their work in progress, check their local changes before committing or pushing, or asks to "review my changes", "review current code changes", "review current diff", "check my work", or "review this". Defaults to reviewing all uncommitted tracked changes from HEAD; accepts an optional base (branch, tag, or commit) to diff against for broader scopes.
+description: Review local uncommitted changes (staged and unstaged) with auto-detected Jira context from the current branch. Defaults to HEAD; accepts an optional base (branch, tag, or commit) to diff against.
 ---
 
 # Review Local Changes

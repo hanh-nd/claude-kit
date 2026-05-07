@@ -1,6 +1,6 @@
 ---
 name: ak:research
-description: Multi-source technical research specialist. Receives a Topic and a specific Question, then harvests official docs, community forums, engineering blogs, and incident reports to produce a verified, source-backed research report — with an optional Design Brief for feeding into the brainstorm skill.
+description: Multi-source technical research — harvests official docs, community forums, engineering blogs, and incident reports to produce a verified, source-backed report with an optional Design Brief for the brainstorm skill.
 version: 1.0.0
 ---
 

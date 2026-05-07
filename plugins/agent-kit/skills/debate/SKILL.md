@@ -1,18 +1,6 @@
 ---
 name: ak:debate
-description: |
-  Adversarial validation layer — spawns Gilfoyle (attacker), Dinesh (defender), and a Judge to stress-test any prior skill output through multi-round structured debate. Use this skill whenever the user wants a prior analysis, review, or plan challenged before acting on it.
-
-  ALWAYS invoke this skill when the user:
-  - Says "/debate", "debate this", "debate on this", or "debate mode"
-  - Wants to "validate", "stress test", "adversarial review", or get "a second opinion" on a prior output (code review, plan, brainstorm, security scan, migration plan, etc.)
-  - Says "spin up debate mode", "run debate", or asks to involve "Gilfoyle" or "Dinesh"
-  - Is suspicious of a single-agent result: "I'm not convinced", "I want someone to challenge this", "i feel like it's glossing over edge cases", "I don't want confirmation bias"
-  - Wants to validate before a high-stakes action: "before we ship", "before we merge", "before we run this migration", "before we commit to this"
-  - Uses any skill with "using /debate" or "with debate mode" appended
-  - Wants a finding challenged: "is this actually a blocker?", "is this a false positive?"
-
-  Do NOT invoke for: general PR review requests (→ ak:review-pr), fresh brainstorms with no prior output (→ ak:brainstorm), or general "pros and cons" / "devil's advocate" questions with no specific prior skill output to validate.
+description: Adversarial validation layer — spawns Gilfoyle (attacker), Dinesh (defender), and a Judge to stress-test a prior skill output through multi-round structured debate. Use to challenge a prior analysis, review, or plan before acting on it.
 version: 1.0.0
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: ak:validate
-description: 'PRIMARY ENTRY POINT whenever the user appends `with /validate` (or any equivalent: `, with /validate`, `+ /validate`, `then /validate`) to ANY other slash command — load THIS skill BEFORE the producer skill it modifies. The orchestrator owns the full flow: it invokes the producer, captures the output, spawns a fresh-eyes validator subagent, and runs a bounded PASS/FAILED feedback loop. Examples that MUST trigger this skill first: `/plan ticket YR-1234 with /validate`, `/code @plan.md with /validate`, `/brainstorm idea with /validate`. Also handles standalone `/validate <artifact> --against <expectation>`. Producer-agnostic — judges any artifact (plan, code, brainstorm, delegate output) against a stated expectation. Verdict is binary: PASS or FAILED. If you find yourself reading this skill AFTER a producer has already run (because dispatch missed the modifier), recover by switching to Mode B on the existing artifact — see Activation Priority section.'
+description: 'PRIMARY ENTRY POINT when the user appends `with /validate` to any other command. Invokes the producer skill, captures its output, spawns a validator subagent, and runs a bounded PASS/FAILED feedback loop. Also handles standalone `/validate <artifact> --against <expectation>`.'
 version: 1.3.0
 ---
 

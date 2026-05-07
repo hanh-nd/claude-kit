@@ -1,7 +1,7 @@
 ---
 name: ak:code-simplify
 version: 1.0.0
-description: Improve the readability and clarity of code within its existing structure — better names, guard clauses, dead-code removal, magic-value consolidation, comment hygiene — without changing external behavior or signatures. Use whenever the user wants to clean up current code changes, polish a function, tighten a diff, or says "simplify this", "clean this up", "make this readable", "reduce noise". Distinct from `ak:code-refactor`: this skill preserves the structure; `ak:code-refactor` questions the structure. If a change requires altering a function signature, merging functions across files, or reversing a design decision, this skill routes out to `ak:code-refactor` rather than forcing a fit.
+description: Improve readability within the existing structure — better names, guard clauses, dead-code removal, magic-value consolidation, comment hygiene — without changing external behavior or signatures. Routes to ak:code-refactor if the change requires altering a signature or reversing a design decision.
 ---
 
 # Code Simplify

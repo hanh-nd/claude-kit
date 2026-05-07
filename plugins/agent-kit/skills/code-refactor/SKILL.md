@@ -1,7 +1,7 @@
 ---
 name: ak:code-refactor
 version: 1.0.0
-description: Perform structural refactoring on a code component — question the current design, reshape signatures, remove obsolete abstractions, collapse leaky layers, and delete clearly dead code — while preserving reachable behavior. Use this skill whenever the user asks to refactor, restructure, clean up, modernize, untangle, rethink, or "make better" an existing component, module, file, directory, or diff — especially when they mention legacy code, tech debt, messy code, leaky abstractions, wrong design, or code that "needs a rethink." Use it even when the user just says "refactor this" without further detail. This skill is distinct from `ak:code-simplify`: `ak:code-simplify` works within the existing structure (extract, dedupe, rename, preserve signatures); `ak:code-refactor` questions the structure itself (change signatures, reshape call sites, challenge the design premise). Prefer this skill whenever the refactor target might involve a wrong design choice, not just messy expression of a correct one.
+description: Structural refactoring — questions the current design, reshapes signatures, removes obsolete abstractions, and deletes dead code while preserving reachable behavior. Distinct from ak:code-simplify (which improves expression within the existing structure) this skill questions the structure itself.
 ---
 
 ## Core thesis

@@ -1,7 +1,6 @@
 ---
 name: ak:wiki
-description: >
-  Maintains a persistent, compounding project wiki anchored to the codebase — not to handoff streams. The wiki annotates what exists in the code (entities), the patterns that constrain it (concepts), how the user wants the agent to work (preferences), and short reference notes (glossary). Use when the user wants to: compile session logs into wiki pages (`/wiki compile`), recall past decisions or feature context (`/wiki query {question}`), or health-check the wiki (`/wiki lint`). Trigger when the user says "what did we decide about", "what's the status of", "catch me up on", "why do we use", "what patterns do we follow", "what did we say about my preference for", or asks about something from a previous session. Default with no arguments runs compile.
+description: Maintains a persistent project wiki anchored to the codebase — annotating entities, architectural patterns, user preferences, and glossary. Commands `compile` (default), `query {question}`, `lint`. Trigger when the user asks about past decisions, feature context, or project conventions.
 version: 3.2.0
 ---
 

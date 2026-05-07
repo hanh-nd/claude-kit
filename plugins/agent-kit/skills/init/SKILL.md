@@ -1,11 +1,6 @@
 ---
 name: ak:init
-description: >
-  Extract a compact "DNA Profile" from any codebase — capturing stack,
-  architecture, conventions, error handling, testing patterns, and business terminology —
-  so that downstream coding agents produce code that matches the project's existing style
-  and structure. Use this skill whenever you need to understand a codebase before
-  generating code, planning implementation, or reviewing PRs.
+description: Extract a compact DNA Profile from a codebase — stack, architecture, conventions, error handling, testing patterns, and business terminology — so downstream agents produce code that matches the project's existing style and structure.
 version: 1.0.0
 ---
 

@@ -2,7 +2,7 @@
 name: code-review
 version: 3.0.0
 effort: max
-description: Rigorous code review of diffs, pull requests, or commits with evidence-backed findings. Use whenever the user asks to review a diff, review a PR, check a commit, audit code changes, assess whether code is ready to merge, or evaluate a pull request. Also loadable as a sub-skill by higher-level review pipelines that handle fetching and orchestration. Catches critical issues (data safety, concurrency, trust boundaries, state completeness, destructive operations) and informational concerns (hidden side effects, dead code, test parity, magic values) while flagging scope drift from stated intent. Language-agnostic and domain-agnostic — applies to backend, frontend, infra, data pipelines, and agent code alike.
+description: Rigorous code review of diffs, PRs, or commits with evidence-backed findings. Catches critical issues (data safety, concurrency, trust boundaries, destructive ops) and informational concerns (dead code, test parity, magic values). Language- and domain-agnostic. Also loadable as a sub-skill by review orchestrators.
 ---
 
 # Code Review

@@ -1,7 +1,7 @@
 ---
 name: ak:review-pr
 version: 1.0.0
-description: Fetch a PR with its Jira context, check out its branch locally for full codebase access, invoke the code-review skill, and return a complete review. Use whenever the user wants a deep review of a PR by URL or identifier, or asks to "review PR X", "check PR X", "is PR X ready to merge", or "audit this pull request".
+description: Fetch a PR with its Jira context, check out its branch locally for full codebase access, invoke code-review, and return a complete review.
 ---
 
 # Review PR
