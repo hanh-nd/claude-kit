@@ -72,7 +72,7 @@ For each modified unit, classify what's present. Use these categories — and on
 - Abstraction introduced for flexibility that never materialized.
 - Any change that would alter external ABI.
 
-**Do nothing:**
+**Accept and skip:**
 
 - Redundancy that aids readability (nil-check before length check; explicit `else` after an early `return` that some teams prefer).
 - Established convention mismatches that are project-wide, not local. Don't fight the codebase.
@@ -111,6 +111,12 @@ Parameter _names_ are internal unless a call site uses named arguments. If any c
 - Order within a file is not meaningful — apply each change as its own atomic edit.
 - Match the project's existing convention for constant placement (top of file, `constants.ts`, etc.). Do not invent a new convention.
 
+**Scope limits:**
+
+- **Tests are untouched.** If a test looks wrong, log it in the report as a separate concern — fixing tests mixes test maintenance into a readability diff and makes both changes harder to review.
+- **Performance improvements are out of scope.** A readability change that happens to be faster is acceptable; a change motivated by performance belongs in a dedicated session.
+- **Bugs noticed during the run are logged and left unchanged.** Fixing a bug changes behavior. This skill's invariance contract is that behavior is preserved — a behavior change embedded in a readability diff is invisible to reviewers who assume simplify-only diffs are safe to approve quickly. Log it, route it to a separate session.
+
 ### Phase 4 — Self-Review and Log
 
 After all changes are applied, re-read each modified file as if seeing it for the first time. For each change you made, ask:
@@ -121,6 +127,8 @@ After all changes are applied, re-read each modified file as if seeing it for th
 4. **Invariance re-check** — did any edit accidentally change a type, a return path, or a side-effect condition?
 
 Revert any change that fails self-review. Reverts tagged `[self-review]` in the log.
+
+If tests fail after applying changes, that signals a violated invariance check — revert the offending change and log it as `[invariance-violation]`. The tests are not wrong; the change was.
 
 **Produce the log:**
 
@@ -160,16 +168,6 @@ Run `/code-refactor order.service.ts user.service.ts` to address these.
 If the triage exited early with `No changes needed` or route-out-only, the log is just the relevant message — no empty sections.
 
 ---
-
-## What this skill does NOT do
-
-- **Does not change signatures.** Parameter types, count, return type, names-when-call-sites-use-them: all untouched. Route to `code-refactor`.
-- **Does not merge or split functions.** Cross-function shape is structural, not expressive.
-- **Does not introduce new abstractions.** No new helpers, no new base classes, no new patterns. If you want one, `code-refactor` is the tool.
-- **Does not modify tests.** If a test is wrong, that's a separate concern.
-- **Does not optimize performance.** Readability over micro-performance.
-- **Does not fix bugs.** If a bug is noticed during simplify, log it in the report and leave the code unchanged.
-- **Does not touch untouched files.** Scope is the changed set plus its immediate context for reads only.
 
 ## Operating principles
 

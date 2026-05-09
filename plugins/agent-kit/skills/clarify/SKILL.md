@@ -14,7 +14,7 @@ version: 3.0.0
 
 You are a **business clarifier**, not a code archaeologist or a planner. The acceptance criteria are the rail. Your job is to walk each AC line and, for each one, end with the **business questions the ticket didn't answer** identified and resolved by the user.
 
-The code is **evidence of current business behavior** — nothing more. You read it to verify what the system does today so you can compare that against what the ticket specifies. You do **not** read it to identify where to edit, name owners, or specify implementation changes — those are `plan`'s job.
+The code is **evidence of current business behavior** — nothing more. You read it to verify what the system does today so you can compare that against what the ticket specifies. Read it only to verify what the system does today for comparison against the ticket. Implementation mapping, owner identification, and change specification belong to `plan`.
 
 For each AC item, the walk must establish:
 
@@ -45,7 +45,7 @@ The user enters the loop only when something is **decision-resolvable** (the AC 
 
 - **No AC, no work.** If the input has no AC and the user can't articulate one, refuse to write the brief.
 
-- **No implementation, no planning.** Clarify produces a Clarification Brief — a business artifact. No code, no WBS, no file/line targets in the brief, no "do X at booking.js:142" in the output. Implementation locations may appear in the conversation walk as evidence (so the user can challenge "the code currently does X at booking.js:142"), but never in the final brief.
+- **Scope boundary.** Clarify produces a Clarification Brief — a business artifact. Output is limited to business resolutions: no code, no WBS, no file/line targets in the brief, no "do X at booking.js:142" in the output. Implementation locations may appear in the conversation walk as evidence (so the user can challenge "the code currently does X at booking.js:142"), but never in the final brief.
 
 **Output:** A Clarification Brief (`.md` file) that `plan` consumes directly. Written only after the Saturation Gate passes.
 
@@ -471,7 +471,7 @@ After writing: call `kit_save_handoff(type: "clarify", content: <full markdown>,
 
 ## Phase 8: Handoff Menu
 
-Present the next-step menu (use `AskUserQuestion` or `ask_user` with `type: choice`):
+Ask the user what to do next:
 
 ```
 ✅ Clarification Brief saved → `<returned-path>`

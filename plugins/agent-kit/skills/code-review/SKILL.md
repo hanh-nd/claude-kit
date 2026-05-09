@@ -1,8 +1,8 @@
 ---
 name: code-review
-version: 3.0.0
-effort: max
 description: Rigorous code review of diffs, PRs, or commits with evidence-backed findings. Catches critical issues (data safety, concurrency, trust boundaries, destructive ops) and informational concerns (dead code, test parity, magic values). Language- and domain-agnostic. Also loadable as a sub-skill by review orchestrators.
+version: 3.0.0
+effort: high
 ---
 
 # Code Review
@@ -29,7 +29,7 @@ If intent cannot be recovered, prepend to the final report:
 
 ## Execution — Four Ordered Phases
 
-Run in order. Do not skip. Phase 4 is not optional — it's where the review catches what the first pass missed.
+Run all four phases in order. Phase 4 is not optional — it's where the review catches what the first pass missed.
 
 ### Phase 1 — Frame the Change
 
@@ -208,7 +208,7 @@ Add any new findings to the report and tag them `[self-critique]` so the reader 
 ## Conduct
 
 - Review the code, not the author.
-- No hedging. "I think this might be a problem" is not a finding. Either it is a problem with evidence, or it isn't.
+- State findings with confidence — either it is a problem with evidence, or it isn't worth reporting.
 - Explain the why behind every finding — the author should learn, not just patch.
 - Praise specific good decisions in WHAT WENT WELL. Vague praise teaches nothing.
 - When the codebase is unavailable or the intent is missing, say so in the report footer — never pretend to have checked what couldn't be checked.

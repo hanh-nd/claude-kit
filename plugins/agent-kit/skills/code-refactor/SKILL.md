@@ -1,7 +1,7 @@
 ---
 name: code-refactor
 version: 1.0.0
-description: Structural refactoring — questions the current design, reshapes signatures, removes obsolete abstractions, and deletes dead code while preserving reachable behavior. Distinct from code-simplify (which improves expression within the existing structure) this skill questions the structure itself.
+description: Structural refactoring analysis — questions the current design and produces a confidence-tiered Refactor Proposal. Analysis only; no source files are modified. Use for refactor, restructure, or "is this design right?" requests.
 ---
 
 ## Core thesis
@@ -33,25 +33,17 @@ If a user request is fundamentally about code expression (long method, unclear v
 - "Remove the old X now that Y is done"
 - User points at code and asks "is this design right?" or "what's wrong with this?"
 
-## When NOT to use
-
-- **Pure style / within-function dedup / extraction that preserves signatures** → use `code-simplify`.
-- **Full rewrites** → this is not a rewrite skill. Say so and stop.
-- **Adding features** → refactor first (separate run), then add features.
-- **Performance work** → behavior preservation is the contract; perf changes can break it.
-- **Bug fixing** → if the "bug" is existing behavior, changing it violates the contract.
-
 ## Prerequisites
 
 1. **Topological boundary.** The user specifies what to look at as paths, globs, files, or a specific diff — not as semantic domains. Legacy code bleeds across semantic lines. If the user gives a semantic boundary ("the billing domain"), translate it to paths and confirm.
 
-2. **Awareness of test coverage.** Note whether tests exist for the boundary. Tests are the verification mechanism for behavior preservation — their presence or absence changes the confidence tier of every proposal, not whether the skill runs.
+2. **Awareness of test coverage.** Note whether tests exist for the boundary. Their presence or absence directly affects the confidence tier of every proposed change — a HIGH-confidence proposal on an untested surface is a contradiction.
 
 3. **codebase-dna artifact (optional).** If available, read it — it provides component context that prevents hallucinated call relationships. If not, read files directly during Phase 1.
 
-4. **Feature-flag evidence (only if flag cleanup is in scope).** The user must explicitly state "Flag X is retired" or "fully rolled out as of [date]." Never infer flag state from config files — flag state lives in production.
+4. **Feature-flag evidence (only if flag cleanup is in scope).** The user must explicitly state "Flag X is retired" or "fully rolled out as of [date]." Require explicit user confirmation of flag state — it lives in production, not in config files.
 
-## The five phases
+## The four phases
 
 ### Phase 1 — Survey
 
@@ -66,7 +58,7 @@ Use deterministic tools where available (`rg`, `grep`, language servers, `tsc`, 
 
 **For boundaries over ~10 files:** do not attempt to deep-survey every symbol. Survey everything shallowly first (file responsibilities, exports, obvious call relationships), then identify the 5–10 **load-bearing symbols** — widely called, central to the boundary's purpose, or exposed as external surface — and survey those deeply. Skim the rest: what does it do, is it reached from outside the boundary. Deep-surveying every symbol in a 50-file boundary produces a map that's exhaustive and useless. The load-bearing symbols are where design decisions live; the rest inherits from them.
 
-Phase 1's output is an internal map. Do not present it unless asked.
+Phase 1's output is an internal map. Keep it internal — present only if the user asks.
 
 ### Phase 2 — Diagnose (premise-first)
 
@@ -114,7 +106,7 @@ _Dead code:_
 - Branch behind a condition that cannot be true (retired feature flag, user-confirmed)
 - Unused import, unreachable code after `return`/`throw`
 
-**Do not flag:**
+**Out of scope for this skill:**
 
 - "Old-looking" style — that's `code-simplify`'s job
 - Long functions without signature problems — that's `code-simplify`'s job
@@ -162,67 +154,27 @@ The residuals table follows the same confidence-tier rules as Case C. Keep it sh
 - **MEDIUM**: some ambiguity — dynamic language, partial test coverage, or indirection
 - **LOW**: speculative abstraction change, similar-looking-function merge, possible-reflection-target deletion. Always require explicit per-item sign-off.
 
+**Case D — Nothing to refactor.** State this directly. Explain what the premise check found (the design is sound) and what the individual sweep found (no structural issues survive). A clean bill of health needs no padding — do not produce a table or list to justify the conclusion. Skip Phase 4.
+
 **For every proposal**, state concrete numbers: "7 call sites," not "several." Vagueness is how silent drift starts.
 
-**Halt at the end of Phase 3.** Stop and present the plan. Wait for the user's response in chat before moving to Phase 4. For very large plans, offer to write the plan to a file for the user's reference — but the approval itself still comes through chat. Do not move to apply without explicit user sign-off.
+Present the proposal and stop. This skill's output is a structured proposal — source files are not modified. Implementation is carried out separately by the user or the `code` skill.
 
-### Phase 4 — Apply
+### Phase 4 — Report
 
-Apply each approved change as a complete, atomic unit: the signature change and every call-site update together. Never leave the codebase in a half-refactored state between edits.
+Wrap the proposal in a structured header and output it.
 
-Order changes lowest-risk first. HIGH-risk changes (param removal, reorder, type change on widely-called functions) are applied one at a time, not batched.
-
-**Tests, where they exist, are the verification mechanism.**
-
-**Establish baseline first.** Before the first apply, run the test suite (or the subset relevant to the boundary) and record which tests pass, which fail, which are skipped. Pre-existing failing tests are not caused by this refactor; treating them as regressions will cause spurious reverts and block progress. Save the baseline as the reference point for every subsequent run.
-
-**After each atomic change, re-run tests.** A test that passed in baseline and now fails is a **regression** — revert that change, log it, do not proceed to the next change on top of it, and do not attempt to "fix" the regressed test. A regression on a supposedly behavior-preserving refactor signals that the refactor wasn't actually behavior-preserving. Surface it, don't paper over it.
-
-A test that was failing in baseline and still fails is pre-existing, not a regression. Note it in the final report if it looks related to the refactor area, but it does not block progress.
-
-**Partial coverage.** Tests may cover some modified files and not others. Where tests exist, they are the verification for those files. Where they don't, the Phase 3 plan review and user sign-off are the verification. Phase 3 confidence tiers should already reflect this — if an uncovered file's change was tiered HIGH, either a caller's test exercises it transitively, or the tier was wrong and should have been MEDIUM.
-
-**No tests at all.** Phase 3 plan review was the only verification. Confidence tiers should have been lower accordingly, and the user's sign-off should have been explicit about accepting that risk.
-
-How commits, branches, or revert mechanics work is the invoker's concern. The skill produces correct code transitions; the execution environment (local branch, PR, staging, CI) handles persistence and rollback.
-
-### Phase 5 — Report
-
-Produce a terse, factual report:
-
-- What was applied
-- What was skipped and why (including reverts from test regressions)
-- Anything flagged UNCERTAIN and left alone, with enough context for the user to decide manually
-- Pre-existing test failures in the baseline that look related to the refactor area (if any), flagged so the user can investigate separately
-- Suggested follow-ups, if any (e.g., "after this refactor, `code-simplify` could now dedupe within `processOrder`")
-
-No self-congratulation. The report is an audit trail.
-
-## Refactor categories
-
-**Will do (within behavior preservation):**
-
-- Rename when the current name lies
-- Add, remove, reorder parameters; change return types (atomic call-site updates)
-- Split a function doing two things into two honest functions
-- Merge near-duplicate functions serving the same domain purpose
-- Collapse wrappers that add nothing
-- Inline single-use helpers that hurt readability
-- Delete provably-dead code (static language, tool-confirmed)
-- Delete likely-dead code with user-stated evidence (retired flag, etc.)
-- Push state up or down the call stack to where it belongs
-- Replace boolean-flag parameter with two distinct functions
-- **Reverse an upstream design decision that caused multiple downstream symptoms** (this is the skill's highest-value move)
-
-**Will not do:**
-
-- Delete UNCERTAIN code (no _visible_ references but dynamic dispatch possible)
-- Introduce speculative abstractions not demanded by 3+ concrete use cases
-- Extract, dedup, rename within a function on live code — that's `code-simplify`
-- Modify tests to make them pass a refactored signature
-- Change behavior on any live code path, even if current behavior seems wrong
-- Touch code behind reflection, `eval`, `getattr`, `method_missing`, decorator metaprogramming, codegen
-- Apply without the Phase 3 approval checkpoint
+```
+REFACTOR PROPOSAL
+════════════════════════════════════════
+Boundary:    [files / paths analyzed]
+Case:        A (root cause only) | B (root cause + residuals) | C (independent issues) | D (nothing to refactor)
+Hard stops:  [items requiring explicit sign-off before implementation] | none
+Follow-ups:  [suggested next steps — e.g., "code-simplify could now dedupe within processOrder"] | none
+════════════════════════════════════════
+[Proposal body — as produced in Phase 3]
+════════════════════════════════════════
+```
 
 ## Hard stops — require explicit per-item sign-off
 
@@ -254,8 +206,5 @@ Halt at Phase 3 and flag these. General "looks good" approval is insufficient.
 
 5. **Defensive-code removal.** A null check that "seems unnecessary" often catches a real production edge case. Require evidence of unreachability, not aesthetic judgment.
 
-6. **Feature-flag removal from config.** Never infer state from `config.yaml` or `launchdarkly.json`. Only remove when the user explicitly states the flag is retired.
+6. **Feature-flag removal from config.** Require explicit user confirmation that the flag is retired — flag state lives in production, not in `config.yaml` or `launchdarkly.json`.
 
-7. **Scope creep during apply.** If Phase 4 reveals a new issue not in the plan, do not silently fix it. Log it for the report and surface it for a separate run.
-
-8. **Treating baseline failures as regressions.** A test that was failing before the refactor started is not caused by the refactor. Record the baseline once at the start of Phase 4 and compare against it, not against "all green."

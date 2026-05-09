@@ -1,0 +1,100 @@
+---
+name: investigate
+description: 'Systematic root-cause investigation — traces bugs, errors, and unexpected behavior to their source and produces an evidence-backed Investigation Report. Use when the user presents an error, crash, test failure, stack trace, or unexpected behavior. Output is a report only; no code changes are applied.'
+version: 1.0.0
+effort: high
+---
+
+# 🔎 Investigate
+
+**Issue:** $ARGUMENTS
+
+---
+
+## The Iron Law
+
+**No conclusions without evidence.** A hypothesis without proof is a guess. Your job is to find and confirm the root cause — not to fix it. Source code changes are out of scope; this skill produces an Investigation Report that a developer or the `code` skill can act on.
+
+---
+
+## Phase 1: Symptoms & Reproduction
+
+Gather evidence before forming any hypothesis.
+
+1. **Collect symptoms.** Read error messages, stack traces, and steps to reproduce verbatim.
+2. **Reproduce.** Confirm the issue is triggerable deterministically. If it is intermittent, document the conditions under which it appears.
+3. **Check history.** Run `git log --oneline -20 -- <affected-files>` to surface recent regressions.
+4. **Trace the code path.** Starting from the error, trace execution backwards through the call stack to the earliest contributing point.
+
+While tracing, note which patterns in the Pattern Catalog the symptoms resemble — pattern recognition runs naturally alongside reading and need not wait for Phase 2.
+
+---
+
+## Phase 2: Pattern Match
+
+Cross-reference your findings against the catalog. A matching pattern becomes the starting hypothesis. If multiple patterns match, rank by fit and investigate the strongest first.
+
+Check `git log` for recurring fixes in the same area — a file patched repeatedly for similar issues signals an architectural smell, not a coincidence.
+
+### Pattern Catalog
+
+| Pattern | Signature | Where to look |
+| :-- | :-- | :-- |
+| **Race condition** | Intermittent, timing-dependent failures | Concurrent access to shared state |
+| **Nil/null propagation** | `NoMethodError`, `TypeError`, `Cannot read properties of undefined` | Missing guards, unvalidated API responses |
+| **State corruption** | Inconsistent data, partial updates | Transactions, callbacks, lifecycle hooks |
+| **Integration failure** | Timeout, unexpected response shape | External API calls, service boundaries |
+| **Configuration drift** | Works locally, fails in staging/prod | Env vars, feature flags, DB migrations |
+| **Stale cache** | Shows old data, clears on flush | Redis, CDN, browser cache |
+| **Off-by-one** | Wrong final element, fence-post errors | Loop bounds, index calculations, pagination |
+| **Dependency conflict** | Works in isolation, fails when combined | Package versions, transitive dependencies |
+| **Serialization failure** | Wrong shape, missing fields, type coercion | JSON parsing, API contracts, schema validation |
+| **Auth/permission failure** | 401/403, silent access denial | Token expiry, scope checks, middleware order |
+
+---
+
+## Phase 3: Hypothesis Testing
+
+Form one specific, falsifiable hypothesis at a time.
+
+1. **State the hypothesis.** "The root cause is X because Y."
+2. **Add targeted instrumentation.** Insert a temporary log or assertion at the suspected root cause and read the output.
+3. **Remove instrumentation.** Once the hypothesis is confirmed or refuted, remove all temporary logs and assertions before proceeding.
+4. **Apply the 3-strike rule.** After three consecutive refuted hypotheses, stop. The root cause is either architectural or requires information not available in this context. Set status to `INCONCLUSIVE` and write the report documenting what was ruled out.
+
+Move to a new hypothesis only after the current one is confirmed or refuted with evidence.
+
+---
+
+## Phase 4: Report
+
+Write the Investigation Report immediately after a hypothesis is confirmed or after the 3-strike rule triggers.
+
+```
+INVESTIGATION REPORT
+════════════════════════════════════════
+Symptom:      [What was observed — error message, behavior, steps to reproduce]
+Root Cause:   [Precise mechanical explanation of what is wrong and why]
+Evidence:     [Specific observations: log output, code citations at file:line, reproduction results]
+Patterns:     [Matched pattern(s) from the catalog, or "none matched"]
+Blast Radius: [Files and systems the root cause touches or affects]
+Related:      [Prior bugs in the same area, TODOs, architectural notes]
+Status:       CONFIRMED | PROBABLE | INCONCLUSIVE
+════════════════════════════════════════
+```
+
+**Status definitions:**
+
+- `CONFIRMED` — root cause traced to a specific condition and confirmed with direct evidence.
+- `PROBABLE` — strong hypothesis supported by circumstantial evidence but not fully reproducible (e.g., intermittent issue, restricted environment).
+- `INCONCLUSIVE` — 3-strike rule triggered; hypotheses exhausted without confirmation; report documents what was ruled out.
+
+---
+
+## Hard Stops
+
+Surface to the user when:
+
+- **Blast radius exceeds 5 files.** The root cause touches more than 5 files — this likely indicates an architectural issue rather than a point bug. Note this in the report and recommend a planning session before any fix is attempted.
+- **Reproduction is impossible.** The issue cannot be reproduced and the environment difference is unclear. Note the gap in the Evidence field and set status to `PROBABLE` or `INCONCLUSIVE`.
+- **Root cause is in a dependency.** The bug originates in an external package or service outside the codebase. Document the finding and stop — do not trace further into the dependency.

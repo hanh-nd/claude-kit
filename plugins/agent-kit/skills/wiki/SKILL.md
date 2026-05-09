@@ -19,7 +19,7 @@ The goal is not filing. It is _synthesis that saves future sessions from re-deri
 Five rules that govern every write to the wiki. Violating any of them is the failure mode this skill exists to prevent.
 
 1. **The codebase is the source of truth. The wiki annotates it.** If a wiki claim cannot be traced to a file, a decision artifact, or a stated preference, the claim does not belong in the wiki.
-2. **Entity pages are nouns that exist in the codebase.** A file, a directory, a module, a service, a feature, a domain object. Slugs MUST derive from the codebase noun: `credentials-utility`, `kit-jira-tools`, `ak-plan-skill`. Slugs MUST NOT derive from work events (`-refactor`, `-redesign`, `-migration`, `-fix`) or from ticket IDs (`yr-24781`, `proj-1234`).
+2. **Entity pages are nouns that exist in the codebase.** A file, a directory, a module, a service, a feature, a domain object. Slugs derive from the codebase noun: `credentials-utility`, `kit-jira-tools`, `ak-plan-skill`. Slugs never derive from work events (`-refactor`, `-redesign`, `-migration`, `-fix`) or from ticket IDs (`yr-24781`, `proj-1234`).
 3. **Work events update the entity; they do not become entities.** A refactor of `credentials-utility` is logged in the entity's `Events` section. It does not produce a separate `credential-manager-refactor.md`.
 4. **A handoff bundle resolves to a single target.** When `brainstorm-X`, `plan-X`, and `ticket-X` all describe the same work, they update the SAME entity (the thing being built or changed) — not three separate entities.
 5. **Not every handoff deserves a page.** Routine tickets with no synthesis value go into `log.md` only.
@@ -48,8 +48,7 @@ Default (empty or unrecognized): run **Compile**.
   compiled/
     index.md                 # category-organized catalog (loaded into every session)
     log.md                   # chronological compile/query record
-    preferences/
-      {slug}.md              # how the user wants the agent to work
+    preferences.md           # all preference rules in one file (loaded every session)
     concepts/
       {slug}.md              # patterns, architectural decisions, rules
     entities/
@@ -117,7 +116,7 @@ Classify every bundle into one or more outcomes before writing anything. Most bu
 | **A**   | The bundle changes or extends an existing codebase noun.                                                 | Update that entity page. Log work in `Events`.                    |
 | **B**   | The bundle creates a genuinely new component, file, service, or feature.                                 | Create a new entity page. Slug = the codebase noun, not the slug. |
 | **C**   | The bundle reveals or hardens a pattern, architectural decision, or rule applicable across the codebase. | Create or update a concept page.                                  |
-| **D**   | The bundle records a user preference (coding style, output style, voice, retry behavior, etc.).          | Create or update a preference page.                               |
+| **D**   | The bundle records a user preference (coding style, output style, voice, retry behavior, etc.) — or surfaces a recurring coding anti-pattern (file naming, hardcoded values, wrong typing, structural shortcuts). These are standing rules for all future code sessions. | Create or update a preference page.                               |
 | **E**   | The bundle adds reference knowledge (an external API shape, a domain term, a third-party concept).       | Create or update a glossary entry.                                |
 | **F**   | Routine task with no synthesis value (typo fix, dependency bump, version update).                        | `log.md` entry only. No page change.                              |
 
@@ -135,6 +134,32 @@ A handoff bundle that did not (and will not) produce code is still wiki-worthy i
 | Phantom entity (a brainstorm for something that does not exist and may never)           | **Never produces an entity page.** The slug rule (codebase noun must exist) blocks this structurally. Route to F or C instead. |
 
 Future-tense entities are the same drift as task-tense entities — different timeline, same failure. If the brainstorm describes a thing that does not yet exist in `src/`, you cannot create an entity for it. Wait until the code exists; the brainstorm becomes Events on the entity at that point.
+
+### Step 3.5 — Negative Knowledge Mining
+
+Before writing any page, scan each bundle's source handoffs for **negative knowledge** — what was tried and rejected, what failed, what the codebase revealed should never be done again. Triage decides the content type; this step extracts the failure signal.
+
+**Signals to look for:**
+
+- Explicit rejection language: "we considered X but rejected it because", "we tried X and it caused Y"
+- Failed approaches: reverted changes, bugs introduced by a path, plans abandoned mid-implementation
+- Implementation mistakes found during execution: wrong file naming, hardcoded values, incorrect typing, structural shortcuts that broke
+- Scope-challenge findings (from `plan` Phase 2, `brainstorm` premise check, `clarify` gap analysis) that ruled something out
+- Out-of-scope items deliberately excluded with a stated reason
+
+**Route each finding:**
+
+| Signal | Route | Why |
+| :-- | :-- | :-- |
+| Recurring coding anti-pattern (naming, typing, hardcoded values, structural mistake) | `preferences.md` as a standing rule | Preferences load first — the right place for rules that apply to all future code sessions |
+| Rejected alternative for a specific entity's design | Entity's `Considered & Rejected` section | Keeps the rejection co-located with the entity it affects |
+| Generalizable architectural lesson (one decision explains multiple failures) | Concept page | Surfaces patterns that span entities |
+| Abandoned approach, no useful conclusion | F-exploration, log only | Not enough signal to warrant a page |
+
+A preference mined this way is a negative rule — `## Rule` states what to avoid, `## Why` captures the failure that surfaced it:
+
+> **Rule:** Never hardcode booking status strings inline — use `BOOKING_STATUS` enum values.
+> **Why:** Surfaced from `plan-vcc-status-overhaul` — inline `'PENDING'` in 6 places caused inconsistency when status values changed.
 
 ### Step 4 — Target Entity Resolution (for outcomes A and B)
 
@@ -183,10 +208,6 @@ Overwrite `wiki/compiled/index.md` with category-ordered structure. Preferences 
 
 > Last compiled: {YYYY-MM-DD} | {P} preferences | {C} concepts | {E} entities | {G} glossary
 
-## 👤 Preferences (Always Apply)
-
-- [[{slug}]](preferences/{slug}.md) — {one-line rule} | updated: {date}
-
 ## 🏛️ Concepts (Architectural Decisions & Patterns)
 
 - [[{slug}]](concepts/{slug}.md) — {one-line summary} | seen in: {N} entities | updated: {date}
@@ -208,6 +229,7 @@ Within each section, sort by `updated` descending — most recently touched firs
 ## [{YYYY-MM-DD}] compile
 - Bundles: {N} | Conversations: {M}
 - Outcomes: A:{n} B:{n} C:{n} D:{n} E:{n} F-routine:{n} F-exploration:{n}
+- Negative knowledge: {n} anti-patterns → preferences | {n} rejections → entities | {n} lessons → concepts
 - Updated: {slug, slug, ...}
 - Created: {slug, slug, ...}
 - F-routine (logged only): {summary, summary, ...}
@@ -377,34 +399,29 @@ The `Events` log is critical: it preserves work history without spawning event-n
 - {Any unresolved tension}
 ```
 
-### Preference Page Format (`preferences/{slug}.md`)
+### Preference Format (`preferences.md`)
+
+All preferences live in a single file. Each rule is a named section with a clear, one-sentence directive. "When to apply" is included only if the rule is not always active.
 
 ```markdown
-# {Preference Title}
+# Preferences
 
-> Last updated: {YYYY-MM-DD} | Confirmed in: {N} sessions | Status: {active | superseded | retired}
+> Last updated: {YYYY-MM-DD}
 
-## Rule
+---
 
-{One-line directive — what the agent must do or avoid.}
+## {Rule Name}
 
-## Why
+{One-sentence directive — what to do or what to avoid.}
 
-{The rationale the user gave or that emerged from sessions.}
+_Why: {the failure or stated preference that produced this rule}_
+_When: {condition — omit if the rule is always active}_
+_Source: [[handoff-slug]]_
 
-## How To Apply
-
-- {When this kicks in}
-- {Where it does NOT apply}
-
-## Sources
-
-- [[source-slug]] — {what was said or decided}
-
-## Supersedes / Superseded By
-
-- {[[other-pref-slug]] — if applicable}
+---
 ```
+
+On update: append a new `---` section for new rules and update the `Last updated` date. Re-compiling the same preference updates its existing section — never duplicates.
 
 ### Glossary Page Format (`glossary/{slug}.md`)
 
@@ -413,7 +430,7 @@ The `Events` log is critical: it preserves work history without spawning event-n
 - Referenced from 2+ other wiki pages (cross-cutting reference), OR
 - Project-specific usage is non-obvious enough to warrant a paragraph of explanation.
 
-If neither holds, the term stays inline in whichever page mentions it — do **not** create a glossary page. Single-mention terms with obvious meaning bloat the wiki without earning their footprint.
+If neither holds, keep the term inline in whichever page mentions it — single-mention terms with obvious meaning bloat the wiki without earning their footprint.
 
 ```markdown
 # {Term}
@@ -438,10 +455,10 @@ If neither holds, the term stays inline in whichever page mentions it — do **n
 ## Rules
 
 - **Codebase-first anchoring.** Every entity slug derives from a codebase noun. Work events update entities; they never become entities. (See Core Mental Model.)
-- **Never modify raw sources.** `wiki/raw/` and `wiki/archive/` are write-once (append to archive, clear inbox after compile, move conv files — never edit existing content).
+- **Raw sources are read-only.** `wiki/raw/` and `wiki/archive/` are write-once — append to archive, clear inbox after compile, move conv files only.
 - **Fail gracefully.** Missing files → skip and note in the report, never abort.
 - **Idempotent pages.** Re-compiling the same bundle updates a page, never duplicates content.
-- **No auto-resolution of contradictions.** Add `⚠️ Contradiction:` markers, let the human decide.
+- **Contradictions stay marked.** Add `⚠️ Contradiction:` markers and let the human decide — never silently overwrite a conflicting claim.
 - **Cite everything.** Every key decision or risk needs a `[[slug]]` source link or `file:line` reference.
 - **Stable slugs.** Once created, slugs never change — renaming a slug breaks every page that links to it. Choose carefully on first creation; lint surfaces anti-patterns for migration with human review.
 - **Routine work logs only.** Outcome-F bundles never produce pages. The compile log records that they happened.
