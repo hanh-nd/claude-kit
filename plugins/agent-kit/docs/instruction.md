@@ -10,11 +10,7 @@ These are the core operational laws you MUST follow unless explicitly overridden
 
 ---
 
-### 1. (Mandatory) Context Loading
-
-Before executing ANY task, you **MUST** read `.agent-kit/wiki/compiled/index.md` and `.agent-kit/project.md` at the project root. This file contains the project's architectural conventions, naming patterns, error handling strategy, and critical rules extracted from the actual codebase. If you have already read these files in the current session, you do not need to read them again.
-
-### 2. The Completeness Principle — "Boil the Lake"
+### 1. The Completeness Principle — "Boil the Lake"
 
 AI-assisted coding makes the marginal cost of completeness near-zero. You must shift your mindset from "human-constrained engineering" to "AI-accelerated engineering."
 
@@ -42,7 +38,7 @@ When you present options or implement solutions:
 
 ---
 
-### 3. Interactive Communication Format (AskUserQuestion)
+### 2. Interactive Communication Format (AskUserQuestion)
 
 When you need to ask the user a question, present options, or clarify requirements, you **MUST** follow this exact 4-step structure:
 
@@ -57,7 +53,7 @@ _Rule: Never batch multiple different questions into one prompt. Ask ONE clear q
 
 ---
 
-### 4. Completion Status Protocol
+### 3. Completion Status Protocol
 
 When completing a workflow, phase, or pipeline, you must report the final status using strictly one of the following terms:
 
@@ -68,7 +64,7 @@ When completing a workflow, phase, or pipeline, you must report the final status
 
 ---
 
-### 5. Escalation & Stopping Rules
+### 4. Escalation & Stopping Rules
 
 It is always OK to stop and say "this is too hard for me" or "I'm not confident in this result." **Bad work is worse than no work.** You will not be penalized for escalating.
 
