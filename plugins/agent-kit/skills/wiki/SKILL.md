@@ -116,7 +116,7 @@ Classify every bundle into one or more outcomes before writing anything. Most bu
 | **A**   | The bundle changes or extends an existing codebase noun.                                                 | Update that entity page. Log work in `Events`.                    |
 | **B**   | The bundle creates a genuinely new component, file, service, or feature.                                 | Create a new entity page. Slug = the codebase noun, not the slug. |
 | **C**   | The bundle reveals or hardens a pattern, architectural decision, or rule applicable across the codebase. | Create or update a concept page.                                  |
-| **D**   | The bundle records a user preference (coding style, output style, voice, retry behavior, etc.) — or surfaces a recurring coding anti-pattern (file naming, hardcoded values, wrong typing, structural shortcuts). These are standing rules for all future code sessions. | Create or update a preference page.                               |
+| **D**   | The bundle records a universal coding rule — one the agent must follow **regardless of which feature it is working on** (e.g. always use enums over hardcoded strings, file naming convention, output style). This includes explicit user directives stated in conversation. **Disqualifier:** if the rule only applies to a specific feature, library, or component → route to that entity's `Key Decisions` or a concept page instead. | Create or update `preferences.md`.                               |
 | **E**   | The bundle adds reference knowledge (an external API shape, a domain term, a third-party concept).       | Create or update a glossary entry.                                |
 | **F**   | Routine task with no synthesis value (typo fix, dependency bump, version update).                        | `log.md` entry only. No page change.                              |
 
@@ -141,11 +141,14 @@ Before writing any page, scan each bundle's source handoffs for **negative knowl
 
 **Signals to look for:**
 
+- **Explicit user coding directives** — statements in conversation or handoffs like "always use X", "never do Y", "use Z instead of W". These are the most reliable preference signal and the most commonly missed. If the user stated a rule in conversation, it belongs in `preferences.md` — even if no handoff was created for it.
 - Explicit rejection language: "we considered X but rejected it because", "we tried X and it caused Y"
 - Failed approaches: reverted changes, bugs introduced by a path, plans abandoned mid-implementation
 - Implementation mistakes found during execution: wrong file naming, hardcoded values, incorrect typing, structural shortcuts that broke
 - Scope-challenge findings (from `plan` Phase 2, `brainstorm` premise check, `clarify` gap analysis) that ruled something out
 - Out-of-scope items deliberately excluded with a stated reason
+
+**Before routing to `preferences.md`, apply the universal test:** Would this rule apply if the agent were working on a completely different feature? If no — it's a feature decision, not a preference. Route to the relevant entity's `Key Decisions` or a concept page instead.
 
 **Route each finding:**
 
@@ -295,7 +298,11 @@ Run all checks. Group findings by severity.
 7. **Stale inbox**: entries older than 7 days.
 8. **Missing concept pages**: `[[slug]]` references in entity pages with no corresponding `concepts/{slug}.md`.
 9. **Stale explorations**: F-exploration entries in `log.md` older than 90 days with no follow-up handoff referencing the same topic. Surface for revive (move into a concept or new entity), formalize (promote the rejection rationale into a concept), or archive (note as abandoned in `log.md`).
-10. **Suggested investigations**: based on gaps and orphans, propose 2–3 specific topics worth compiling next.
+10. **Misrouted preferences** (WARNING): scan `preferences.md` for rules whose **directive sentence** is scoped to a specific library, service, or feature — where the rule would be meaningless without that specific thing. Apply the test: *"Would this rule still apply if the project used completely different libraries and components?"* If no → misrouted. If yes → correctly placed, even if the rule mentions a specific name as an example.
+    - ❌ Misrouted: "Use `sentence-splitter` for English sentence segmentation" — the directive IS the specific library.
+    - ✅ Correctly placed: "Never use hardcoded strings — use centralized enums like `AudioContextStateEnum`" — the rule is universal; the enum name is just an example.
+    Flag misrouted entries with the suggested migration target (entity Key Decisions or concept page).
+11. **Suggested investigations**: based on gaps and orphans, propose 2–3 specific topics worth compiling next.
 
 **Output:**
 
@@ -316,6 +323,9 @@ Run all checks. Group findings by severity.
 ### 📄 Missing Concept Pages ({N})
 ### 🧊 Stale Explorations ({N})
 - {handoff-slug} ({YYYY-MM-DD}, {topic}) — action: revive | formalize | archive
+
+### ⚠️ Misrouted Preferences ({N})
+- `{Rule Name}` — directive is scoped to `{specific library/feature}` → migrate to `entities/{slug}.md` Key Decisions or `concepts/{slug}.md`
 
 ### 🔍 Suggested Investigations
 - {specific question or topic worth compiling next}
