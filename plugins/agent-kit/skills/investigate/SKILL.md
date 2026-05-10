@@ -71,16 +71,46 @@ Move to a new hypothesis only after the current one is confirmed or refuted with
 Write the Investigation Report immediately after a hypothesis is confirmed or after the 3-strike rule triggers.
 
 ```
-INVESTIGATION REPORT
-════════════════════════════════════════
-Symptom:      [What was observed — error message, behavior, steps to reproduce]
-Root Cause:   [Precise mechanical explanation of what is wrong and why]
-Evidence:     [Specific observations: log output, code citations at file:line, reproduction results]
-Patterns:     [Matched pattern(s) from the catalog, or "none matched"]
-Blast Radius: [Files and systems the root cause touches or affects]
-Related:      [Prior bugs in the same area, TODOs, architectural notes]
-Status:       CONFIRMED | PROBABLE | INCONCLUSIVE
-════════════════════════════════════════
+# 🔍 INVESTIGATION REPORT: [Short Descriptive Title]
+
+> **Status:** [CONFIRMED | PROBABLE | INCONCLUSIVE]
+> **Pattern Match:** [Pattern Name from Catalog, or "None"]
+
+---
+
+## 📌 Executive Summary
+* **Symptom:** [What was observed—error message, behavior, or steps to reproduce]
+* **Root Cause:** [High-level mechanical explanation of what is wrong and why]
+* **Blast Radius:** [Number of files] — [Systems or modules affected]
+
+---
+
+## 🛠 Technical Deep Dive
+
+### 1. Root Cause Analysis
+[Provide the detailed breakdown of the failure mechanism here. Use bullet points for compounding issues.]
+* **[Primary Issue]:** [Detailed explanation]
+* **[Contributing Factor]:** [Detailed explanation]
+
+### 2. Evidence & Observations
+| Location (File:Line) | Observation | Significance |
+| :--- | :--- | :--- |
+| `path/to/file:line` | [Log output, code snippet, or state value] | [How this confirms the hypothesis] |
+| `path/to/file:line` | [Log output, code snippet, or state value] | [How this confirms the hypothesis] |
+
+---
+
+## 🚀 Recommended Actions
+[List the specific steps the `code` skill or a developer should take to resolve the issue]
+1.  **[File/Component]:** [Specific fix logic]
+2.  **[File/Component]:** [Specific fix logic]
+
+---
+
+## 🔗 Metadata & Context
+* **Related History:** [Prior bugs in the same area, TODOs, or architectural notes]
+* **Investigation Path:** [Briefly note any hypotheses ruled out during the 3-strike process]
+* **Hard Stop Notes:** [If Blast Radius > 5 files or reproduction was impossible, explain why here]
 ```
 
 **Status definitions:**
