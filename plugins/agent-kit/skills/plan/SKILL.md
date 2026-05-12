@@ -267,16 +267,16 @@ If any AC has no covering task → add the missing task to Section 2 before cont
 What would you like to do next?
 
 1) Execute now        — I implement the plan directly in this session
-2) Delegate to agent  — Hand off to Gemini (default) or Claude
+2) Delegate to agent  — Hand off to Gemini (default), Claude, or Codex
 3) Done               — No further action
 ```
 
 **On user selection:**
 
 - **1 — Execute now:** Invoke `/code @<saved-path>` and begin implementation immediately.
-- **2 — Delegate:** Ask "Gemini or Claude?" (default: Gemini). Invoke the `delegate` skill telling it to implement the plan, passing the saved plan path as context.
+- **2 — Delegate:** Ask "Gemini, Claude, or Codex?" (default: Gemini). Invoke the `delegate` skill telling it to implement the plan, passing the saved plan path as context.
 - **3 — Done:** Output `Plan saved. No further action.` and stop.
-- **4 — Custom:** The user types their request. Treat it as continuing the planning conversation — revise the blueprint, challenge a decision, go deeper on a specific phase, or anything else they need. If the user asks to implement the plan using parallel agents, Ask "Gemini or Claude?" (default: Gemini). Then:
+- **4 — Custom:** The user types their request. Treat it as continuing the planning conversation — revise the blueprint, challenge a decision, go deeper on a specific phase, or anything else they need. If the user asks to implement the plan using parallel agents, ask "Gemini, Claude, or Codex?" (default: Gemini). Then:
   1. Analyze the WBS using the `[P]` / `[S: task_id]` annotations to identify independent task groups.
   2. Group tasks into execution batches: tasks within a batch all carry `[P]` and share the same layer, or have all their `[S]` dependencies already satisfied by a prior batch.
   3. Spawn one agent per batch. Each agent receives: (a) its assigned task list, (b) the saved plan path for full context, (c) the data contracts from Section 1 of the blueprint.

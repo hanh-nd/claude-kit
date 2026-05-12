@@ -1,6 +1,6 @@
 # Learning Kit
 
-**The Scholar** — a specialized AI learning agent for mastering new subjects. Automate source discovery, knowledge mapping, and adversarial gap analysis to build comprehensive learning roadmaps powered by Claude Code.
+**The Scholar** — a specialized AI learning agent for mastering new subjects. Automate source discovery, knowledge mapping, and adversarial gap analysis to build comprehensive learning roadmaps.
 
 ## What It Does
 
@@ -86,7 +86,36 @@ This registers the MCP server automatically (pointing to your local build). Do *
 
 ---
 
-### Option 3: Install as Gemini Extension (Optional)
+### Option 3: Install User-Wide for Codex
+
+Use this if you want Learning Kit available in every Codex project.
+
+**1. Clone and build**
+
+```bash
+git clone https://github.com/hanh-nd/agent-kit.git
+cd agent-kit
+npm install
+npm run build
+```
+
+**2. Register the local marketplace**
+
+```bash
+codex plugin marketplace add /absolute/path/to/agent-kit
+```
+
+Codex reads the repo marketplace at `.agents/plugins/marketplace.json`; that marketplace points to `plugins/learning-kit/.codex`, which is the Codex-only plugin root and contains `.codex-plugin/plugin.json`, skills, and MCP config.
+
+Restart Codex, open the plugin directory, choose the Agent Kit marketplace, and install `learning-kit`.
+
+**3. Verify**
+
+Ask Codex to use Learning Kit, for example: `Use Learning Kit to list my topics.`
+
+---
+
+### Option 4: Install as Gemini Extension (Optional)
 
 If you want to reuse the commands with [Gemini CLI](https://geminicli.com), install it using:
 
@@ -115,7 +144,7 @@ Skill modules are in `skills/`.
 ## Requirements
 
 - Node.js 18+
-- Claude Code (latest)
+- Claude Code, Codex, or Gemini CLI
 - NotebookLM account (logged in via `nlm login`)
 
 ---

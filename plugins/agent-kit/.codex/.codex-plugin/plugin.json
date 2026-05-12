@@ -1,0 +1,41 @@
+{
+  "name": "agent-kit",
+  "version": "1.0.23",
+  "description": "Super Engineer - a team of AI agents for software development: brainstorm, plan, code, and review.",
+  "author": {
+    "name": "hanhnd",
+    "url": "https://github.com/hanh-nd"
+  },
+  "homepage": "https://github.com/hanh-nd/agent-kit/tree/main/plugins/agent-kit",
+  "repository": "https://github.com/hanh-nd/agent-kit",
+  "keywords": [
+    "engineering",
+    "agents",
+    "brainstorm",
+    "planning",
+    "code-review",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Agent Kit",
+    "shortDescription": "Software engineering agents and workflows",
+    "longDescription": "Reusable software engineering workflows for brainstorming, planning, coding, reviewing, validation, and project knowledge capture.",
+    "developerName": "hanhnd",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "MCP"
+    ],
+    "websiteURL": "https://github.com/hanh-nd/agent-kit",
+    "defaultPrompt": [
+      "Use Agent Kit to plan this change.",
+      "Use Agent Kit to review my local diff.",
+      "Use Agent Kit to validate this implementation."
+    ],
+    "brandColor": "#10A37F"
+  }
+}

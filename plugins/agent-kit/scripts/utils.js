@@ -59,10 +59,60 @@ export function spawnBackground(scriptUrl, args = []) {
  * @returns {Promise<{ messages: Array<{ role: string, content: string }> }>}
  */
 export function parseTranscript(transcriptPath) {
+  if (transcriptPath.includes('.codex')) {
+    return parseCodexTranscript(transcriptPath);
+  }
   if (transcriptPath.includes('.gemini')) {
     return parseGeminiTranscript(transcriptPath);
   }
   return parseClaudeTranscript(transcriptPath);
+}
+
+function extractContentText(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+
+  return content
+    .map((block) => {
+      if (!block || typeof block !== 'object') return '';
+      return block.text || block.output_text || block.input_text || '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function parseCodexTranscript(transcriptPath) {
+  try {
+    const content = fs.readFileSync(transcriptPath, 'utf8');
+    const lines = content.trim().split('\n');
+    const messages = [];
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      try {
+        const entry = JSON.parse(line);
+        const payload = entry.payload;
+        if (entry.type !== 'response_item' || payload?.type !== 'message') continue;
+        if (payload.role !== 'user' && payload.role !== 'assistant') continue;
+
+        const contentText = extractContentText(payload.content);
+        if (contentText) {
+          messages.push({
+            role: payload.role,
+            content: contentText,
+          });
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return { messages };
+  } catch (error) {
+    console.error('Failed to parse Codex transcript:', error.message);
+    return { messages: [] };
+  }
 }
 
 function parseClaudeTranscript(transcriptPath) {

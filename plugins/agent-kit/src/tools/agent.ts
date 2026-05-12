@@ -1,5 +1,5 @@
 /**
- * Agent Delegation Tools - Invoke external agent CLIs (Gemini, Claude)
+ * Agent Delegation Tools - Invoke external agent CLIs (Gemini, Claude, Codex)
  * Supports handoff file injection and automatic fallback
  */
 
@@ -16,8 +16,10 @@ import { commandExists, sanitizeOutput, validatePath } from './security.js';
 // Configurable timeout via environment variable (default: 5 minutes)
 const AGENT_TIMEOUT = parseInt(process.env.KIT_AGENT_TIMEOUT || '300000', 10);
 
+type AgentName = 'gemini' | 'claude' | 'codex';
+
 interface AgentJob {
-  agent: 'gemini' | 'claude';
+  agent: AgentName;
   process: ChildProcess;
   startedAt: Date;
   chunks: string[];
@@ -26,6 +28,32 @@ interface AgentJob {
 }
 
 const jobRegistry = new Map<string, AgentJob>();
+
+const INSTALL_HINTS: Record<AgentName, string> = {
+  gemini: 'Install Gemini CLI: https://github.com/google-gemini/gemini-cli',
+  claude: 'Install Claude CLI: npm install -g @anthropic-ai/claude-code',
+  codex: 'Install Codex CLI: npm install -g @openai/codex',
+};
+
+function agentArgs(agent: AgentName, prompt: string, workspaceRoot: string): string[] {
+  switch (agent) {
+    case 'gemini':
+      return ['-y', '-p', prompt];
+    case 'claude':
+      return ['--dangerously-skip-permissions', '-p', prompt];
+    case 'codex':
+      return [
+        'exec',
+        '--ask-for-approval',
+        'never',
+        '--sandbox',
+        'workspace-write',
+        '--cd',
+        workspaceRoot,
+        prompt,
+      ];
+  }
+}
 
 function taskSlug(task: string): string {
   return task
@@ -57,9 +85,11 @@ function initAgentLog(
 export function registerAgentTools(server: McpServer): void {
   server.tool(
     'kit_trigger_agent',
-    '!Important: Trigger only when user explicitly asks to delegate a task to an external agent CLI (gemini or claude). The task can be a direct message or a path to a handoff file (.agent-kit/handoffs/plans/plan-xyz.md).',
+    '!Important: Trigger only when user explicitly asks to delegate a task to an external agent CLI (gemini, claude, or codex). The task can be a direct message or a path to a handoff file (.agent-kit/handoffs/plans/plan-xyz.md).',
     {
-      agent: z.enum(['gemini', 'claude']).describe('The agent CLI to invoke: "gemini" or "claude"'),
+      agent: z
+        .enum(['gemini', 'claude', 'codex'])
+        .describe('The agent CLI to invoke: "gemini", "claude", or "codex"'),
       task: z
         .string()
         .describe(
@@ -86,24 +116,18 @@ export function registerAgentTools(server: McpServer): void {
         }
 
         if (!commandExists(agent)) {
-          const installHint =
-            agent === 'gemini'
-              ? 'Install Gemini CLI: https://github.com/google-gemini/gemini-cli'
-              : 'Install Claude CLI: npm install -g @anthropic-ai/claude-code';
           return mcpJson({
             agent,
             status: 'error',
             output: '',
-            error: `${agent} CLI is not installed. ${installHint}`,
+            error: `${agent} CLI is not installed. ${INSTALL_HINTS[agent]}`,
           });
         }
 
         // Gemini: -y (--yolo) for auto-accept, -p for headless prompt
         // Claude: --dangerously-skip-permissions for auto-accept, -p/--print for headless
-        const agentArgs =
-          agent === 'gemini'
-            ? ['-y', '-p', prompt]
-            : ['--dangerously-skip-permissions', '-p', prompt];
+        // Codex: exec for headless prompt, never ask for approval, workspace-write sandbox
+        const args = agentArgs(agent, prompt, workspaceRoot);
 
         const { logPath: lp, logStream } = initAgentLog(workspaceRoot, taskSlug(task), agent);
         logPath = lp;
@@ -111,9 +135,14 @@ export function registerAgentTools(server: McpServer): void {
         const jobId = randomUUID();
         // detached=true on Unix creates a new process group so we can kill the
         // entire tree (CLI + its sub-agents) with process.kill(-pid, signal).
-        const child = spawn(agent, agentArgs, {
+        const child = spawn(agent, args, {
           cwd: workspaceRoot,
-          env: { ...process.env, GEMINI_WORKSPACE: workspaceRoot },
+          env: {
+            ...process.env,
+            CODEX_PROJECT_DIR: workspaceRoot,
+            CODEX_WORKSPACE: workspaceRoot,
+            GEMINI_WORKSPACE: workspaceRoot,
+          },
           detached: process.platform !== 'win32',
         });
 
@@ -130,7 +159,7 @@ export function registerAgentTools(server: McpServer): void {
         };
 
         job = {
-          agent: agent as 'gemini' | 'claude',
+          agent,
           process: child,
           startedAt: new Date(),
           chunks: [],

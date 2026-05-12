@@ -1,6 +1,8 @@
 export function getWorkspaceRoot(): string {
   return (
     process.env.WORKSPACE_DIR ||
+    process.env.CODEX_WORKSPACE ||
+    process.env.CODEX_PROJECT_DIR ||
     process.env.CLAUDE_WORKSPACE ||
     process.env.GEMINI_WORKSPACE ||
     process.env.INIT_CWD ||

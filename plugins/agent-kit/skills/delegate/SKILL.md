@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: 'Delegate a task to an external agent CLI (Gemini or Claude) with optional handoff context'
+description: 'Delegate a task to an external agent CLI (Gemini, Claude, or Codex) with optional handoff context'
 version: 1.0.0
 ---
 
@@ -14,7 +14,7 @@ version: 1.0.0
 
 Parse `$ARGUMENTS` as: `<agent> <task or file path>`
 
-- **agent** — first word: `gemini` or `claude`
+- **agent** — first word: `gemini`, `claude`, or `codex`
 - **task** — remainder: a message string OR a path to a handoff file
 
 Examples:
@@ -22,6 +22,7 @@ Examples:
 - `/delegate gemini scout the codebase and summarize key patterns`
 - `/delegate gemini .agent-kit/handoffs/plans/plan-2026-03-25T19-30-42-feature.md`
 - `/delegate claude implement the plan in .agent-kit/handoffs/plans/plan-xyz.md`
+- `/delegate codex review this repo and identify risky refactors`
 
 ---
 

@@ -1,0 +1,39 @@
+{
+  "name": "learning-kit",
+  "version": "0.1.0",
+  "description": "Personal Learning Kit - AI-guided learning with NotebookLM.",
+  "author": {
+    "name": "hanhnd",
+    "url": "https://github.com/hanh-nd"
+  },
+  "homepage": "https://github.com/hanh-nd/agent-kit/tree/main/plugins/learning-kit",
+  "repository": "https://github.com/hanh-nd/agent-kit",
+  "keywords": [
+    "learning",
+    "notebooklm",
+    "obsidian",
+    "feynman",
+    "roadmap"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Learning Kit",
+    "shortDescription": "AI-guided learning roadmaps",
+    "longDescription": "Reusable learning workflows for topic discovery, NotebookLM-assisted research, knowledge mapping, and roadmap synthesis.",
+    "developerName": "hanhnd",
+    "category": "Education",
+    "capabilities": [
+      "Read",
+      "Write",
+      "MCP"
+    ],
+    "websiteURL": "https://github.com/hanh-nd/agent-kit",
+    "defaultPrompt": [
+      "Use Learning Kit to list my topics.",
+      "Use Learning Kit to start a new topic.",
+      "Use Learning Kit to build a roadmap."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

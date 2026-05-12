@@ -1,6 +1,6 @@
 # Agent-Kit
 
-**Super Engineer** — a team of specialized AI agents for software development. Brainstorm ideas, plan implementations, write code, and review PRs using a structured multi-agent workflow powered by Claude Code.
+**Super Engineer** — a team of specialized AI agents for software development. Brainstorm ideas, plan implementations, write code, and review PRs using a structured multi-agent workflow.
 
 ## What It Does
 
@@ -23,7 +23,7 @@
 | `/git`                         | Git commit, branch, and PR workflow                                  |
 | `/init`                        | Create the project overview file                                     |
 | `/orchestrate [file or idea]`  | Orchestrate agents to solve problems span across multiple projects   |
-| `/delegate <agent> <task>`     | Delegate a task to Gemini or Claude CLI                              |
+| `/delegate <agent> <task>`     | Delegate a task to Gemini, Claude, or Codex CLI                      |
 | `/wiki [compile\|query\|lint]` | Maintain a persistent, compounding project knowledge wiki            |
 
 ---
@@ -145,7 +145,45 @@ BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
 
 ---
 
-### Option 3: Install as Gemini Extension (Optional)
+### Option 3: Install User-Wide for Codex
+
+Use this if you want Agent Kit available in every Codex project.
+
+**1. Clone and build**
+
+```bash
+git clone https://github.com/hanh-nd/agent-kit.git
+cd agent-kit
+npm install
+npm run build
+```
+
+**2. Register the local marketplace**
+
+```bash
+codex plugin marketplace add /absolute/path/to/agent-kit
+```
+
+Codex reads the repo marketplace at `.agents/plugins/marketplace.json`; that marketplace points to `plugins/agent-kit/.codex`, which is the Codex-only plugin root and contains `.codex-plugin/plugin.json`, skills, hooks, and MCP config.
+
+**3. Enable hooks**
+
+Add this to `~/.codex/config.toml`:
+
+```toml
+[features]
+hooks = true
+```
+
+Restart Codex, open the plugin directory, choose the Agent Kit marketplace, and install `agent-kit`.
+
+**4. Verify**
+
+Ask Codex to use Agent Kit, for example: `Use Agent Kit to brainstorm a test idea.`
+
+---
+
+### Option 4: Install as Gemini Extension (Optional)
 
 If you want to reuse the commands with [Gemini CLI](https://geminicli.com) (for `/delegate` to Gemini), install it using:
 
@@ -174,7 +212,7 @@ The MCP server source is in `src/`. Agent personas are in `agents/`. Skill modul
 ## Requirements
 
 - Node.js 18+
-- Claude Code (latest)
+- Claude Code, Codex, or Gemini CLI
 
 ---
 
