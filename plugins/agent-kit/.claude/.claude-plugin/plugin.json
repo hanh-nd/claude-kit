@@ -6,7 +6,5 @@
     "name": "hanhnd"
   },
   "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"],
-  "skills": "./skills/",
-  "mcpServers": "./.claude-plugin/mcp.json",
-  "hooks": "./hooks/hooks.json"
+  "mcpServers": "./.claude-plugin/mcp.json"
 }
