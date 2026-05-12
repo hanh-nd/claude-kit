@@ -44,12 +44,22 @@ The Learning Kit follows a specific 3-phase workflow to ensure deep mastery and 
 
 ### Option 1: Install via GitHub (Recommended)
 
+Claude Code:
+
 ```bash
 claude plugin marketplace add https://github.com/hanh-nd/agent-kit
 claude plugin install learning-kit
 ```
 
-The plugin fetches from GitHub, registers the MCP server automatically, and makes all commands available immediately.
+Codex:
+
+```bash
+codex plugin marketplace add https://github.com/hanh-nd/agent-kit.git
+codex
+/plugins # then choose learning-kit
+```
+
+The plugin fetches from GitHub, registers the MCP server automatically, and makes Learning Kit available immediately.
 
 To update: `claude plugin update learning-kit`
 To uninstall: `claude plugin uninstall learning-kit`
@@ -71,12 +81,22 @@ npm run build
 
 **2. Register the plugin**
 
+Claude Code:
+
 ```bash
 claude plugin marketplace add /absolute/path/to/agent-kit
 claude plugin install learning-kit
 ```
 
-This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `notebooklm` entry to `settings.json` — the plugin handles that.
+Codex:
+
+```bash
+codex plugin marketplace add /absolute/path/to/agent-kit
+codex
+/plugins # then choose learning-kit
+```
+
+This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `notebooklm` entry to settings — the plugin handles that.
 
 **3. Verify**
 
@@ -84,38 +104,11 @@ This registers the MCP server automatically (pointing to your local build). Do *
 /lk:list
 ```
 
----
-
-### Option 3: Install User-Wide for Codex
-
-Use this if you want Learning Kit available in every Codex project.
-
-**1. Clone and build**
-
-```bash
-git clone https://github.com/hanh-nd/agent-kit.git
-cd agent-kit
-npm install
-npm run build
-```
-
-**2. Register the local marketplace**
-
-```bash
-codex plugin marketplace add /absolute/path/to/agent-kit
-```
-
-Codex reads the repo marketplace at `.agents/plugins/marketplace.json`; that marketplace points to `plugins/learning-kit/.codex`, which is the Codex-only plugin root and contains `.codex-plugin/plugin.json`, skills, and MCP config.
-
-Restart Codex, open the plugin directory, choose the Agent Kit marketplace, and install `learning-kit`.
-
-**3. Verify**
-
 Ask Codex to use Learning Kit, for example: `Use Learning Kit to list my topics.`
 
 ---
 
-### Option 4: Install as Gemini Extension (Optional)
+### Option 3: Install as Gemini Extension (Optional)
 
 If you want to reuse the commands with [Gemini CLI](https://geminicli.com), install it using:
 

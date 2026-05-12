@@ -11,7 +11,7 @@
     },
     {
       "name": "learning-kit",
-      "source": "./plugins/learning-kit",
+      "source": "./plugins/learning-kit/.claude",
       "description": "The Scholar - AI learning agent for mastering new subjects"
     }
   ]
