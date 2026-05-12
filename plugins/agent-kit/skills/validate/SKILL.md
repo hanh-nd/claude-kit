@@ -355,4 +355,3 @@ If the user wants to change the expectation, they re-invoke `validate` with new 
 - **Producer skills** (`plan`, `code`, `brainstorm`, `delegate`) — untouched by this skill. They never need to know they are being wrapped.
 - **`code-review`** — runs _after_ `validate` passes, when the user wants polish review. Validator catches "wrong"; code-review catches "could be better."
 - **`code-refactor` / `code-simplify`** — same as code-review: post-validate quality work, not part of this loop.
-- **`unit-testing`** (sub-skill) — already triggered inside `code` when `hasUnitTests` and `useUnitTests` are both true. Validator does not re-trigger it; it just runs the test script and reads the result.

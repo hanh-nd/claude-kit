@@ -10,6 +10,8 @@ Improve the readability of existing code without changing what it does or how it
 
 **Core thesis:** every change must earn its rent. A rename that confuses more than it clarifies is worse than the original. An explaining variable used once is overhead without benefit. A constant introduced for a single-use literal adds indirection for no gain. The skill's job is to apply changes that make the next reader's life easier — not to apply changes that look like cleanup.
 
+Simplification is measured by reader effort, not line count. Explicit, debuggable code is often simpler than compact code. A change whose only measurable win is fewer lines fails rent.
+
 **The primary failure mode this skill guards against is pattern-matching on hunks.** A rule like "rename `data` to something specific" fires correctly only when you've read the whole file and understand what `data` holds in context. Reading the diff hunk alone produces confident-looking bad renames.
 
 ## Relationship to `code-refactor`
@@ -92,9 +94,12 @@ Apply changes in place. Every change must pass two checks before it goes in:
 **Rent check** — ask for each change: _is the file actually easier to read after this?_ If the answer is "same, maybe slightly different," revert the change. Specifically:
 
 - An explaining variable is only warranted when (a) the expression is reused in scope, or (b) the expression requires domain knowledge the reader can't derive inline. One-use explaining variables fail rent.
+- Do not inline a named intermediate value if the name carries domain meaning, documents a business concept, or makes debugging easier.
 - A named constant is only warranted when (a) the literal appears 2+ times in the file, (b) a named version already exists elsewhere in the file that should be reused, or (c) the literal's meaning isn't self-evident from context. A single-use `'PENDING'` in a status assignment does not need a constant.
 - A function extraction is only warranted when the logic block is duplicated in the file. "3+ steps with coherent purpose" and "describable in 4 words" are not sufficient reasons — they license speculative extraction.
 - A rename is only warranted when the original name is misleading _in its context_. Generic names in generic contexts can stay.
+- Do not collapse separated branches when they encode distinct business cases, even if the expressions can be mechanically combined.
+- Do not prefer clever expressions over stepwise code that is easier to inspect in a debugger.
 
 **Invariance check** — the following must not change:
 

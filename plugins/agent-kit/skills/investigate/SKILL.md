@@ -21,10 +21,11 @@ effort: high
 
 Gather evidence before forming any hypothesis.
 
-1. **Collect symptoms.** Read error messages, stack traces, and steps to reproduce verbatim.
-2. **Reproduce.** Confirm the issue is triggerable deterministically. If it is intermittent, document the conditions under which it appears.
-3. **Check history.** Run `git log --oneline -20 -- <affected-files>` to surface recent regressions.
-4. **Trace the code path.** Starting from the error, trace execution backwards through the call stack to the earliest contributing point.
+1. **Capture baseline.** Record the current broken state before investigating: exact command run, full error/test output, stack trace, relevant logs with timestamps, and `git status --short`. This is the before-state that `code` must verify against after applying a fix.
+2. **Collect symptoms.** Read error messages, stack traces, and steps to reproduce verbatim.
+3. **Reproduce.** Confirm the issue is triggerable deterministically. If it is intermittent, document the conditions under which it appears.
+4. **Check history.** Run `git log --oneline -20 -- <affected-files>` to surface recent regressions.
+5. **Trace the code path.** Starting from the error, trace execution backwards through the call stack to the earliest contributing point.
 
 While tracing, note which patterns in the Pattern Catalog the symptoms resemble — pattern recognition runs naturally alongside reading and need not wait for Phase 2.
 
@@ -58,11 +59,26 @@ Check `git log` for recurring fixes in the same area — a file patched repeated
 Form one specific, falsifiable hypothesis at a time.
 
 1. **State the hypothesis.** "The root cause is X because Y."
-2. **Add targeted instrumentation.** Insert a temporary log or assertion at the suspected root cause and read the output.
-3. **Remove instrumentation.** Once the hypothesis is confirmed or refuted, remove all temporary logs and assertions before proceeding.
-4. **Apply the 3-strike rule.** After three consecutive refuted hypotheses, stop. The root cause is either architectural or requires information not available in this context. Set status to `INCONCLUSIVE` and write the report documenting what was ruled out.
+2. **Define proof conditions before testing.** For each hypothesis, state:
+   - what evidence would confirm it
+   - what evidence would refute it
+   - the fastest safe test
+3. **Add targeted instrumentation if needed.** Insert a temporary log or assertion at the suspected root cause and read the output.
+4. **Remove instrumentation.** Once the hypothesis is confirmed or refuted, remove all temporary logs and assertions before proceeding.
+5. **Record the result in a hypothesis ledger.** Mark each hypothesis `CONFIRMED`, `REFUTED`, or `INCONCLUSIVE` with the evidence that decided it.
+6. **Apply the 3-strike rule.** After three consecutive refuted hypotheses, stop. The root cause is either architectural or requires information not available in this context. Set status to `INCONCLUSIVE` and write the report documenting what was ruled out.
 
 Move to a new hypothesis only after the current one is confirmed or refuted with evidence.
+
+### Root Cause Chain
+
+After a hypothesis is confirmed, trace it backward in this exact shape:
+
+```
+Symptom → immediate cause → contributing factor(s) → root cause
+```
+
+The root cause is the earliest actionable trigger inside the codebase or its configuration boundary. If the chain stops at the line where the error appeared, the report cannot be `CONFIRMED`; it is `PROBABLE` at best. Recommended Actions must target the root cause, not the symptom location.
 
 ---
 
@@ -82,17 +98,32 @@ Write the Investigation Report immediately after a hypothesis is confirmed or af
 * **Symptom:** [What was observed—error message, behavior, or steps to reproduce]
 * **Root Cause:** [High-level mechanical explanation of what is wrong and why]
 * **Blast Radius:** [Number of files] — [Systems or modules affected]
+* **Verification Target:** [Exact command or manual reproduction step that demonstrates the bug before the fix and should pass after the fix]
 
 ---
 
 ## 🛠 Technical Deep Dive
 
+### 0. Baseline Captured
+| Item | Evidence |
+| :--- | :--- |
+| Command / Repro Step | `[exact command or steps]` |
+| Error / Output | `[verbatim failure output or observed behavior]` |
+| Logs / Stack Trace | `[relevant excerpt, timestamped if available]` |
+| Git State | `[git status --short summary]` |
+
 ### 1. Root Cause Analysis
 [Provide the detailed breakdown of the failure mechanism here. Use bullet points for compounding issues.]
+* **Root Cause Chain:** Symptom → immediate cause → contributing factor(s) → root cause
 * **[Primary Issue]:** [Detailed explanation]
 * **[Contributing Factor]:** [Detailed explanation]
 
-### 2. Evidence & Observations
+### 2. Hypothesis Ledger
+| Hypothesis | Confirm Evidence | Refute Evidence | Result | Evidence Used |
+| :--- | :--- | :--- | :--- | :--- |
+| [Root cause is X because Y] | [What would prove it] | [What would disprove it] | CONFIRMED / REFUTED / INCONCLUSIVE | [file:line, command output, log, or observation] |
+
+### 3. Evidence & Observations
 | Location (File:Line) | Observation | Significance |
 | :--- | :--- | :--- |
 | `path/to/file:line` | [Log output, code snippet, or state value] | [How this confirms the hypothesis] |
@@ -101,15 +132,21 @@ Write the Investigation Report immediately after a hypothesis is confirmed or af
 ---
 
 ## 🚀 Recommended Actions
-[List the specific steps the `code` skill or a developer should take to resolve the issue]
+[List the specific steps the `code` skill or a developer should take to resolve the root cause. Do not recommend patching only the symptom location unless that location is proven to be the root cause.]
 1.  **[File/Component]:** [Specific fix logic]
 2.  **[File/Component]:** [Specific fix logic]
+
+### Prevention Needed
+[State the minimal recurrence-prevention work the implementer should include. Every report must either name a prevention measure or explicitly state why none applies.]
+* **Regression Coverage:** [Test or manual assertion that should fail before the fix and pass after]
+* **Guard / Validation:** [Boundary check, type guard, timeout, transaction, or other prevention if applicable]
+* **Observability:** [Log/error context that would make recurrence diagnosable, or "none needed"]
 
 ---
 
 ## 🔗 Metadata & Context
 * **Related History:** [Prior bugs in the same area, TODOs, or architectural notes]
-* **Investigation Path:** [Briefly note any hypotheses ruled out during the 3-strike process]
+* **Investigation Path:** [Summarize the hypothesis ledger, especially refuted hypotheses future agents should not retry]
 * **Hard Stop Notes:** [If Blast Radius > 5 files or reproduction was impossible, explain why here]
 ```
 

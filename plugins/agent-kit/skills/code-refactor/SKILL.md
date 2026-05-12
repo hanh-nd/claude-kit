@@ -12,6 +12,8 @@ This skill does not find things to clean up. It asks whether the current shape o
 
 The skill's primary failure mode is **bottom-up cataloguing**: listing four symptoms, proposing four independent fixes, and missing that all four trace back to one upstream design decision. Guard against this above all else. Premise-first diagnosis is what makes this skill different from `code-simplify`, not "being bolder."
 
+The second failure mode is **cowardly compatibility**: preserving a bad internal interface because changing call sites feels disruptive. If the signature, dependency direction, wrapper, or module boundary is the disease, the refactor should break and reshape that internal surface atomically. Compatibility is sacred only at hard-stop surfaces: public exports, HTTP routes, webhook callbacks, event/message schemas, database fields, reflection targets, feature flags, and user-protected files.
+
 ## Relationship to `code-simplify`
 
 These skills are orthogonal, not a spectrum.
@@ -76,6 +78,8 @@ Examples of the pattern to look for:
 - A parameter is threaded through four layers → **one upstream decision** (state lives in the wrong place) causes the threading.
 
 When you find a root-cause decision, propose **reversing that decision** as the primary refactor. Individual symptom-fixes become either unnecessary or trivial consequences. Do not catalogue the symptoms separately — list them as _consequences_ of the root cause.
+
+**Root-cause reversal bar:** Reverse the wrong decision directly. Do not preserve the old shape with adapters, wrappers, option flags, compatibility layers, or "temporary" dual paths unless the old shape crosses a hard-stop surface. Inside the confirmed boundary, migrate callers atomically and delete the wrong shape.
 
 If no single upstream decision explains multiple symptoms, then — and only then — fall back to cataloguing individual issues.
 
@@ -202,9 +206,10 @@ Halt at Phase 3 and flag these. General "looks good" approval is insufficient.
 
 3. **Pattern-matching on syntax, not semantics.** Two functions that look similar may serve different domain purposes. Merging them creates a god-function with a boolean flag.
 
-4. **"Unused" that isn't.** A function with no static callers may be reached via DI containers, route registries, plugin loaders, reflection. UNCERTAIN, never deleted.
+4. **Cowardly compatibility.** Keeping the old signature plus adding a new helper often preserves the disease. If no hard-stop surface requires compatibility, migrate callers and remove the old shape.
 
-5. **Defensive-code removal.** A null check that "seems unnecessary" often catches a real production edge case. Require evidence of unreachability, not aesthetic judgment.
+5. **"Unused" that isn't.** A function with no static callers may be reached via DI containers, route registries, plugin loaders, reflection. UNCERTAIN, never deleted.
 
-6. **Feature-flag removal from config.** Require explicit user confirmation that the flag is retired — flag state lives in production, not in `config.yaml` or `launchdarkly.json`.
+6. **Defensive-code removal.** A null check that "seems unnecessary" often catches a real production edge case. Require evidence of unreachability, not aesthetic judgment.
 
+7. **Feature-flag removal from config.** Require explicit user confirmation that the flag is retired — flag state lives in production, not in `config.yaml` or `launchdarkly.json`.

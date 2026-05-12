@@ -84,13 +84,15 @@ Every question carries a recommendation — you are not neutral. If an issue has
 Determine input type — this decides which phases to run:
 
 - **Design Brief** (output from brainstorm skill): Problem, scope, approach, and edge cases are already resolved. Skip Phase 2. Go: Phase 1 → Phase 3 → Phase 4 → Phase 5.
+- **Clarification Brief** (output from clarify skill): Acceptance Criteria, business-rule gaps, confirmed constraints, and explicit defaults are resolved. Implementation approach is not necessarily resolved. Run full pipeline: Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5, but Phase 2 may challenge implementation scope only — do not reopen resolved business decisions unless code reality contradicts the brief.
+- **Scenario Brief** (output from scenario skill): Supplemental risk artifact. Keep the primary input type from the source artifact, but ingest scenario rows owned by `plan` as design constraints, rows owned by `test` as proof obligations for Section 3, and rows owned by `clarify` as critical planning blockers.
 - **Raw ticket / requirement**: Nothing pre-resolved. Run full pipeline: Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5.
 
 ### Phase 1: Deep Context Ingestion (MANDATORY — both paths)
 
 **Objective:** Understand what exists before proposing or reviewing anything.
 
-1. **Input Analysis.** Read `$ARGUMENTS`, any attached Design Brief, schemas, or ticket content. **Extract the high-level Goal, relevant Background, and verifiable Acceptance Criteria.** If a Design Brief exists, it is the source of truth for problem statement, scope, and chosen approach.
+1. **Input Analysis.** Read `$ARGUMENTS`, any attached Design Brief, Clarification Brief, Scenario Brief, schemas, or ticket content. **Extract the high-level Goal, relevant Background, and verifiable Acceptance Criteria.** If a Design Brief exists, it is the source of truth for problem statement, scope, and chosen approach. If a Clarification Brief exists, extract ACs from "Per-AC Resolutions", preserve "Gaps Resolved", "Confirmed Constraints", and "Remaining Unknowns" as business source-of-truth, and inspect "Recommended Next Step" before blueprinting. If its status or next step is `NEEDS_STAKEHOLDER`, `NEEDS_SPIKE`, `spike-first`, or `re-clarify-after-stakeholder`, flag that as a critical planning issue before generating a WBS. If a Scenario Brief exists, preserve its IDs and route each row by owner; do not reopen `clarify` rows as assumptions.
 2. **Codebase Exploration.** If the architectural context was already provided in this conversation, use it. Only explore the codebase if no file paths, schemas, or existing code were provided in this conversation:
    - Files directly touched by the feature and their blast radius (callers, dependents, shared utilities)
    - Code that already partially or fully solves sub-problems
@@ -98,9 +100,11 @@ Determine input type — this decides which phases to run:
    - If input is a Design Brief: verify its claims against actual code. Flag discrepancies.
 3. **What Already Exists.** List existing code, flows, utilities that overlap with the plan. For each: can we reuse it, or does the plan unnecessarily rebuild it?
 
-### Phase 2: Scope Challenge (raw ticket only — skip if Design Brief)
+### Phase 2: Scope Challenge (skip if Design Brief)
 
 Output as **State 1: Discovery & Scope Challenge.**
+
+**Clarification Brief guard:** When the input is a Clarification Brief, challenge implementation scope, reuse, completeness, and missing technical edge cases. Do not challenge or re-ask business decisions already captured in "Gaps Resolved", "Confirmed Constraints", or explicit defaults unless verified code reality contradicts the brief.
 
 1. **Reusability.** What existing code already partially or fully solves each sub-problem?
 2. **Minimal change set.** What is the minimum set of changes that achieves the goal? Flag deferrable work ruthlessly.
