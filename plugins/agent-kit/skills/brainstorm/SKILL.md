@@ -2,7 +2,12 @@
 name: brainstorm
 description: 'Strategic architectural brainstorming — from raw idea to engineer-ready PRD'
 version: 1.0.0
-effort: xhigh
+providers:
+  claude:
+    effort: xhigh
+    model: opus
+  gemini:
+    model: gemini-3-pro-preview
 ---
 
 # 💡 Brainstorm

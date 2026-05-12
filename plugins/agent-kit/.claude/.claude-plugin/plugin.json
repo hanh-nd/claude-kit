@@ -1,0 +1,12 @@
+{
+  "name": "ak",
+  "version": "1.0.23",
+  "description": "Super Engineer - a team of AI agents for software development: brainstorm, plan, code, and review.",
+  "author": {
+    "name": "hanhnd"
+  },
+  "keywords": ["engineering", "agents", "brainstorm", "planning", "code-review", "workflow"],
+  "skills": "./skills/",
+  "mcpServers": "./.claude-plugin/mcp.json",
+  "hooks": "./hooks/hooks.json"
+}

@@ -2,7 +2,10 @@
 name: code-review
 description: Rigorous code review of diffs, PRs, or commits with evidence-backed findings. Catches critical issues (data safety, concurrency, trust boundaries, destructive ops) and informational concerns (dead code, test parity, magic values). Language- and domain-agnostic. Also loadable as a sub-skill by review orchestrators.
 version: 3.0.0
-effort: high
+providers:
+  claude:
+    effort: high
+    user-invocable: false
 ---
 
 # Code Review

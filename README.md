@@ -31,12 +31,12 @@ To add this entire marketplace to Codex:
 codex plugin marketplace add https://github.com/hanh-nd/agent-kit.git
 ```
 
-Then restart Codex, open the plugin directory, choose the Agent Kit marketplace, and install `agent-kit` or `learning-kit`.
+Then install individual plugins:
 
-For user-wide local Codex installs, use the per-plugin instructions:
-
-- [agent-kit Codex install](./plugins/agent-kit#option-3-install-user-wide-for-codex)
-- [learning-kit Codex install](./plugins/learning-kit#option-3-install-user-wide-for-codex)
+```bash
+codex
+/plugins
+```
 
 ## Installation (Gemini)
 
@@ -65,5 +65,5 @@ npm run build
 To add a new plugin:
 
 1. Create a new directory in `plugins/`.
-2. Add `.codex/.codex-plugin/plugin.json` (for Codex), `.claude-plugin/plugin.json` (for Claude), and `.gemini/gemini-extension.json` (for Gemini).
+2. Add `.codex/.codex-plugin/plugin.json` (for Codex), `.claude/.claude-plugin/plugin.json` (for Claude), and `.gemini/gemini-extension.json` (for Gemini).
 3. Register the plugin in the root `.agents/plugins/marketplace.json` and `.claude-plugin/marketplace.json`.

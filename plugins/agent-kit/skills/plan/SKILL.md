@@ -2,7 +2,12 @@
 name: plan
 description: 'Create an intern-proof implementation blueprint from a Design Brief or raw requirements'
 version: 3.1.0
-effort: xhigh
+providers:
+  claude:
+    effort: xhigh
+    model: opus
+  gemini:
+    model: gemini-3-pro-preview
 ---
 
 # 🏛️ Plan

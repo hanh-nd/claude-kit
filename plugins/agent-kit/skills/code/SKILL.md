@@ -2,7 +2,9 @@
 name: code
 description: 'Execute an implementation contract end-to-end with strict scope discipline and inline quality enforcement. The soldier of the plan/investigate → code pipeline: receives a validated WBS plan or evidence-backed Investigation Report, mirrors local conventions, edits files in place, runs the project test runner, halts on logic gaps. No drive-by refactors. No validator loop.'
 version: 2.0.0
-effort: medium
+providers:
+  claude:
+    effort: medium
 ---
 
 # 💻 Code

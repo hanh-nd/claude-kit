@@ -2,7 +2,9 @@
 name: investigate
 description: 'Systematic root-cause investigation — traces bugs, errors, and unexpected behavior to their source and produces an evidence-backed Investigation Report. Use when the user presents an error, crash, test failure, stack trace, or unexpected behavior. Output is a report only; no code changes are applied.'
 version: 1.0.0
-effort: high
+providers:
+  claude:
+    effort: high
 ---
 
 # 🔎 Investigate

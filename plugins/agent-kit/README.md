@@ -6,25 +6,30 @@
 
 ### Commands
 
-| Command                           | Description                                                          |
-| --------------------------------- | -------------------------------------------------------------------- |
-| `/brainstorm [idea]`           | Strategic architectural analysis                                     |
-| `/clarify <file or task>`      | Clarify requirements                                                 |
-| `/plan [file or idea]`         | Create an implementation blueprint                                   |
-| `/code [file or task]`         | Implement from a plan                                                |
-| `/code-simplify`               | Simplify modified code for readability                               |
-| `/code-refactor`               | Refactor modified code for readability                               |
-| `/validate [artifact]`         | Validate artifacts against expectations (or append `with /validate`) |
-| `/research [topic]`            | Research a topic                                                     |
-| `/review-pr [PR URL]`          | Review a pull request                                                |
-| `/review`                      | Review uncommitted local changes                                     |
-| `/debate [subject]`            | Run adversarial debate (Gilfoyle vs Dinesh vs Judge)                 |
-| `/ticket [ID]`                 | Fetch a Jira ticket and plan from it                                 |
-| `/git`                         | Git commit, branch, and PR workflow                                  |
-| `/init`                        | Create the project overview file                                     |
-| `/orchestrate [file or idea]`  | Orchestrate agents to solve problems span across multiple projects   |
-| `/delegate <agent> <task>`     | Delegate a task to Gemini, Claude, or Codex CLI                      |
-| `/wiki [compile\|query\|lint]` | Maintain a persistent, compounding project knowledge wiki            |
+Agent Kit ships these workflows as skills. In Claude Code, invoke them as slash commands such as `/plan ...`. In Codex or Gemini, ask the agent to use Agent Kit or the named skill, for example: `Use Agent Kit plan for this change`.
+
+| Skill / Command                  | Description                                                        |
+| -------------------------------- | ------------------------------------------------------------------ |
+| `/brainstorm [idea]`             | Turn a raw idea into an engineer-ready design brief                |
+| `/scenario [artifact]`           | Stress-test requirements, plans, tickets, or reviews for risks     |
+| `/clarify <file or task>`        | Resolve requirement gaps using codebase evidence                   |
+| `/plan [file or idea]`           | Create a detailed implementation blueprint                         |
+| `/investigate [issue]`           | Trace bugs, errors, or unexpected behavior to root cause           |
+| `/code [plan or report]`         | Implement from a WBS plan or investigation report                  |
+| `/test [intent]`                 | Add or update focused tests after implementation intent exists     |
+| `/code-review [diff or target]`  | Review diffs, PRs, or commits with evidence-backed findings        |
+| `/review [base]`                 | Review local staged and unstaged changes                           |
+| `/review-pr [PR URL]`            | Fetch PR/Jira context, check out the branch, and run code review   |
+| `/code-simplify [target]`        | Improve readability without changing behavior or public shape      |
+| `/code-refactor [target]`        | Analyze structural refactors and produce a refactor proposal       |
+| `/validate [artifact]`           | Validate artifacts directly or by appending `with /validate`       |
+| `/research [topic]`              | Produce source-backed technical research                           |
+| `/debate [subject]`              | Run adversarial validation of an analysis, review, or plan         |
+| `/ticket [ID]`                   | Fetch a Jira ticket and route it into the planning pipeline        |
+| `/init`                          | Extract project DNA for downstream coding and planning workflows   |
+| `/orchestrate [file or idea]`    | Decompose cross-service work into scoped handoff briefs            |
+| `/delegate <agent> <task>`       | Delegate to Gemini, Claude, or Codex CLI with optional handoff     |
+| `/wiki [compile\|query\|lint]`   | Maintain and query the persistent project knowledge wiki           |
 
 ---
 
@@ -69,12 +74,27 @@ You don't need to run the wiki manually. Five hooks keep it fed automatically:
 
 ### Option 1: Install via GitHub (Recommended)
 
+Claude Code:
+
 ```bash
 claude plugin marketplace add https://github.com/hanh-nd/agent-kit
 claude plugin install agent-kit
 ```
 
-The plugin fetches from GitHub, registers the MCP server automatically, and makes all commands available immediately.
+Codex:
+
+```bash
+codex plugin marketplace add https://github.com/hanh-nd/agent-kit.git
+codex
+/plugins # then choose agent-kit
+```
+
+For Codex hooks, add this to `~/.codex/config.toml`:
+
+```toml
+[features]
+hooks = true
+```
 
 **Add credentials** to `~/.claude/credentials` (like `~/.aws/credentials`):
 
@@ -114,14 +134,29 @@ npm run build
 
 **2. Register the plugin**
 
+Claude Code:
+
 ```bash
 claude plugin marketplace add /absolute/path/to/agent-kit
 claude plugin install agent-kit
 ```
 
-This registers the MCP server automatically (pointing to your local build). Do **not** manually add a `kit-agents` entry to `settings.json` — the plugin handles that.
+Codex:
 
-**3. Add credentials** to `~/.claude/credentials`:
+```bash
+codex plugin marketplace add /absolute/path/to/agent-kit
+codex
+/plugins # then choose agent-kit
+```
+
+For Codex hooks, add this to `~/.codex/config.toml`:
+
+```toml
+[features]
+hooks = true
+```
+
+**3. Add credentials** to `~/.claude/credentials` for MCP integrations:
 
 ```bash
 touch ~/.claude/credentials && chmod 600 ~/.claude/credentials
@@ -145,45 +180,7 @@ BITBUCKET_DEFAULT_WORKSPACE = your-default-workspace-slug
 
 ---
 
-### Option 3: Install User-Wide for Codex
-
-Use this if you want Agent Kit available in every Codex project.
-
-**1. Clone and build**
-
-```bash
-git clone https://github.com/hanh-nd/agent-kit.git
-cd agent-kit
-npm install
-npm run build
-```
-
-**2. Register the local marketplace**
-
-```bash
-codex plugin marketplace add /absolute/path/to/agent-kit
-```
-
-Codex reads the repo marketplace at `.agents/plugins/marketplace.json`; that marketplace points to `plugins/agent-kit/.codex`, which is the Codex-only plugin root and contains `.codex-plugin/plugin.json`, skills, hooks, and MCP config.
-
-**3. Enable hooks**
-
-Add this to `~/.codex/config.toml`:
-
-```toml
-[features]
-hooks = true
-```
-
-Restart Codex, open the plugin directory, choose the Agent Kit marketplace, and install `agent-kit`.
-
-**4. Verify**
-
-Ask Codex to use Agent Kit, for example: `Use Agent Kit to brainstorm a test idea.`
-
----
-
-### Option 4: Install as Gemini Extension (Optional)
+### Option 3: Install as Gemini Extension (Optional)
 
 If you want to reuse the commands with [Gemini CLI](https://geminicli.com) (for `/delegate` to Gemini), install it using:
 
@@ -205,7 +202,7 @@ npm run build
 npm run dev
 ```
 
-The MCP server source is in `src/`. Agent personas are in `agents/`. Skill modules are in `skills/`.
+The MCP server source is in `src/`. Agent personas are in `agents/`. Canonical skill modules are in `skills/`; `npm run build:skills` generates provider-safe copies into `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/`.
 
 ---
 

@@ -2,7 +2,9 @@
 name: test
 description: 'Add or update high-signal tests after implementation intent already exists. Use for requests like "add unit tests", "add tests for this feature/class", "add regression coverage", or when `code` needs behavior-proof tests following a WBS plan or Investigation Report.'
 version: 1.0.0
-effort: medium
+providers:
+  claude:
+    effort: medium
 ---
 
 # Test

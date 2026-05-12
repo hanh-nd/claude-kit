@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "agent-kit",
-      "source": "./plugins/agent-kit",
+      "source": "./plugins/agent-kit/.claude",
       "description": "Super Engineer - Team of AI Agents"
     },
     {
