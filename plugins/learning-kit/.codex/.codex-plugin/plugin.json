@@ -16,7 +16,7 @@
     "roadmap"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "mcpServers": "./.codex-plugin/mcp.json",
   "interface": {
     "displayName": "Learning Kit",
     "shortDescription": "AI-guided learning roadmaps",
