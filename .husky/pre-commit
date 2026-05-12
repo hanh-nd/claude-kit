@@ -1,0 +1,2 @@
+npm run build:skills --workspace @hanhnd/agent-kit
+git add plugins/agent-kit/.claude/skills plugins/agent-kit/.codex/skills plugins/agent-kit/.gemini/skills
