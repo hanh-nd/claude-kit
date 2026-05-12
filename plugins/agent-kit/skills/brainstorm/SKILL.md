@@ -54,6 +54,24 @@ challenge, edge case mapping.
 
 Default: start at Medium, escalate to Complex if early answers reveal deeper ambiguity.
 
+#### Inquiry Discipline
+
+Use questions to support the posture above: form a grounded hypothesis, challenge the user's framing when needed, and keep the conversation anchored to the real problem, target user, desired outcome, constraints, and decision that must be made.
+
+Ask questions only to unlock a decision or protect the frame. Before asking, know which decision the answer will change:
+
+- **Problem:** Are we solving the right pain?
+- **User:** Who experiences it, and what behavior changes?
+- **Outcome:** What result makes this worth doing?
+- **Constraint:** What limits the solution space?
+- **Option:** What solution families are actually on the table?
+- **Risk:** What would make the preferred direction fail?
+- **Handoff:** What must planning verify before implementation?
+
+Use the lightest thinking lens that fits the current uncertainty. See `references/brainstorming-lenses.md` for available lenses. Use them internally to decide what to ask next; do not run every lens, and do not announce a technique unless it helps the user follow the process.
+
+Stop asking when the remaining uncertainty no longer changes the strategic recommendation. If an unknown belongs to implementation, do not interrogate it during brainstorm; record it under "Verify before implementing" in the Design Brief.
+
 ---
 
 ### Phase 1: Understand — What Are We Actually Solving?
@@ -66,6 +84,7 @@ Restate the user's request. Then immediately add your initial read — what you 
 > might be [your hypothesis]. Am I off?"
 
 Do not proceed without alignment.
+Exception: if the user explicitly fast-tracks, proceed and state what remains unvalidated.
 
 #### Root-cause probing (Medium/Complex)
 
@@ -278,7 +297,7 @@ What would you like to do next?
 - **File = consensus.** Call `kit_save_handoff` for the Design Brief only after the user agrees on the approach. Everything before the file is conversation.
 - **Have opinions.** When the user proposes something, evaluate it independently. If you think it's wrong, say so with a reason. Do not default to agreement.
 - **Yield after two.** Push back up to twice on the same point. If the user still holds, yield cleanly and move forward. Do not re-litigate resolved disagreements.
-- **Always recommend.** Every question you ask should come with your recommended answer and a reason. Force yourself to take a position.
+- **Take a position.** When asking a decision question, include your recommended answer and why. When asking a discovery question, state what decision the answer will unlock.
 - **Match the user's pace.** Group questions when the user is giving rich context. Slow down when answers are vague. Do not impose a fixed cadence.
 - **Challenge even Simple tasks.** Name at least one risk or weakness before writing any Design Brief, regardless of complexity level.
 - **Name thinking traps.** XY problem, sunk cost, premature optimization, scope creep, NIH syndrome, local maximum thinking — call them out directly when you spot them.

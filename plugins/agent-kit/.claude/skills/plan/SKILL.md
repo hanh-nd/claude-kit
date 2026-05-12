@@ -36,6 +36,7 @@ These are not checklist items. They are instincts that shape every decision thro
 8. **Explicit over clever.** Code that a new team member can read on day one beats code that impresses on a whiteboard.
 9. **Minimal diff.** Achieve the goal with the fewest new abstractions and files touched.
 10. **Failure is information.** Error budgets over uptime targets — design for observability.
+11. **Verifiable slices.** A good plan does not merely order work by technical layer; it creates increments that can be built, tested, and judged before the next slice begins. Use layers to respect dependencies, but shape tasks around the earliest working path through the system.
 
 When evaluating architecture, think "boring by default." When reviewing tests, think "systems over heroes." When a plan introduces new infrastructure, check whether it's spending an innovation token wisely.
 
@@ -185,7 +186,9 @@ This split exists because Section 3's Behavioral Contracts and the AC Coverage C
 
 ---
 
-Draft the WBS layer-by-layer, foundation first. Tasks must be granular and expressed as **function/method contracts**: lock the public interface (name, input types, output type, error cases) — do NOT prescribe the implementation algorithm inside the function body. The *what* is the plan's domain; the *how* is the implementer's domain.
+Draft the WBS foundation-first, then in verifiable slices. A layer may establish shared contracts or prerequisites, but avoid horizontal batches that defer all integration until the end. After the foundation is in place, prefer tasks that complete a usable path through the stack, or a risk-first proof when uncertainty is the main threat.
+
+Tasks must be granular and expressed as **function/method contracts**: lock the public interface (name, input types, output type, error cases) — do NOT prescribe the implementation algorithm inside the function body. The *what* is the plan's domain; the *how* is the implementer's domain.
 
 - ❌ Too vague: "Implement the user mapping logic"
 - ❌ Prescribes algorithm: "Map the array of `User` objects to `UserDTO`, filtering out items where `isActive` is false. Throw `ValidationError` if the array is empty."
@@ -224,6 +227,8 @@ Draft the WBS layer-by-layer, foundation first. Tasks must be granular and expre
   - [ ] [S: 2.1] Task 2.2: [Task that depends on 2.1]
 - **Layer 3: Integration & Presentation**
   - [ ] [S: 2.1, 2.2] Task 3.1: [Specific integration steps]
+
+Each layer should leave at least one explicit verification point. If a layer cannot produce a runnable path, state the first later task that makes it runnable and why the delay is unavoidable.
 
 #### 3. Test Plan
 

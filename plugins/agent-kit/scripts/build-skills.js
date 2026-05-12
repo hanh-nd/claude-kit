@@ -41,12 +41,11 @@ const targets = {
 
 const requiredKeys = ['name', 'description'];
 
-function walk(dir) {
+function walkFiles(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   return entries.flatMap((entry) => {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) return walk(fullPath);
-    if (!entry.name.endsWith('.md')) return [];
+    if (entry.isDirectory()) return walkFiles(fullPath);
     return fullPath;
   });
 }
@@ -169,7 +168,7 @@ function copyTree(source, destination, targetName, targetConfig) {
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
 
-  for (const filePath of walk(source)) {
+  for (const filePath of walkFiles(source)) {
     const relative = path.relative(source, filePath);
     const outputPath = path.join(destination, relative);
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -187,7 +186,7 @@ function copyTree(source, destination, targetName, targetConfig) {
 }
 
 function validateTarget(targetName, targetRoot, includeKeys) {
-  for (const filePath of walk(targetRoot).filter((file) => path.basename(file) === 'SKILL.md')) {
+  for (const filePath of walkFiles(targetRoot).filter((file) => path.basename(file) === 'SKILL.md')) {
     const { yaml } = splitFrontmatter(fs.readFileSync(filePath, 'utf8'), filePath);
     for (const key of parseTopLevelChunks(yaml).keys()) {
       if (!includeKeys.includes(key)) {
