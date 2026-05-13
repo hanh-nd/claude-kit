@@ -38,3 +38,8 @@ export const FORBIDDEN_PATTERN_STRINGS = [
 ];
 
 export const FORBIDDEN_DIRS = ['.git', '.ssh', '.aws', '.kube', '.gnupg', '.docker'];
+
+export const ENFORCEMENT_MODES = /** @type {const} */ ({
+  BLOCK: 'block',
+  AUDIT: 'audit',
+});

@@ -4,12 +4,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { countTests } from '../scripts/count-tests.js';
-import { KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
+import { ENFORCEMENT_MODES, KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
 import { runWhenInvoked } from './utils.js';
 
-/**
- * Ensures .agent-kit exists.
- */
 function ensureDirectories() {
   const dirs = [
     'handoffs',
@@ -45,9 +42,6 @@ function ensureDirectories() {
   }
 }
 
-/**
- * Adds .agent-kit to .git/info/exclude to ensure it's ignored locally.
- */
 function ensureGitExclusion() {
   const gitDir = path.join(PROJECT_DIR, '.git');
   if (!fs.existsSync(gitDir)) return;
@@ -74,29 +68,69 @@ function ensureGitExclusion() {
   }
 }
 
-function updateProjectStats() {
-  const statsPath = path.join(KIT_PATH, 'stats.json');
-  if (!fs.existsSync(statsPath)) {
-    fs.writeFileSync(statsPath, JSON.stringify({ sessions: 0, hasUnitTests: false }));
+const DEFAULT_SETTINGS = {
+  security: {
+    allowOutside: false,
+    allowedOutsidePaths: [],
+    additionalSystemBinPaths: [],
+    additionalForbiddenFiles: [],
+    additionalForbiddenDirs: [],
+    enforcementMode: ENFORCEMENT_MODES.BLOCK,
+  },
+  project: {
+    // Auto-detected each session: true once the project has a meaningful test suite (>5 test files).
+    // Gates the testing phase in the `code` skill. Never auto-reset to false once true.
+    hasTests: false,
+    // User-controlled: set to false to skip the testing phase even when hasTests is true.
+    runTests: true,
+  },
+};
+
+function ensureSettings() {
+  const settingsPath = path.join(KIT_PATH, 'settings.json');
+  let current = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    } catch {
+      // Corrupted — start fresh
+    }
   }
 
-  const stats = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
-  // Update session count
-  stats.sessions++;
-
-  // Update test count
-  const testCount = countTests(PROJECT_DIR);
-  if (testCount > 5) {
-    stats.hasUnitTests = true;
+  let changed = false;
+  for (const [section, defaults] of Object.entries(DEFAULT_SETTINGS)) {
+    if (typeof current[section] !== 'object' || current[section] === null) {
+      current[section] = {};
+      changed = true;
+    }
+    for (const [key, value] of Object.entries(defaults)) {
+      if (!(key in current[section])) {
+        current[section][key] = value;
+        changed = true;
+      }
+    }
   }
 
-  fs.writeFileSync(statsPath, JSON.stringify(stats, null, 2));
+  // Auto-detect test suite: once true, never revert.
+  if (!current.project.hasTests) {
+    const testCount = countTests(PROJECT_DIR);
+    if (testCount > 5) {
+      current.project.hasTests = true;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    try {
+      fs.writeFileSync(settingsPath, JSON.stringify(current, null, 2));
+    } catch {
+      // Silently fail to not block session startup
+    }
+  }
 }
 
 /**
  * SessionStart Hook — Kit Initializer
- * Ensures .agent-kit directory structure exists, wires git exclusion,
- * and updates session stats.
  */
 runWhenInvoked(import.meta.url, async () => {
   const raw = await new Promise((resolve) => {
@@ -113,10 +147,9 @@ runWhenInvoked(import.meta.url, async () => {
     process.exit(0);
   }
 
-  // Ensure kit directories exist
   ensureDirectories();
   ensureGitExclusion();
-  updateProjectStats();
+  ensureSettings();
 
   console.log(
     JSON.stringify({

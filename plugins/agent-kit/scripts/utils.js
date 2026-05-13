@@ -1,6 +1,8 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { ENFORCEMENT_MODES, KIT_PATH } from './constants.js';
 
 /**
  * Spawns a Node.js script as a detached background process.
@@ -39,6 +41,36 @@ export function noOp() {
 export function blockAction(reason) {
   process.stderr.write(`🛑 Security Block: ${reason}\n`);
   process.exit(2);
+}
+
+export function loadSettings() {
+  try {
+    const settingsPath = path.join(KIT_PATH, 'settings.json');
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+  } catch {
+    // Fall through to defaults on parse error
+  }
+  return {};
+}
+
+export function getSecurityConfig(settings) {
+  const s = settings?.security ?? {};
+  return {
+    allowOutside: s.allowOutside ?? false,
+    allowedOutsidePaths: Array.isArray(s.allowedOutsidePaths) ? s.allowedOutsidePaths : [],
+    additionalSystemBinPaths: Array.isArray(s.additionalSystemBinPaths)
+      ? s.additionalSystemBinPaths
+      : [],
+    additionalForbiddenFiles: Array.isArray(s.additionalForbiddenFiles)
+      ? s.additionalForbiddenFiles
+      : [],
+    additionalForbiddenDirs: Array.isArray(s.additionalForbiddenDirs)
+      ? s.additionalForbiddenDirs
+      : [],
+    enforcementMode: s.enforcementMode ?? ENFORCEMENT_MODES.BLOCK,
+  };
 }
 
 export function spawnBackground(scriptUrl, args = []) {

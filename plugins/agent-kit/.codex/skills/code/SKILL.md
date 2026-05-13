@@ -42,7 +42,7 @@ Your mandate is to execute the contract precisely — translate it into producti
    - **Investigation Report** from `investigate` — a file path or inline content with confirmed/probable root cause evidence and recommended actions.
    If absent, stop and request a plan or Investigation Report.
 2. **Project DNA** at `.agent-kit/project.md`. Read when present — it carries naming, error-handling, and stack conventions.
-3. **`.agent-kit/stats.json`.** Read the `hasUnitTests` and `useUnitTests` flags — it gates Phase 5.
+3. **`.agent-kit/settings.json`** (`project` section). Read the `hasTests` and `runTests` flags — they gate Phase 5.
 
 If the implementation contract or DNA references files that do not exist, surface this in Phase 3 (Logic Gap Sweep) — do not silently invent paths.
 
@@ -169,7 +169,7 @@ If you discover a smell, dead code, or design issue **outside the lines you are 
 
 ### Phase 5 — Testing (Conditional)
 
-**Trigger:** `.agent-kit/stats.json` has `hasUnitTests: true` and `useUnitTests: true`. If one of them is false, skip this phase.
+**Trigger:** `.agent-kit/settings.json` has `project.hasTests: true` and `project.runTests: true`. If either is false, skip this phase.
 
 If triggered, add or update tests only where they prove behavior promised by the implementation contract. At minimum:
 
