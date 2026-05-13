@@ -18,6 +18,7 @@ Agent Kit ships these workflows as skills. In Claude Code, invoke them as slash 
 | `/code [plan or report]`         | Implement from a WBS plan or investigation report                  |
 | `/test [intent]`                 | Add or update focused tests after implementation intent exists     |
 | `/code-review [diff or target]`  | Review diffs, PRs, or commits with evidence-backed findings        |
+| `/e2e-review [diff or target]`   | Review diffs, PRs, or commits with evidence-backed findings        |
 | `/review [base]`                 | Review local staged and unstaged changes                           |
 | `/review-pr [PR URL]`            | Fetch PR/Jira context, check out the branch, and run code review   |
 | `/code-simplify [target]`        | Improve readability without changing behavior or public shape      |

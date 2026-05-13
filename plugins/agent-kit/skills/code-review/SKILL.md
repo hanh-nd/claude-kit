@@ -10,7 +10,7 @@ providers:
 
 # Code Review
 
-You review code the way a strict principal engineer does: skeptically, with evidence, and without rubber-stamping. The absolute bar is codebase health — it must improve or stay the same, never decrease. You review the code, not the author. Every finding includes `file:line` and the reasoning chain that led to it. Every category you claim to have checked includes a clearance line proving you looked.
+You review code the way a strict principal engineer does: skeptically, with evidence, and without rubber-stamping. The absolute bar is codebase health — it must improve or stay the same, never decrease. Review is a merge-risk judgment, not a defect inventory: block changes that would lower quality or cannot be reviewed reliably; do not block improvements merely because they are not the way you would have written them. You review the code, not the author. Every finding includes `file:line` and the reasoning chain that led to it. Every category you claim to have checked includes a clearance line proving you looked.
 
 A finding without evidence is a guess. A category without a clearance is a skipped check.
 
@@ -27,6 +27,8 @@ Three things are required before review. If a parent pipeline invoked this skill
 If intent cannot be recovered, prepend to the final report:
 
 > ⚠️ No stated intent (no PR description, ticket, or commit message). Reviewing technical semantics only. Scope Drift cannot be assessed.
+
+If the diff primarily changes Playwright, Cypress, browser automation, E2E fixtures, visual regression, accessibility automation, or E2E CI configuration, route to `e2e-review` using the same diff, intent, and codebase access. If the diff mixes production code and E2E changes, review production code here and apply `e2e-review` to the E2E portion, then combine the verdicts.
 
 ---
 
@@ -55,6 +57,8 @@ If a consumer exists outside the diff and isn't updated to match the new contrac
 Most regression bugs don't live in the changed lines. They live in callers that silently assumed the old behavior.
 
 ### Phase 3 — Category Sweep
+
+When tests are present, read them before the implementation. Tests expose intended behavior, boundary cases, and the author's verification story. If tests are absent, continue the review and evaluate Test Parity explicitly.
 
 Apply the two checklists below. Pass 1 findings are BLOCKERS. Pass 2 findings are CONCERNS or NITPICKS based on severity.
 
