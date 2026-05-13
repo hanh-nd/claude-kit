@@ -43,13 +43,13 @@ function agentArgs(agent: AgentName, prompt: string, workspaceRoot: string): str
       return ['--dangerously-skip-permissions', '-p', prompt];
     case 'codex':
       return [
-        'exec',
         '--ask-for-approval',
         'never',
         '--sandbox',
         'workspace-write',
         '--cd',
         workspaceRoot,
+        'exec',
         prompt,
       ];
   }
