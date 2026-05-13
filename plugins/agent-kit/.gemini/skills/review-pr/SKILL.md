@@ -37,15 +37,21 @@ Check out the source branch locally so `code-review` has full codebase access (r
    - Set `checkoutState = CHECKED_OUT`.
 5. If `UNHAPPY`: skip checkout. Never stash, never force. Record the reason (`dirty working tree` or `mismatched repo`).
 
-### Phase 3 — Invoke `code-review`
+### Phase 3 — Route to Reviewer
 
-Load the `code-review` skill and hand it:
+Inspect the diff from Phase 1 to determine the review path:
 
-- **Diff** — from Phase 1.
+- **E2E-only:** The diff primarily changes Playwright, Cypress, browser automation, E2E fixtures, visual regression, accessibility automation, or E2E CI configuration — load `e2e-review`.
+- **Mixed:** The diff contains both production code and E2E changes — load `code-review` for the production-code portion and `e2e-review` for the E2E portion, then combine the verdicts into a single report.
+- **Production-only:** All other diffs — load `code-review`.
+
+Pass to the chosen skill(s):
+
+- **Diff** — from Phase 1 (full diff for single-skill path; split by file type for the mixed path).
 - **Intent** — PR description and Jira ticket body (when available). If neither exists, pass what you have and let the child skill handle the missing-intent case.
 - **Codebase access** — full if `checkoutState = CHECKED_OUT`, degraded if `UNHAPPY`. Tell the child which mode applies so its Blast Radius phase can adjust.
 
-The child owns framing, Scope Drift assessment, Blast Radius, Pass 1 and Pass 2 sweep, self-critique, and final report formatting. Do not re-run those phases here and do not second-guess the child's verdict.
+The child skill(s) own framing, Scope Drift assessment, Blast Radius, Pass 1 and Pass 2 sweep, self-critique, and final report formatting. Do not re-run those phases here and do not second-guess the child's verdict.
 
 ### Phase 4 — Report Assembly
 
@@ -83,7 +89,7 @@ If the restore command itself fails, surface that failure clearly in the final o
 
 To keep the boundary with `code-review` clean:
 
-- It does not define review criteria, severity levels, category checklists, or output sections — those belong to `code-review`.
+- It does not define review criteria, severity levels, category checklists, or output sections — those belong to `code-review` or `e2e-review`.
 - It does not produce findings of its own. If a PR-level concern exists that the child skill missed, the fix is to improve `code-review`, not to duplicate logic here.
 - It does not mutate the PR (no comments posted, no approve/reject actions). The review is advisory; the human decides.
 - It does not re-assess Scope Drift, Blast Radius, or category coverage. The child skill reports those once, in its own format.

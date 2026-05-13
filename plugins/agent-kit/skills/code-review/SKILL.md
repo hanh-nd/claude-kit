@@ -28,8 +28,6 @@ If intent cannot be recovered, prepend to the final report:
 
 > ⚠️ No stated intent (no PR description, ticket, or commit message). Reviewing technical semantics only. Scope Drift cannot be assessed.
 
-If the diff primarily changes Playwright, Cypress, browser automation, E2E fixtures, visual regression, accessibility automation, or E2E CI configuration, route to `e2e-review` using the same diff, intent, and codebase access. If the diff mixes production code and E2E changes, review production code here and apply `e2e-review` to the E2E portion, then combine the verdicts.
-
 ---
 
 ## Execution — Four Ordered Phases

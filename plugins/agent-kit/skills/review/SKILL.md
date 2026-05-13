@@ -76,15 +76,21 @@ TICKET_ID=$(echo "$CURRENT_BRANCH" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
 - If `TICKET_ID` is non-empty: call `kit_jira_get_ticket(ticketId: "$TICKET_ID")` and pass the ticket body as intent to the child skill. If the tool call fails, proceed without intent — do not block the review.
 - If `TICKET_ID` is empty: proceed with no intent. Do not warn, do not prompt. This is the expected case for branches without ticket references.
 
-### Phase 3 — Invoke `code-review`
+### Phase 3 — Route to Reviewer
 
-Load the `code-review` skill and pass it:
+Inspect the diff from Phase 1 to determine the review path:
 
-- **Diff** — from Phase 1.
+- **E2E-only:** The diff primarily changes Playwright, Cypress, browser automation, E2E fixtures, visual regression, accessibility automation, or E2E CI configuration — load `e2e-review`.
+- **Mixed:** The diff contains both production code and E2E changes — load `code-review` for the production-code portion and `e2e-review` for the E2E portion, then combine the verdicts into a single report.
+- **Production-only:** All other diffs — load `code-review`.
+
+Pass to the chosen skill(s):
+
+- **Diff** — from Phase 1 (full diff for single-skill path; split by file type for the mixed path).
 - **Intent** — Jira ticket body if available; otherwise absent.
 - **Codebase access** — always full (running locally in the target repository).
 
-The child owns framing, Scope Drift (when intent is available), Blast Radius, Pass 1 and Pass 2 sweep, self-critique, and final report formatting. Do not re-run those phases here.
+The child skill(s) own framing, Scope Drift (when intent is available), Blast Radius, sweep phases, self-critique, and final report formatting. Do not re-run those phases here.
 
 ### Phase 4 — Report Assembly
 
@@ -109,7 +115,7 @@ If `UNTRACKED_COUNT > 0`, append to the report footer:
 
 ## What this skill does NOT do
 
-- Does not define review criteria, severity, or output format — those belong to `code-review`.
+- Does not define review criteria, severity, or output format — those belong to `code-review` or `e2e-review`.
 - Does not mutate git state: no staging, no stashing, no commits, no branch switches.
 - Does not review untracked files by default.
 - Does not silently drop `.env*` files or migrations from the diff — those need eyes on them.

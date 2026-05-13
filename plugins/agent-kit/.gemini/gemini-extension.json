@@ -1,6 +1,6 @@
 {
   "name": "agent-kit",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Super Engineer - Team of AI Agents for software development",
   "contextFileName": "docs/instruction.md",
   "mcpServers": {

@@ -25,7 +25,7 @@ Three things are required before review. If a parent pipeline invoked this skill
 
 If intent cannot be recovered, prepend to the final report:
 
-> No stated intent (no PR description, ticket, or commit message). Reviewing technical E2E quality only. Requirement Drift cannot be assessed.
+> ⚠️ No stated intent (no PR description, ticket, or commit message). Reviewing technical E2E quality only. Requirement Drift cannot be assessed.
 
 If codebase access is missing, state which checks degraded: route validity, app behavior alignment, fixture reuse, selector conventions, and CI integration.
 
@@ -191,31 +191,31 @@ Add any new findings to the report and tag them `[self-critique]`.
 ## Output Format
 
 ```markdown
-### E2E Review Report
+### 📝 E2E Review Report
 
 **Verdict:** `APPROVE | REQUEST CHANGES | COMMENT ONLY`
-**Requirement Drift:** `CLEAN | DRIFT - <brief description>`
+**Requirement Drift:** `CLEAN | DRIFT — <brief description>`
 **Layer Fit:** `E2E JUSTIFIED | LOWER-LEVEL TEST PREFERRED | UNCLEAR`
 
-#### BLOCKERS
+#### 🛑 BLOCKERS (must fix before merge)
 
-- **`file:line`** - [problem]
+- **`file:line`** — [problem]
   - _Why:_ [requirement, stability, isolation, or CI risk]
   - _Fix:_ [concrete suggestion]
 
-#### CONCERNS
+#### ⚠️ CONCERNS (should fix)
 
-- **`file:line`** - [problem] -> [fix]
+- **`file:line`** — [problem] → [fix]
 
-#### NITPICKS
+#### 💡 NITPICKS (optional)
 
-- **`file:line`** - [problem] -> [fix]
+- **`file:line`** — [problem] → [fix]
 
-#### WHAT WENT WELL
+#### ✅ WHAT WENT WELL
 
 - [specific test design choice worth keeping]
 
-#### Coverage
+#### 🔍 Coverage
 
 - Requirement Proof: Checked - [what was traced], confirmed [result].
 - Selector Contract: Checked - [what was traced], confirmed [result].
@@ -227,9 +227,9 @@ Add any new findings to the report and tag them `[self-critique]`.
 
 **Verdict rules:**
 
-- Any BLOCKER -> `REQUEST CHANGES`.
-- CONCERNS only, no BLOCKERS -> `COMMENT ONLY`, or `APPROVE` if concerns are minor and the test still adds real protection.
-- NITPICKS only -> `APPROVE`.
+- Any BLOCKER → `REQUEST CHANGES`.
+- CONCERNS only, no BLOCKERS → `COMMENT ONLY`, or `APPROVE` if concerns are minor and the test still adds real protection.
+- NITPICKS only → `APPROVE`.
 
 ---
 
