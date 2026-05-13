@@ -13,6 +13,8 @@ Simplification is measured by reader effort, not line count. Explicit, debuggabl
 
 **The primary failure mode this skill guards against is pattern-matching on hunks.** A rule like "rename `data` to something specific" fires correctly only when you've read the whole file and understand what `data` holds in context. Reading the diff hunk alone produces confident-looking bad renames.
 
+**The secondary failure mode is removing protective awkwardness.** Some code looks noisy because it encodes a boundary, a historical bug, a platform quirk, or a debugging affordance. If you cannot explain what the awkwardness protects, do not simplify it yet.
+
 ## Relationship to `code-refactor`
 
 These skills are orthogonal, not a spectrum.
@@ -47,6 +49,7 @@ For each file, internally answer:
 - What is this file's responsibility? (one sentence)
 - What naming conventions does the file already follow? (camelCase, what kinds of names for what kinds of values)
 - What constants, enums, or helpers already exist in or near this file that a new change might duplicate?
+- What behavior anchors exist? (nearby tests, callers, error paths, side effects, comments that explain why the code is shaped this way)
 - What does the surrounding module look like? (glance at sibling files if helpful — do not read the whole codebase)
 
 This phase produces no output. Its purpose is to install the context that every later decision depends on. Skipping it is the skill's top failure mode.
@@ -99,6 +102,7 @@ Apply changes in place. Every change must pass two checks before it goes in:
 - A rename is only warranted when the original name is misleading _in its context_. Generic names in generic contexts can stay.
 - Do not collapse separated branches when they encode distinct business cases, even if the expressions can be mechanically combined.
 - Do not prefer clever expressions over stepwise code that is easier to inspect in a debugger.
+- Do not delete, flatten, inline, or rename code that looks awkward until you can state what purpose it currently serves. If the purpose is unknown, skip it or log it as a route-out/context concern.
 
 **Invariance check** — the following must not change:
 
@@ -128,7 +132,8 @@ After all changes are applied, re-read each modified file as if seeing it for th
 1. **Rent re-check** — does this change actually make the file easier to read, or does it just look like a cleanup rule fired?
 2. **Context fit** — does the renamed identifier fit the file's broader naming style, or does it stand out?
 3. **Introduced indirection** — did I add an explaining variable, constant, or helper that the reader now has to scroll to understand? If yes, was the inlined version genuinely worse?
-4. **Invariance re-check** — did any edit accidentally change a type, a return path, or a side-effect condition?
+4. **Protective awkwardness re-check** — did I remove code whose original reason I still cannot explain?
+5. **Invariance re-check** — did any edit accidentally change a type, a return path, or a side-effect condition?
 
 Revert any change that fails self-review. Reverts tagged `[self-review]` in the log.
 
