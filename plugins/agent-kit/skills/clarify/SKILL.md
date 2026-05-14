@@ -23,7 +23,7 @@ For each AC item, the walk must establish:
 3. **Specified Business Behavior** — what the AC asks for, in business terms.
 4. **Gaps Resolved** — every scenario the AC was silent on or contradicted, surfaced as a business question and answered by the user.
 
-The user enters the loop only when something is **decision-resolvable** (the AC didn't specify the business answer) or to **confirm a finding** you already analyzed. The user does not enter the loop to answer questions the code or the requirement can answer.
+The user enters the loop only when something is **decision-resolvable** (the AC didn't specify the business answer) or when the rail itself is ambiguous enough that proceeding would risk clarifying the wrong requirement. The user does not enter the loop to answer questions the code or the requirement can answer.
 
 **Hard rules of the rail:**
 
@@ -42,6 +42,8 @@ The user enters the loop only when something is **decision-resolvable** (the AC 
   - **Code-resolvable** ("what does the system _currently do_ in case X?") → read the code.
   - **Decision-resolvable** ("what _should_ the system do when ticket-unspecified case Y happens?") → ask the user.
   - **Edge-case-discovery** ("which cases didn't the ticket anticipate?") → the agent's job. Read code to enumerate, then surface as business questions.
+
+- **Autonomy default.** If the AC text is explicit enough to walk, proceed. Do not ask the user to confirm parsing, classification, side keywords, or continuation unless a wrong choice would change the business rail.
 
 - **No AC, no work.** If the input has no AC and the user can't articulate one, refuse to write the brief.
 
@@ -151,9 +153,19 @@ For each candidate side-keyword, label why it is background:
 - `sibling` — references another ticket / system / change for context, no AC line acts on it.
 - `dependency` — names a service the change depends on but does not modify.
 
-### Rail Confirmation (HARD STOP — no tool calls until confirmed)
+### Rail Lock
 
-Display the parsed AC list (with types, pre-populated gaps) **and** the side-keyword whitelist to the user, in this exact shape:
+Display the parsed AC list (with types, pre-populated gaps) **and** the side-keyword whitelist only when the rail is ambiguous, broad, or scope-changing. Otherwise lock it internally and proceed to Phase 2.
+
+Ambiguity that requires confirmation:
+
+- An input sentence could split into multiple AC items or merge into one.
+- Type classification changes recon scope and the codebase cannot settle it.
+- A candidate side keyword might actually be an AC verb.
+- A Design Brief §4 scenario cannot be mapped to AC items.
+- The user supplied raw intent without acceptance criteria.
+
+When confirmation is required, use this shape:
 
 ```
 RAIL — AC items I will walk:
@@ -172,7 +184,9 @@ SIDE KEYWORDS — background only, will NOT recon:
 
 Ask: **"This is the rail I will walk, classified by type. These are side keywords I will NOT recon. Anything missing or wrong before I start?"**
 
-**Until the user confirms, you may not make any tool calls** — no Read, no Grep, no Bash. Loop until confirmation. The rail, types, and whitelist are now locked.
+Until the user resolves the ambiguity, do not make recon tool calls. Loop until the rail, types, and whitelist are locked.
+
+If confirmation is not required, do not stop. The rail is locked by the artifact and your classification.
 
 ---
 
@@ -240,6 +254,18 @@ For AC items without pre-resolved gaps, look for:
 - **Hidden consumers.** Existing rules consume the output of the AC's surface; the AC didn't say if they need to change too.
 - **Ambiguous scope.** The AC mentions a condition (e.g., "VCC") that has multiple plausible business meanings.
 
+Make every gap concrete:
+
+```text
+Given [relevant state or constraint], when [actor/system event], then [expected outcome or unresolved question].
+```
+
+Think in business events, not implementation steps:
+
+```text
+Before state -> trigger/event -> business outcome -> downstream reaction
+```
+
 **Output gaps as `GAP / CURRENT / SPEC'D / ASK` blocks.** Format:
 
 ```
@@ -255,6 +281,15 @@ ASK:     {neutral business question for the user}
 - ❌ "I lean timeout-and-auto-decline because it's safer. Which do you prefer?"
 
 Surface the gap and current behavior. The user decides.
+
+**Ask gate.** Before asking, answer internally:
+
+1. Does the AC already specify the answer?
+2. Did a Design Brief §4 row or prior AC resolution already settle it?
+3. Can the current system behavior be verified from the legitimate zones?
+4. Is this asking "where/how to implement" instead of "what should happen"?
+
+If 1-3 are yes, do not ask; record the answer from the source. If 4 is yes, route it to `plan`. Ask only when the remaining uncertainty is a business decision.
 
 **Anti-pattern check.** If you catch yourself drafting a gap whose answer is obvious from the AC text or already-read code → **stop, re-read, answer it yourself.** Forbidden gaps:
 
@@ -276,19 +311,20 @@ AC-{N} CHECKPOINT
   Status:      done | asked-pending | deferred | needs-spike
 ```
 
-Then ask the user: **`→ continue to AC-{N+1}? (yes / hold)`**
+Then continue automatically when the status is `done` and no decision is pending.
 
-- **yes** → advance to AC-{N+1}.
-- **hold** → user wants to revisit this AC item or surface a missed concern; loop back without advancing.
+Ask the user only when:
 
-Do not advance to the next AC item until:
+- status is `asked-pending`
+- status is `deferred` or `needs-spike` and proceeding would make later ACs depend on that unresolved item
+- a new gap would change the locked rail
+- the user explicitly asked for checkpoint-by-checkpoint control
 
-1. Current item's status is `done`, `deferred`, or `needs-spike`, **and**
-2. User has answered `yes` to the continuation prompt for **this specific AC item.**
+Use: **`→ continue to AC-{N+1}? (yes / hold)`** only in those cases.
 
-**No batching.** Each AC item ends with its own checkpoint **immediately after** the item is resolved — not collapsed into a final end-of-walk summary. Emit `AC-2 CHECKPOINT` after AC-2, before any AC-3 reads. Repeat per item. Dumping all checkpoints in one end-of-walk block is forbidden.
+**No silent batching.** Each AC item still produces its checkpoint immediately after the item resolves. The checkpoint is an audit trail, not a default permission gate.
 
-**Blanket permission does not bypass checkpoints.** If the user previously said "continue", "go ahead", "skip ahead", or anything similar, that applied to **the AC item under discussion at the time** — never as standing permission for future items. Each subsequent AC item still requires its own checkpoint and explicit `yes`.
+**User control.** If the user says "hold", revisits an AC, or requests per-item confirmation, stop at checkpoints until they release the hold.
 
 ### Status Table
 
@@ -465,7 +501,7 @@ SEAM: AC-N ↔ AC-M
 - **back-to-brainstorm** — AC walk surfaced that the problem framing is wrong; recommend `/brainstorm` to revise.
 ````
 
-After writing the Clarification Brief: call `kit_save_handoff(type: "clarification", content: <full markdown>, slug: <feature-slug>)`. The tool versions the file and returns its path.
+After writing: call `kit_save_handoff(type: "clarify", content: <full markdown>, slug: <feature-slug>)`. The tool versions the file and returns its path.
 
 ---
 
@@ -488,7 +524,7 @@ What would you like to do next?
 
 ## Re-entry Detection
 
-If the input is an existing Clarification Brief (frontmatter or filename matches `clarification.md`):
+If the input is an existing Clarification Brief (frontmatter or filename matches `clarify-*.md`):
 
 - Skip Phase 0 (AC already parsed).
 - Skip Phase 1 (rail, types, whitelist already locked).
@@ -510,9 +546,9 @@ If the input is an existing Clarification Brief (frontmatter or filename matches
 - **Side-keyword whitelist is locked at Phase 1.** Forbidden recon targets for the rest of the walk.
 - **User = business decisions and intent. Codebase = evidence of current behavior.** Asking the user a code-resolvable question is a bug.
 - **Neutral asks.** Surface the gap and current behavior; let the user decide. Listing common business approaches as options is neutral; ranking them with "I lean..." is forbidden.
-- **Per-AC checkpoint is mandatory.** No advancing to AC-{N+1} without the verbatim checkpoint block AND the user's `yes` to that item's continuation prompt.
+- **Per-AC checkpoint is mandatory.** Emit the verbatim checkpoint block after each AC item.
+- **Checkpoint is not a default gate.** Continue automatically after `done` items unless a business decision is pending, the rail changed, the unresolved item blocks later ACs, or the user asked for per-item control.
 - **No checkpoint batching.** Emit each AC's checkpoint immediately after the item resolves, not in a final summary.
-- **Blanket permission is per-item, not standing.** "Continue", "go ahead", or "skip ahead" applies only to the AC item under discussion. Future items still require their own checkpoint and explicit `yes`.
 - **Cross-AC seams are first-class.** After per-AC walks, the agent must walk seams to surface business gaps that fall between AC items.
 - **Saturation Gate Criterion 5 is conditional.** When all ACs are `done`, skip the gate prompt and announce the brief is being written. Ask "anything I missed?" only when there are `deferred` or `needs-spike` items.
 - **No global mental model.** You are not understanding the system. You are auditing a specific requirement.
