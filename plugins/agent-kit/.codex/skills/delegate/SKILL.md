@@ -19,8 +19,8 @@ Parse `$ARGUMENTS` as: `<agent> <task or file path>`
 Examples:
 
 - `/delegate gemini scout the codebase and summarize key patterns`
-- `/delegate gemini .agent-kit/handoffs/plans/plan-2026-03-25T19-30-42-feature.md`
-- `/delegate claude implement the plan in .agent-kit/handoffs/plans/plan-xyz.md`
+- `/delegate gemini .agent-kit/handoffs/feature-slug/plan.md`
+- `/delegate claude implement the plan in .agent-kit/handoffs/feature-slug/plan.md`
 - `/delegate codex review this repo and identify risky refactors`
 
 ---

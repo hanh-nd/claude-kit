@@ -464,7 +464,7 @@ SEAM: AC-N ↔ AC-M
 - **back-to-brainstorm** — AC walk surfaced that the problem framing is wrong; recommend `/brainstorm` to revise.
 ````
 
-After writing: call `kit_save_handoff(type: "clarify", content: <full markdown>, slug: <feature-slug>)`. The tool versions the file and returns its path.
+After writing the Clarification Brief: call `kit_save_handoff(type: "clarification", content: <full markdown>, slug: <feature-slug>)`. The tool versions the file and returns its path.
 
 ---
 
@@ -487,7 +487,7 @@ What would you like to do next?
 
 ## Re-entry Detection
 
-If the input is an existing Clarification Brief (frontmatter or filename matches `clarify-*.md`):
+If the input is an existing Clarification Brief (frontmatter or filename matches `clarification.md`):
 
 - Skip Phase 0 (AC already parsed).
 - Skip Phase 1 (rail, types, whitelist already locked).

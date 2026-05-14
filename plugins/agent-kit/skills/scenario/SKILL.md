@@ -142,7 +142,7 @@ Ownership is a data-flow decision, not a label. For each non-ignore row, write t
 
 ### Phase 5: Write the Scenario Brief
 
-Create a portable artifact. If this is meant to feed another AgentKit skill, call `kit_save_handoff(type: "scenario", content: <full markdown>, slug: <feature-slug>)` when available; otherwise output the full brief in chat.
+Create a portable artifact. If this is meant to feed another AgentKit skill, call `kit_save_handoff(type: "scenario", content: <full markdown>, slug: <feature-slug>)`.
 
 ````markdown
 ## Scenario Brief: [Feature / Artifact Name]

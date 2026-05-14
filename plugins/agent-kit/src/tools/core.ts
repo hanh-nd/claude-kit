@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { getWorkspaceRoot, mcpText } from '../utils/utils.js';
 import { DEFAULT_EXTENSIONS } from './config.js';
+import { HANDOFF_TYPES, resolveHandoffPath } from './handoffs.js';
 
 /**
  * Register core tools with MCP server
@@ -24,7 +25,7 @@ export function registerCoreTools(server: McpServer): void {
     `Save a handoff artifact to .agent-kit/handoffs/. Returns the saved file path to use in next-step instructions. Do NOT append version numbers (v2, v3, etc.) to the slug.`,
     {
       type: z
-        .enum(['brainstorm', 'clarify', 'plan', 'ticket', 'research'])
+        .enum(HANDOFF_TYPES)
         .describe('Handoff type'),
       content: z.string().describe('Full markdown content to save'),
       slug: z
@@ -35,32 +36,21 @@ export function registerCoreTools(server: McpServer): void {
     },
     async ({ type, content, slug }) => {
       try {
-        const safeSlug = slug.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
-        const handoffDir = path.join(getWorkspaceRoot(), '.agent-kit', 'handoffs', `${type}s`);
+        const location = resolveHandoffPath({
+          workspaceRoot: getWorkspaceRoot(),
+          type,
+          slug,
+          content,
+        });
+        const handoffDir = path.dirname(location.filePath);
 
         if (!fs.existsSync(handoffDir)) {
           fs.mkdirSync(handoffDir, { recursive: true });
         }
 
-        const files = fs.readdirSync(handoffDir);
-        const slugPattern = new RegExp(`^${type}-([0-9T-]{19}-)?${safeSlug}\\.md$`);
-        const existingFile = files
-          .filter((f) => slugPattern.test(f))
-          .sort()
-          .pop();
+        fs.writeFileSync(location.filePath, content, 'utf8');
 
-        let filePath: string;
-        if (existingFile) {
-          filePath = path.join(handoffDir, existingFile);
-        } else {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-          const filename = `${type}-${timestamp}-${safeSlug}.md`;
-          filePath = path.join(handoffDir, filename);
-        }
-
-        fs.writeFileSync(filePath, content, 'utf8');
-
-        return mcpText(`✅ Saved to: ${filePath}`);
+        return mcpText(`✅ Saved to: ${location.filePath}`);
       } catch (error) {
         return mcpText(`Error saving handoff: ${error}`);
       }

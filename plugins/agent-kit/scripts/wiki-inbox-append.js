@@ -6,6 +6,55 @@ import * as path from 'path';
 import { KIT_PATH } from './constants.js';
 import { noOp, runWhenInvoked } from './utils.js';
 
+const HANDOFF_TYPES = [
+  'brainstorm',
+  'clarification',
+  'plan',
+  'ticket',
+  'research',
+  'scenario',
+  'investigation',
+];
+
+const TICKET_ID_PATTERN = /\b[A-Za-z][A-Za-z0-9]+-\d+\b/;
+
+function normalizeHandoffType(type) {
+  if (!HANDOFF_TYPES.includes(type)) throw new Error(`Unsupported handoff type: ${type}`);
+  return type;
+}
+
+function sanitizeFeatureSlug(value) {
+  return value
+    .replace(/[^a-zA-Z0-9-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase();
+}
+
+function findTicketId(value) {
+  return value.match(TICKET_ID_PATTERN)?.[0].toLowerCase() ?? null;
+}
+
+function contentSlugCandidate(content) {
+  const heading = content
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^#+\s*/, '').trim())
+    .find((line) => line.length > 0);
+
+  return heading ?? content.replace(/\s+/g, ' ').trim().slice(0, 80);
+}
+
+function deriveFeatureSlug({ slug, content }) {
+  const ticketSlug = findTicketId(slug) ?? findTicketId(content);
+  if (ticketSlug) return ticketSlug;
+
+  return (
+    sanitizeFeatureSlug(slug) ||
+    sanitizeFeatureSlug(contentSlugCandidate(content)) ||
+    'untitled-handoff'
+  );
+}
+
 /**
  * Build a structured inbox entry from a kit_save_handoff tool call.
  * Returns null if required fields (type, slug) are missing.
@@ -26,23 +75,16 @@ export function buildInboxEntry(toolInput) {
   const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
   const { type, slug, content = '' } = toolInput;
 
-  // Derive the saved file path by scanning the handoffs directory.
+  // Derive the saved file path by scanning the feature-central handoff location.
   // Avoids fragile regex on MCP response text — the message format is an
   // implementation detail of core.ts that can change independently.
-  // File naming convention (core.ts): {type}-{timestamp}-{safeSlug}.md
   let filePath = '';
   try {
-    const safeSlug = slug.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
-    const handoffDir = path.join(KIT_PATH, 'handoffs', `${type}s`);
-    if (fs.existsSync(handoffDir)) {
-      const slugPattern = new RegExp(`^${type}-([0-9T-]{19}-)?${safeSlug}\\.md$`);
-      const files = fs
-        .readdirSync(handoffDir)
-        .filter((f) => slugPattern.test(f))
-        .sort(); // ISO timestamp prefix → lexicographic sort = chronological
-      if (files.length > 0) {
-        filePath = path.join(handoffDir, files[files.length - 1]);
-      }
+    const canonicalType = normalizeHandoffType(type);
+    const featureSlug = deriveFeatureSlug({ slug, content });
+    const newPath = path.join(KIT_PATH, 'handoffs', featureSlug, `${canonicalType}.md`);
+    if (fs.existsSync(newPath)) {
+      filePath = newPath;
     }
   } catch {
     // fail-open: path stays empty, entry is still written without it

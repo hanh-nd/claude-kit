@@ -155,6 +155,8 @@ Write the Investigation Report immediately after a hypothesis is confirmed or af
 - `PROBABLE` — strong hypothesis supported by circumstantial evidence but not fully reproducible (e.g., intermittent issue, restricted environment).
 - `INCONCLUSIVE` — 3-strike rule triggered; hypotheses exhausted without confirmation; report documents what was ruled out.
 
+After writing the Investigation Report: call `kit_save_handoff(type: "investigation", content: <full report>, slug: <feature-or-issue-slug>)`. The tool versions the file and returns its path. Use a ticket ID as the slug when the issue, branch, logs, or artifact content contains one; otherwise use a short issue slug.
+
 ---
 
 ## Hard Stops
