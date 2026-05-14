@@ -23,8 +23,10 @@ Gather evidence before forming any hypothesis.
 1. **Capture baseline.** Record the current broken state before investigating: exact command run, full error/test output, stack trace, relevant logs with timestamps, and `git status --short`. This is the before-state that `code` must verify against after applying a fix.
 2. **Collect symptoms.** Read error messages, stack traces, and steps to reproduce verbatim.
 3. **Reproduce.** Confirm the issue is triggerable deterministically. If it is intermittent, document the conditions under which it appears.
-4. **Check history.** Run `git log --oneline -20 -- <affected-files>` to surface recent regressions.
-5. **Trace the code path.** Starting from the error, trace execution backwards through the call stack to the earliest contributing point.
+4. **Localize the failing boundary.** Identify the smallest layer where the failure is visible: test harness, UI, API, job, database, dependency, configuration, environment, or external service.
+5. **Reduce when the trigger is broad.** If the failing command, report, or user flow spans too much surface area, narrow it to the smallest test, input, route, fixture, request, or operation that still fails. Do not minimize for its own sake when the root cause is already directly exposed.
+6. **Check history.** Run `git log --oneline -20 -- <affected-files>` to surface recent regressions.
+7. **Trace the code path.** Starting from the localized failure, reduced repro, or stack trace, trace execution backwards through the call stack to the earliest contributing point.
 
 While tracing, note which patterns in the Pattern Catalog the symptoms resemble — pattern recognition runs naturally alongside reading and need not wait for Phase 2.
 
@@ -35,6 +37,8 @@ While tracing, note which patterns in the Pattern Catalog the symptoms resemble 
 Cross-reference your findings against the catalog. A matching pattern becomes the starting hypothesis. If multiple patterns match, rank by fit and investigate the strongest first.
 
 Check `git log` for recurring fixes in the same area — a file patched repeatedly for similar issues signals an architectural smell, not a coincidence.
+
+When the codebase contains a similar working path, compare against it before inventing a theory. List the meaningful differences in input shape, environment, configuration, call order, state, and dependencies. A known-good comparison is evidence; a generic pattern match is only a lead.
 
 ### Pattern Catalog
 
@@ -62,10 +66,11 @@ Form one specific, falsifiable hypothesis at a time.
    - what evidence would confirm it
    - what evidence would refute it
    - the fastest safe test
-3. **Add targeted instrumentation if needed.** Insert a temporary log or assertion at the suspected root cause and read the output.
-4. **Remove instrumentation.** Once the hypothesis is confirmed or refuted, remove all temporary logs and assertions before proceeding.
-5. **Record the result in a hypothesis ledger.** Mark each hypothesis `CONFIRMED`, `REFUTED`, or `INCONCLUSIVE` with the evidence that decided it.
-6. **Apply the 3-strike rule.** After three consecutive refuted hypotheses, stop. The root cause is either architectural or requires information not available in this context. Set status to `INCONCLUSIVE` and write the report documenting what was ruled out.
+3. **Prefer tests that separate causes.** A useful hypothesis test distinguishes between plausible explanations. A test that only repeats the same symptom without narrowing the cause is weak evidence.
+4. **Add targeted instrumentation if needed.** Insert a temporary log or assertion at the suspected root cause and read the output.
+5. **Remove instrumentation.** Once the hypothesis is confirmed or refuted, remove all temporary logs and assertions before proceeding.
+6. **Record the result in a hypothesis ledger.** Mark each hypothesis `CONFIRMED`, `REFUTED`, or `INCONCLUSIVE` with the evidence that decided it.
+7. **Apply the 3-strike rule.** After three consecutive refuted hypotheses, stop. The root cause is either architectural or requires information not available in this context. Set status to `INCONCLUSIVE` and write the report documenting what was ruled out.
 
 Move to a new hypothesis only after the current one is confirmed or refuted with evidence.
 
@@ -110,6 +115,7 @@ Write the Investigation Report immediately after a hypothesis is confirmed or af
 | Error / Output | `[verbatim failure output or observed behavior]` |
 | Logs / Stack Trace | `[relevant excerpt, timestamped if available]` |
 | Git State | `[git status --short summary]` |
+| Localized Boundary / Reduced Repro | `[failing layer and smallest failing command/input/scenario, or "not reduced because ..."]` |
 
 ### 1. Root Cause Analysis
 [Provide the detailed breakdown of the failure mechanism here. Use bullet points for compounding issues.]
@@ -154,8 +160,6 @@ Write the Investigation Report immediately after a hypothesis is confirmed or af
 - `CONFIRMED` — root cause traced to a specific condition and confirmed with direct evidence.
 - `PROBABLE` — strong hypothesis supported by circumstantial evidence but not fully reproducible (e.g., intermittent issue, restricted environment).
 - `INCONCLUSIVE` — 3-strike rule triggered; hypotheses exhausted without confirmation; report documents what was ruled out.
-
-After writing the Investigation Report: call `kit_save_handoff(type: "investigation", content: <full report>, slug: <feature-or-issue-slug>)`. The tool versions the file and returns its path. Use a ticket ID as the slug when the issue, branch, logs, or artifact content contains one; otherwise use a short issue slug.
 
 ---
 
