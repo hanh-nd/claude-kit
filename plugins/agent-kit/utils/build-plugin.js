@@ -34,6 +34,7 @@ const providers = {
   codex: {
     root: path.join(pluginRoot, '.codex'),
     skillKeys: ['name', 'description'],
+    configPath: path.join('agents', 'openai.yaml'),
   },
   gemini: {
     root: path.join(pluginRoot, '.gemini'),
@@ -176,9 +177,20 @@ function buildSkillFrontmatter(yaml, providerName, skillKeys) {
   return `---\n${output.join('\n')}\n---\n`;
 }
 
-function buildProviderSkills(source, destination, providerName, skillKeys) {
+function buildProviderConfig(yaml, providerName) {
+  const chunks = parseTopLevelChunks(yaml);
+  const providerChunks = parseProviderChunks(chunks.get('providers'));
+  const providerConfig = Object.values(providerChunks[providerName] ?? {}).flat();
+
+  return providerConfig.length ? `${providerConfig.join('\n')}\n` : null;
+}
+
+function buildProviderSkills(source, destination, providerName, providerConfig) {
+  const { skillKeys, configPath } = providerConfig;
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
+
+  const providerConfigs = [];
 
   for (const filePath of walkFiles(source)) {
     const relative = path.relative(source, filePath);
@@ -194,6 +206,21 @@ function buildProviderSkills(source, destination, providerName, skillKeys) {
     const { yaml, body } = splitFrontmatter(content, filePath);
     const frontmatter = buildSkillFrontmatter(yaml, providerName, skillKeys);
     fs.writeFileSync(outputPath, `${frontmatter}${body}`, 'utf8');
+
+    const sidecarConfig = configPath ? buildProviderConfig(yaml, providerName) : null;
+    if (sidecarConfig) {
+      providerConfigs.push({
+        skillDir: path.dirname(outputPath),
+        relativePath: configPath,
+        content: sidecarConfig,
+      });
+    }
+  }
+
+  for (const { skillDir, relativePath, content } of providerConfigs) {
+    const configFile = path.join(skillDir, relativePath);
+    fs.mkdirSync(path.dirname(configFile), { recursive: true });
+    fs.writeFileSync(configFile, content, 'utf8');
   }
 }
 
@@ -216,7 +243,7 @@ function buildSkills() {
 
   for (const [providerName, provider] of Object.entries(providers)) {
     const destination = path.join(provider.root, 'skills');
-    buildProviderSkills(source, destination, providerName, provider.skillKeys);
+    buildProviderSkills(source, destination, providerName, provider);
     validateProviderSkills(providerName, destination, provider.skillKeys);
   }
 

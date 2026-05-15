@@ -6,6 +6,9 @@ providers:
   claude:
     effort: xhigh
     model: opus
+  codex:
+    model: gpt-5.5
+    model_reasoning_effort: high
   gemini:
     model: gemini-3-pro-preview
 ---
