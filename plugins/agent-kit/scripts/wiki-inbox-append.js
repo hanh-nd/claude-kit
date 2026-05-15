@@ -16,7 +16,7 @@ const HANDOFF_TYPES = [
   'investigation',
 ];
 
-const TICKET_ID_PATTERN = /\b[A-Za-z][A-Za-z0-9]+-\d+\b/;
+const TICKET_ID_PATTERN = /\b[A-Z][A-Z0-9]+-\d+\b/;
 
 function normalizeHandoffType(type) {
   if (!HANDOFF_TYPES.includes(type)) throw new Error(`Unsupported handoff type: ${type}`);
@@ -45,11 +45,16 @@ function contentSlugCandidate(content) {
 }
 
 function deriveFeatureSlug({ slug, content }) {
-  const ticketSlug = findTicketId(slug) ?? findTicketId(content);
-  if (ticketSlug) return ticketSlug;
+  const requestedTicketSlug = findTicketId(slug);
+  if (requestedTicketSlug) return requestedTicketSlug;
+
+  const requestedSlug = sanitizeFeatureSlug(slug);
+  if (requestedSlug) return requestedSlug;
+
+  const contentTicketSlug = findTicketId(content);
+  if (contentTicketSlug) return contentTicketSlug;
 
   return (
-    sanitizeFeatureSlug(slug) ||
     sanitizeFeatureSlug(contentSlugCandidate(content)) ||
     'untitled-handoff'
   );

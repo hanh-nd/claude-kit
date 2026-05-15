@@ -28,7 +28,7 @@ export interface SavedHandoffLocation {
   relativePath: string;
 }
 
-const TICKET_ID_PATTERN = /\b[A-Za-z][A-Za-z0-9]+-\d+\b/;
+const TICKET_ID_PATTERN = /\b[A-Z][A-Z0-9]+-\d+\b/;
 
 function findTicketId(value: string): string | null {
   return value.match(TICKET_ID_PATTERN)?.[0].toLowerCase() ?? null;
@@ -63,11 +63,16 @@ export function deriveFeatureSlug(input: {
   content: string;
   type: CanonicalHandoffType;
 }): string {
-  const ticketSlug = findTicketId(input.requestedSlug) ?? findTicketId(input.content);
-  if (ticketSlug) return ticketSlug;
+  const requestedTicketSlug = findTicketId(input.requestedSlug);
+  if (requestedTicketSlug) return requestedTicketSlug;
+
+  const requestedSlug = sanitizeFeatureSlug(input.requestedSlug);
+  if (requestedSlug) return requestedSlug;
+
+  const contentTicketSlug = findTicketId(input.content);
+  if (contentTicketSlug) return contentTicketSlug;
 
   return (
-    sanitizeFeatureSlug(input.requestedSlug) ||
     sanitizeFeatureSlug(contentSlugCandidate(input.content)) ||
     'untitled-handoff'
   );
