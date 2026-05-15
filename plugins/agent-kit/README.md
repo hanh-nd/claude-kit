@@ -93,7 +93,7 @@ For Codex hooks, add this to `~/.codex/config.toml`:
 
 ```toml
 [features]
-hooks = true
+plugin_hooks = true
 ```
 
 **Add credentials** to `~/.claude/credentials` (like `~/.aws/credentials`):
@@ -153,7 +153,7 @@ For Codex hooks, add this to `~/.codex/config.toml`:
 
 ```toml
 [features]
-hooks = true
+plugin_hooks = true
 ```
 
 **3. Add credentials** to `~/.claude/credentials` for MCP integrations:
