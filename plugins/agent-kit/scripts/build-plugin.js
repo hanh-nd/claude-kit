@@ -6,12 +6,14 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const pluginRoot = path.resolve(__dirname, '..');
-const sourceRoot = path.join(pluginRoot, 'skills');
 
-const targets = {
+const sharedBundleDirs = ['agents', 'docs', 'scripts'];
+const requiredSkillKeys = ['name', 'description'];
+
+const providers = {
   claude: {
-    root: path.join(pluginRoot, '.claude', 'skills'),
-    includeKeys: [
+    root: path.join(pluginRoot, '.claude'),
+    skillKeys: [
       'name',
       'description',
       'when_to_use',
@@ -30,24 +32,35 @@ const targets = {
     ],
   },
   codex: {
-    root: path.join(pluginRoot, '.codex', 'skills'),
-    includeKeys: ['name', 'description'],
+    root: path.join(pluginRoot, '.codex'),
+    skillKeys: ['name', 'description'],
   },
   gemini: {
-    root: path.join(pluginRoot, '.gemini', 'skills'),
-    includeKeys: ['name', 'description', 'model'],
+    root: path.join(pluginRoot, '.gemini'),
+    skillKeys: ['name', 'description', 'model'],
   },
 };
 
-const requiredKeys = ['name', 'description'];
-
-function walkFiles(dir) {
+function walkEntries(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   return entries.flatMap((entry) => {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) return walkFiles(fullPath);
-    return fullPath;
+    if (entry.isDirectory()) return [fullPath, ...walkEntries(fullPath)];
+    return [fullPath];
   });
+}
+
+function walkFiles(dir) {
+  return walkEntries(dir).filter((entryPath) => fs.lstatSync(entryPath).isFile());
+}
+
+function materializeTree(source, destination) {
+  if (!fs.existsSync(source)) {
+    throw new Error(`Missing source directory: ${source}`);
+  }
+
+  fs.rmSync(destination, { recursive: true, force: true });
+  fs.cpSync(source, destination, { recursive: true, errorOnExist: false, force: true });
 }
 
 function splitFrontmatter(content, filePath) {
@@ -97,8 +110,8 @@ function stripProviderIndent(lines) {
 }
 
 function parseProviderChunks(providerLines) {
-  const providers = {};
-  if (!providerLines) return providers;
+  const providerChunks = {};
+  if (!providerLines) return providerChunks;
 
   let currentProvider = null;
   let currentKey = null;
@@ -106,7 +119,7 @@ function parseProviderChunks(providerLines) {
 
   function flushKey() {
     if (currentProvider && currentKey) {
-      providers[currentProvider][currentKey] = stripProviderIndent(currentLines);
+      providerChunks[currentProvider][currentKey] = stripProviderIndent(currentLines);
     }
     currentKey = null;
     currentLines = [];
@@ -117,7 +130,7 @@ function parseProviderChunks(providerLines) {
     if (providerMatch) {
       flushKey();
       currentProvider = providerMatch[1];
-      providers[currentProvider] = {};
+      providerChunks[currentProvider] = {};
       continue;
     }
 
@@ -140,23 +153,22 @@ function parseProviderChunks(providerLines) {
   }
 
   flushKey();
-  return providers;
+  return providerChunks;
 }
 
-function buildFrontmatter(yaml, targetName, targetConfig) {
+function buildSkillFrontmatter(yaml, providerName, skillKeys) {
   const chunks = parseTopLevelChunks(yaml);
-  const providers = parseProviderChunks(chunks.get('providers'));
-  const overrides = providers[targetName] ?? {};
-  const overrideChunks = new Map(Object.entries(overrides));
+  const providerChunks = parseProviderChunks(chunks.get('providers'));
+  const overrides = new Map(Object.entries(providerChunks[providerName] ?? {}));
   const output = [];
 
-  for (const key of targetConfig.includeKeys) {
-    const lines = overrideChunks.get(key) ?? chunks.get(key);
+  for (const key of skillKeys) {
+    const lines = overrides.get(key) ?? chunks.get(key);
     if (lines) output.push(...lines);
   }
 
-  for (const required of requiredKeys) {
-    if (!chunks.has(required) && !overrideChunks.has(required)) {
+  for (const required of requiredSkillKeys) {
+    if (!chunks.has(required) && !overrides.has(required)) {
       throw new Error(`Missing required frontmatter field: ${required}`);
     }
   }
@@ -164,7 +176,7 @@ function buildFrontmatter(yaml, targetName, targetConfig) {
   return `---\n${output.join('\n')}\n---\n`;
 }
 
-function copyTree(source, destination, targetName, targetConfig) {
+function buildProviderSkills(source, destination, providerName, skillKeys) {
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
 
@@ -180,29 +192,51 @@ function copyTree(source, destination, targetName, targetConfig) {
 
     const content = fs.readFileSync(filePath, 'utf8');
     const { yaml, body } = splitFrontmatter(content, filePath);
-    const frontmatter = buildFrontmatter(yaml, targetName, targetConfig);
+    const frontmatter = buildSkillFrontmatter(yaml, providerName, skillKeys);
     fs.writeFileSync(outputPath, `${frontmatter}${body}`, 'utf8');
   }
 }
 
-function validateTarget(targetName, targetRoot, includeKeys) {
+function validateProviderSkills(providerName, targetRoot, skillKeys) {
   for (const filePath of walkFiles(targetRoot).filter((file) => path.basename(file) === 'SKILL.md')) {
     const { yaml } = splitFrontmatter(fs.readFileSync(filePath, 'utf8'), filePath);
     for (const key of parseTopLevelChunks(yaml).keys()) {
-      if (!includeKeys.includes(key)) {
-        throw new Error(`${path.relative(pluginRoot, filePath)} contains unsupported ${targetName} key: ${key}`);
+      if (!skillKeys.includes(key)) {
+        throw new Error(`${path.relative(pluginRoot, filePath)} contains unsupported ${providerName} key: ${key}`);
       }
     }
   }
 }
 
-if (!fs.existsSync(sourceRoot)) {
-  throw new Error(`Missing skills source directory: ${sourceRoot}`);
+function buildSkills() {
+  const source = path.join(pluginRoot, 'skills');
+  if (!fs.existsSync(source)) {
+    throw new Error(`Missing skills source directory: ${source}`);
+  }
+
+  for (const [providerName, provider] of Object.entries(providers)) {
+    const destination = path.join(provider.root, 'skills');
+    buildProviderSkills(source, destination, providerName, provider.skillKeys);
+    validateProviderSkills(providerName, destination, provider.skillKeys);
+  }
+
+  console.log(`Built skills for ${Object.keys(providers).join(', ')}`);
 }
 
-for (const [targetName, targetConfig] of Object.entries(targets)) {
-  copyTree(sourceRoot, targetConfig.root, targetName, targetConfig);
-  validateTarget(targetName, targetConfig.root, targetConfig.includeKeys);
+function buildSharedBundles() {
+  for (const [providerName, provider] of Object.entries(providers)) {
+    for (const dirName of sharedBundleDirs) {
+      materializeTree(
+        path.join(pluginRoot, dirName),
+        path.join(provider.root, dirName),
+      );
+    }
+  }
+
+  console.log(
+    `Built shared provider directories for ${Object.keys(providers).join(', ')}: ${sharedBundleDirs.join(', ')}`,
+  );
 }
 
-console.log(`Built skills for ${Object.keys(targets).join(', ')}`);
+buildSkills();
+buildSharedBundles();
