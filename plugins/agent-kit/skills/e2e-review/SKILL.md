@@ -6,6 +6,9 @@ providers:
   claude:
     effort: high
     user-invocable: false
+  codex:
+    policy:
+      allow_implicit_invocation: false
 ---
 
 # E2E Review
