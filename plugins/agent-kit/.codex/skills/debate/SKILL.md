@@ -1,6 +1,6 @@
 ---
 name: debate
-description: Adversarial validation layer — spawns Gilfoyle (attacker), Dinesh (defender), and a Judge to stress-test a prior skill output through multi-round structured debate. Use to challenge a prior analysis, review, or plan before acting on it.
+description: Stress-test a prior skill output via adversarial Gilfoyle/Dinesh/Judge debate.
 ---
 
 # Debate Mode — Adversarial Validation Layer

@@ -1,6 +1,6 @@
 ---
 name: clarify
-description: "Business clarification — reads code as evidence of current behavior to find gaps the requirement left silent. Not a planner. Output: a Clarification Brief that captures the user's resolutions on those gaps and feeds plan."
+description: "Find requirement gaps by reading code as evidence. Outputs a Clarification Brief for plan."
 ---
 
 # 🔎 Clarify

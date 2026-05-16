@@ -1,6 +1,6 @@
 ---
 name: review
-description: Review local uncommitted changes (staged and unstaged) with auto-detected Jira context from the current branch. Defaults to HEAD; accepts an optional base (branch, tag, or commit) to diff against.
+description: Review local uncommitted changes with Jira context. Accepts an optional base branch/commit.
 ---
 
 # Review Local Changes

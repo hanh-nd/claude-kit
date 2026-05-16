@@ -1,7 +1,7 @@
 ---
 name: code-simplify
 version: 1.0.0
-description: Improve readability within the existing structure — better names, guard clauses, dead-code removal, magic-value consolidation, comment hygiene — without changing external behavior or signatures. Routes to code-refactor if the change requires altering a signature or reversing a design decision.
+description: Improve readability — better names, guard clauses, dead-code removal — without changing behavior or signatures.
 ---
 
 # Code Simplify

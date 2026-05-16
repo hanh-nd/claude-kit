@@ -1,6 +1,6 @@
 ---
 name: scenario
-description: 'Scenario discovery and risk triage for AgentKit handoffs. Use when a user wants to stress-test a feature, ticket, Design Brief, Clarification Brief, plan, test target, implementation, or review intent for high-risk behavior examples, missing decisions, and downstream clarify/plan/test/code-review actions.'
+description: 'Stress-test a feature or plan for high-risk scenarios, missing decisions, and edge cases.'
 ---
 
 # Scenario

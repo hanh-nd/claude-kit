@@ -1,6 +1,6 @@
 ---
 name: test
-description: 'Add or update high-signal tests after implementation intent already exists. Use for requests like "add unit tests", "add tests for this feature/class", "add regression coverage", or when `code` needs behavior-proof tests following a WBS plan or Investigation Report.'
+description: 'Add or update tests given an existing implementation plan or WBS.'
 ---
 
 # Test

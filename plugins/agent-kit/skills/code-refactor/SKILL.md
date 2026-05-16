@@ -1,7 +1,7 @@
 ---
 name: code-refactor
 version: 1.0.0
-description: Structural refactoring analysis — questions the current design and produces a confidence-tiered Refactor Proposal. Analysis only; no source files are modified. Use for refactor, restructure, or "is this design right?" requests.
+description: Analyze structure and produce a Refactor Proposal. Analysis only; no files modified.
 ---
 
 ## Core thesis

@@ -1,6 +1,6 @@
 ---
 name: validate
-description: 'PRIMARY ENTRY POINT when the user appends `with /validate` to any other command. Invokes the producer skill, captures its output, spawns a validator subagent, and runs a bounded PASS/FAILED feedback loop. Also handles standalone `/validate <artifact> --against <expectation>`.'
+description: 'Run any skill and validate its output in a PASS/FAILED loop. Append `with /validate` to any command.'
 ---
 
 # 🛡️ Validate

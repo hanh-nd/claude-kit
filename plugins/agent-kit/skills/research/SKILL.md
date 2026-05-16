@@ -1,6 +1,6 @@
 ---
 name: research
-description: Multi-source technical research — harvests official docs, community forums, engineering blogs, and incident reports to produce a verified, source-backed report with an optional Design Brief for the brainstorm skill.
+description: Multi-source technical research producing a verified report with optional Design Brief.
 version: 1.0.0
 ---
 

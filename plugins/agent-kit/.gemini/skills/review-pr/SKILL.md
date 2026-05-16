@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Fetch a PR with its Jira context, check out its branch locally for full codebase access, invoke code-review, and return a complete review.
+description: Fetch a PR, check out locally, run code-review, return a full review.
 ---
 
 # Review PR
