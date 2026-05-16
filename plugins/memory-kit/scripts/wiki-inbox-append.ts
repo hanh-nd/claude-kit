@@ -18,12 +18,12 @@ const HANDOFF_TYPES = [
 
 const TICKET_ID_PATTERN = /\b[A-Z][A-Z0-9]+-\d+\b/;
 
-function normalizeHandoffType(type) {
+function normalizeHandoffType(type: string): string {
   if (!HANDOFF_TYPES.includes(type)) throw new Error(`Unsupported handoff type: ${type}`);
   return type;
 }
 
-function sanitizeFeatureSlug(value) {
+function sanitizeFeatureSlug(value: string): string {
   return value
     .replace(/[^a-zA-Z0-9-_]/g, '-')
     .replace(/-+/g, '-')
@@ -31,11 +31,11 @@ function sanitizeFeatureSlug(value) {
     .toLowerCase();
 }
 
-function findTicketId(value) {
+function findTicketId(value: string): string | null {
   return value.match(TICKET_ID_PATTERN)?.[0].toLowerCase() ?? null;
 }
 
-function contentSlugCandidate(content) {
+function contentSlugCandidate(content: string): string {
   const heading = content
     .split(/\r?\n/)
     .map((line) => line.replace(/^#+\s*/, '').trim())
@@ -44,7 +44,7 @@ function contentSlugCandidate(content) {
   return heading ?? content.replace(/\s+/g, ' ').trim().slice(0, 80);
 }
 
-function deriveFeatureSlug({ slug, content }) {
+function deriveFeatureSlug({ slug, content }: { slug: string; content: string }): string {
   const requestedTicketSlug = findTicketId(slug);
   if (requestedTicketSlug) return requestedTicketSlug;
 
@@ -60,29 +60,27 @@ function deriveFeatureSlug({ slug, content }) {
   );
 }
 
+export interface InboxToolInput {
+  type?: string;
+  slug?: string;
+  content?: string;
+}
+
+export interface InboxStdin {
+  tool_name: string;
+  tool_input: InboxToolInput;
+}
+
 /**
  * Build a structured inbox entry from a kit_save_handoff tool call.
  * Returns null if required fields (type, slug) are missing.
- *
- * Entry format:
- *   ## [YYYY-MM-DDTHH:MM:SS] handoff | {type}-{slug}
- *   - type: {type}
- *   - slug: {slug}
- *   - path: {absolute-path}          (omitted if not found in response)
- *   - summary: {first-h2 or 100 chars}
- *
- * @param {{ type?: string, slug?: string, content?: string }} toolInput
- * @returns {string|null}
  */
-export function buildInboxEntry(toolInput) {
+export function buildInboxEntry(toolInput: InboxToolInput): string | null {
   if (!toolInput?.type || !toolInput?.slug) return null;
 
   const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '');
   const { type, slug, content = '' } = toolInput;
 
-  // Derive the saved file path by scanning the feature-central handoff location.
-  // Avoids fragile regex on MCP response text — the message format is an
-  // implementation detail of core.ts that can change independently.
   let filePath = '';
   try {
     const canonicalType = normalizeHandoffType(type);
@@ -92,10 +90,9 @@ export function buildInboxEntry(toolInput) {
       filePath = newPath;
     }
   } catch {
-    // fail-open: path stays empty, entry is still written without it
+    // fail-open
   }
 
-  // Extract summary: first ## heading text; fallback to first 100 chars of content
   let summary = '';
   const headingMatch = content.match(/^## (.+)$/m);
   if (headingMatch) {
@@ -116,42 +113,43 @@ export function buildInboxEntry(toolInput) {
 }
 
 runWhenInvoked(import.meta.url, async () => {
-  const raw = await new Promise((resolve) => {
+  const raw = await new Promise<string>((resolve) => {
     let data = '';
     process.stdin.on('data', (chunk) => (data += chunk));
     process.stdin.on('end', () => resolve(data));
   });
 
-  let input;
+  let input: InboxStdin;
   try {
-    input = JSON.parse(raw);
+    input = JSON.parse(raw) as InboxStdin;
   } catch {
     noOp();
+    return;
   }
 
-  // Only handle kit_save_handoff calls
   if (!input.tool_name || !input.tool_name.includes('kit_save_handoff')) {
     noOp();
+    return;
   }
 
   const entry = buildInboxEntry(input.tool_input);
   if (!entry) {
     noOp();
+    return;
   }
 
-  const response = {};
+  const response: Record<string, string> = {};
   try {
     const inboxPath = path.join(KIT_PATH, 'wiki', 'raw', 'inbox.md');
     fs.appendFileSync(inboxPath, '\n' + entry + '\n', 'utf8');
 
-    // Count entries and alert if > 10
     const content = fs.readFileSync(inboxPath, 'utf8');
     const entryCount = (content.match(/^## \[/gm) || []).length;
     if (entryCount > 10) {
       response.systemMessage = `⚠️ Wiki Inbox has more than 10 entries. Please run \`/wiki compile\` to organize them.`;
     }
   } catch {
-    // Fail-open: never block user workflow
+    // Fail-open
   }
 
   console.log(JSON.stringify(response));

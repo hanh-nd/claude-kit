@@ -144,14 +144,14 @@ describe('extractQuery', () => {
   describe('error handling', () => {
     test('never throws on null toolInput (C15)', () => {
       assert.doesNotThrow(() => {
-        const q = extractQuery('Read', null);
+        const q = extractQuery('Read', null as unknown as Record<string, unknown>);
         assert.equal(q.terms.length, 0);
       });
     });
 
     test('never throws on undefined toolInput', () => {
       assert.doesNotThrow(() => {
-        const q = extractQuery('Read', undefined);
+        const q = extractQuery('Read', undefined as unknown as Record<string, unknown>);
         assert.equal(q.terms.length, 0);
       });
     });

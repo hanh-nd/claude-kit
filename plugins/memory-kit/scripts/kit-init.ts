@@ -4,9 +4,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
-import { runWhenInvoked } from './utils.js';
+import { runWhenInvoked, Settings, WikiConfig } from './utils.js';
 
-function ensureDirectories() {
+function ensureDirectories(): void {
   const dirs = [
     'wiki/raw',
     'wiki/compiled',
@@ -39,7 +39,7 @@ function ensureDirectories() {
   }
 }
 
-function ensureGitExclusion() {
+function ensureGitExclusion(): void {
   const gitDir = path.join(PROJECT_DIR, '.git');
   if (!fs.existsSync(gitDir)) return;
 
@@ -65,7 +65,7 @@ function ensureGitExclusion() {
   }
 }
 
-const DEFAULT_SETTINGS = {
+const DEFAULT_SETTINGS: Settings = {
   wiki: {
     // Minimum relevance score for a wiki page to be injected before a tool call.
     injectMinScore: 5.0,
@@ -74,12 +74,12 @@ const DEFAULT_SETTINGS = {
   },
 };
 
-function ensureSettings() {
+function ensureSettings(): void {
   const settingsPath = path.join(KIT_PATH, 'settings.json');
-  let current = {};
+  let current: Settings = {};
   if (fs.existsSync(settingsPath)) {
     try {
-      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as Settings;
     } catch {
       // Corrupted — start fresh
     }
@@ -91,9 +91,10 @@ function ensureSettings() {
       current[section] = {};
       changed = true;
     }
-    for (const [key, value] of Object.entries(defaults)) {
-      if (!(key in current[section])) {
-        current[section][key] = value;
+    const currentSection = current[section] as Record<string, unknown>;
+    for (const [key, value] of Object.entries(defaults as Record<string, unknown>)) {
+      if (!(key in currentSection)) {
+        currentSection[key] = value;
         changed = true;
       }
     }
@@ -112,17 +113,17 @@ function ensureSettings() {
  * SessionStart Hook — Memory Kit Initializer
  */
 runWhenInvoked(import.meta.url, async () => {
-  const raw = await new Promise((resolve) => {
+  const raw = await new Promise<string>((resolve) => {
     let data = '';
     process.stdin.on('data', (chunk) => (data += chunk));
     process.stdin.on('end', () => resolve(data));
   });
 
-  let input;
   try {
-    input = JSON.parse(raw);
+    JSON.parse(raw);
   } catch (error) {
-    console.error('❌ Memory-Kit failed to initialize', error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Memory-Kit failed to initialize', errorMessage);
     process.exit(0);
   }
 

@@ -1,11 +1,13 @@
-const STATUS_BOOST = {
+import { WikiPage } from "./parse-page.js";
+
+const STATUS_BOOST: Record<string, number> = {
   active: 2,
   complete: 1,
   parked: 0.5,
   deprecated: 0,
 };
 
-const STATUS_SORT_PRIORITY = {
+const STATUS_SORT_PRIORITY: Record<string, number> = {
   active: 3,
   complete: 2,
   parked: 1,
@@ -14,14 +16,14 @@ const STATUS_SORT_PRIORITY = {
 
 const STALENESS_THRESHOLD_DAYS = 180;
 
-function isStalePage(updated) {
+function isStalePage(updated: string | null): boolean {
   if (!updated) return false;
   const updatedMs = Date.parse(updated);
   if (isNaN(updatedMs)) return false;
   return (Date.now() - updatedMs) / (1000 * 60 * 60 * 24) > STALENESS_THRESHOLD_DAYS;
 }
 
-function countTermMatches(terms, text) {
+function countTermMatches(terms: string[], text: string): number {
   if (!text || terms.length === 0) return 0;
   let count = 0;
   for (const term of terms) {
@@ -30,7 +32,27 @@ function countTermMatches(terms, text) {
   return count;
 }
 
-function scorePage(query, page) {
+export interface WikiQuery {
+  terms: string[];
+}
+
+export interface WikiHit {
+  slug: string;
+  category: string;
+  path: string;
+  score: number;
+  breakdown: {
+    filename: number;
+    heading: number;
+    keyDecision: number;
+    body: number;
+    status: number;
+    staleness: number;
+  };
+  page: WikiPage;
+}
+
+function scorePage(query: WikiQuery, page: WikiPage): WikiHit | null {
   const { terms } = query;
   if (terms.length === 0) return null;
 
@@ -45,7 +67,7 @@ function scorePage(query, page) {
 
   const bodyMatches = countTermMatches(terms, page.bodyText);
 
-  const statusBoost = STATUS_BOOST[page.status] ?? 0.5;
+  const statusBoost = STATUS_BOOST[page.status || ''] ?? 0.5;
   const stalenessPenalty = isStalePage(page.updated) ? 1.0 : 0;
 
   const score =
@@ -75,11 +97,11 @@ function scorePage(query, page) {
   };
 }
 
-function compareHits(a, b) {
+function compareHits(a: WikiHit, b: WikiHit): number {
   if (b.score !== a.score) return b.score - a.score;
 
-  const aPriority = STATUS_SORT_PRIORITY[a.page.status] ?? 1;
-  const bPriority = STATUS_SORT_PRIORITY[b.page.status] ?? 1;
+  const aPriority = STATUS_SORT_PRIORITY[a.page.status || ''] ?? 1;
+  const bPriority = STATUS_SORT_PRIORITY[b.page.status || ''] ?? 1;
   if (bPriority !== aPriority) return bPriority - aPriority;
 
   if (a.page.updated && b.page.updated) return b.page.updated.localeCompare(a.page.updated);
@@ -89,8 +111,8 @@ function compareHits(a, b) {
   return a.slug.localeCompare(b.slug);
 }
 
-export function scoreQuery(query, pages) {
-  const hits = [];
+export function scoreQuery(query: WikiQuery, pages: WikiPage[]): WikiHit[] {
+  const hits: WikiHit[] = [];
   for (const page of pages) {
     const hit = scorePage(query, page);
     if (hit) hits.push(hit);

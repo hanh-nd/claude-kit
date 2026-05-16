@@ -4,20 +4,20 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { main } from '../../scripts/wiki-inject-context.js';
+import { main, StdinJSON } from '../../scripts/wiki-inject-context.js';
 
-function makeTmpDir() {
+function makeTmpDir(): { dir: string; cleanup: () => void } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inject-context-test-'));
   return { dir, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
 
-function buildWikiWithPage(baseDir, slug, content) {
+function buildWikiWithPage(baseDir: string, slug: string, content: string): void {
   const entitiesDir = path.join(baseDir, '.agent-kit', 'wiki', 'compiled', 'entities');
   fs.mkdirSync(entitiesDir, { recursive: true });
   fs.writeFileSync(path.join(entitiesDir, `${slug}.md`), content, 'utf8');
 }
 
-const ANCHOR_PAGE = (anchor) => `# Auth Service
+const ANCHOR_PAGE = (anchor: string): string => `# Auth Service
 
 Status: active
 > Last updated: 2025-01-01
@@ -38,7 +38,7 @@ Manages authentication flows using JWT tokens and OAuth2.
 
 describe('wiki-inject-context main', () => {
   test('exits with {} on malformed stdin JSON (C1)', async () => {
-    const result = await main({ tool_name: undefined, tool_input: {} });
+    const result = await main({ tool_name: '' });
     assert.deepEqual(result, {});
   });
 
@@ -74,9 +74,13 @@ describe('wiki-inject-context main', () => {
         { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-inject-1' },
         { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } }
       );
-      assert.ok(result.hookSpecificOutput, 'Expected hookSpecificOutput in result');
-      assert.equal(result.hookSpecificOutput.hookEventName, 'PreToolUse');
-      assert.ok(result.hookSpecificOutput.additionalContext.includes('[WIKI HIT]'));
+      if ('hookSpecificOutput' in result && result.hookSpecificOutput) {
+        assert.ok(result.hookSpecificOutput, 'Expected hookSpecificOutput in result');
+        assert.equal(result.hookSpecificOutput.hookEventName, 'PreToolUse');
+        assert.ok(result.hookSpecificOutput.additionalContext.includes('[WIKI HIT]'));
+      } else {
+        assert.fail('Expected hookSpecificOutput in result');
+      }
     } finally {
       cleanup();
     }
@@ -86,12 +90,12 @@ describe('wiki-inject-context main', () => {
     const { dir, cleanup } = makeTmpDir();
     buildWikiWithPage(dir, 'auth-service', ANCHOR_PAGE('auth-service.js'));
     const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
-    const stdinJSON = { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-dedup' };
+    const stdinJSON: StdinJSON = { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-dedup' };
     const opts = { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } };
     try {
       const result1 = await main(stdinJSON, opts);
       const result2 = await main(stdinJSON, opts);
-      if (result1.hookSpecificOutput) {
+      if ('hookSpecificOutput' in result1) {
         assert.deepEqual(result2, {}, 'Second call should return {} (deduplicated)');
       }
     } finally {
@@ -116,7 +120,7 @@ describe('wiki-inject-context main', () => {
 
   test('does not throw on any internal exception (C16)', async () => {
     await assert.doesNotReject(async () => {
-      const result = await main(null);
+      const result = await main(null as unknown as StdinJSON);
       assert.deepEqual(result, {});
     });
   });

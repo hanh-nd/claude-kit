@@ -4,9 +4,9 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { buildInboxEntry } from '../../scripts/wiki-inbox-append.js';
+import { buildInboxEntry, InboxToolInput } from '../../scripts/wiki-inbox-append.js';
 
-function makeTmpDir() {
+function makeTmpDir(): { dir: string; cleanup: () => void } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inbox-append-test-'));
   return { dir, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
@@ -21,7 +21,7 @@ describe('buildInboxEntry', () => {
   });
 
   test('returns null when input null', () => {
-    assert.equal(buildInboxEntry(null), null);
+    assert.equal(buildInboxEntry(null as unknown as InboxToolInput), null);
   });
 
   test('builds entry with required fields', () => {

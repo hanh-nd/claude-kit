@@ -3,26 +3,43 @@ import * as path from 'path';
 
 const BODY_LIMIT = 8192;
 const SUMMARY_LIMIT = 600;
-const VALID_STATUSES = new Set(['active', 'complete', 'parked', 'deprecated']);
+
+export type PageStatus = 'active' | 'complete' | 'parked' | 'deprecated';
+
+export const VALID_STATUSES: Set<PageStatus> = new Set(['active', 'complete', 'parked', 'deprecated']);
 const VALID_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences', 'inbox'];
 
-function parseStatus(text) {
+export interface WikiPage {
+  slug: string;
+  category: string;
+  path: string;
+  title: string;
+  status: PageStatus | null;
+  updated: string | null;
+  summary: string;
+  anchors: string[];
+  keyDecisions: string[];
+  edgeCases: string[];
+  bodyText: string;
+}
+
+function parseStatus(text: string): PageStatus | null {
   const match = text.match(/^Status:\s*(\w+)/im);
   if (!match) return null;
   const val = match[1].toLowerCase();
-  return VALID_STATUSES.has(val) ? val : null;
+  return VALID_STATUSES.has(val as PageStatus) ? (val as PageStatus) : null;
 }
 
-function parseUpdated(text) {
+function parseUpdated(text: string): string | null {
   const match = text.match(/^>\s*Last updated:\s*(\d{4}-\d{2}-\d{2})/im);
   return match ? match[1] : null;
 }
 
-function escapeForRegex(str) {
+function escapeForRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function extractSection(text, heading) {
+function extractSection(text: string, heading: string): string {
   const re = new RegExp(`^##\\s+${escapeForRegex(heading)}\\s*$`, 'im');
   const match = re.exec(text);
   if (!match) return '';
@@ -33,7 +50,7 @@ function extractSection(text, heading) {
   return nextH2 === -1 ? rest : rest.slice(0, nextH2);
 }
 
-function extractBullets(sectionText) {
+function extractBullets(sectionText: string): string[] {
   return sectionText
     .split('\n')
     .filter((line) => /^\s*-\s/.test(line))
@@ -41,7 +58,7 @@ function extractBullets(sectionText) {
     .filter(Boolean);
 }
 
-function deriveCategory(filePath) {
+function deriveCategory(filePath: string): string {
   const normalized = filePath.replace(/\\/g, '/');
   for (const cat of VALID_CATEGORIES) {
     if (normalized.includes(`/${cat}/`) || normalized.includes(`/${cat}.md`)) {
@@ -52,7 +69,7 @@ function deriveCategory(filePath) {
   return 'concepts';
 }
 
-export function parsePageContent(content, slug, category, absolutePath) {
+export function parsePageContent(content: string, slug: string, category: string, absolutePath: string): WikiPage {
   const h1 = content.match(/^#\s+(.+)$/m);
   const title = h1 ? h1[1].trim() : slug;
 
@@ -88,7 +105,7 @@ export function parsePageContent(content, slug, category, absolutePath) {
   };
 }
 
-export function parsePage(absolutePath) {
+export function parsePage(absolutePath: string): WikiPage | null {
   try {
     const content = fs.readFileSync(absolutePath, 'utf8');
     const slug = path.basename(absolutePath, '.md');

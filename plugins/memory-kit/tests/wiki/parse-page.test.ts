@@ -6,7 +6,7 @@ import * as path from 'path';
 
 import { parsePage, parsePageContent } from '../../scripts/wiki/parse-page.js';
 
-function makeTmpFile(content, filename = 'test-page.md') {
+function makeTmpFile(content: string, filename: string = 'test-page.md'): { filePath: string; cleanup: () => void } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'parse-page-test-'));
   const filePath = path.join(dir, filename);
   fs.writeFileSync(filePath, content, 'utf8');
@@ -116,8 +116,8 @@ describe('parsePage', () => {
     try {
       const page = parsePage(filePath);
       assert.ok(page !== null);
-      assert.equal(page.slug, 'my-entity');
-      assert.equal(page.title, 'My Entity');
+      assert.equal(page!.slug, 'my-entity');
+      assert.equal(page!.title, 'My Entity');
     } finally {
       cleanup();
     }
@@ -145,7 +145,7 @@ describe('parsePage', () => {
       fs.writeFileSync(inboxPath, '# Inbox\n\n## [2025-01-01T00:00:00] handoff | plan-foo\n- type: plan\n', 'utf8');
       const page = parsePage(inboxPath);
       assert.ok(page !== null);
-      assert.equal(page.category, 'inbox');
+      assert.equal(page!.category, 'inbox');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

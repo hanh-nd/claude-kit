@@ -3,14 +3,15 @@ import { describe, test } from 'node:test';
 
 import { scoreQuery } from '../../scripts/wiki/score-query.js';
 import { extractQuery } from '../../scripts/wiki/extract-query.js';
+import { WikiPage, PageStatus } from '../../scripts/wiki/parse-page.js';
 
-function makePage(overrides = {}) {
+function makePage(overrides: Partial<WikiPage> = {}): WikiPage {
   return {
     slug: 'auth-service',
     category: 'entities',
     path: '/wiki/entities/auth-service.md',
     title: 'Auth Service',
-    status: 'active',
+    status: 'active' as PageStatus,
     updated: '2025-01-01',
     summary: 'Manages authentication for all services',
     anchors: ['auth-service.js', 'login-handler.ts'],
@@ -57,8 +58,8 @@ describe('scoreQuery', () => {
 
   test('applies status boost for active pages', () => {
     const query = extractQuery('Read', { file_path: '/project/auth-service.js' });
-    const activePage = makePage({ status: 'active' });
-    const deprecatedPage = makePage({ slug: 'auth-deprecated', status: 'deprecated', path: '/wiki/entities/auth-deprecated.md' });
+    const activePage = makePage({ status: 'active' as PageStatus });
+    const deprecatedPage = makePage({ slug: 'auth-deprecated', status: 'deprecated' as PageStatus, path: '/wiki/entities/auth-deprecated.md' });
 
     const hits = scoreQuery(query, [activePage, deprecatedPage]);
     const activeHit = hits.find((h) => h.slug === 'auth-service');
@@ -104,8 +105,8 @@ describe('scoreQuery', () => {
       bodyText: 'auth service login',
     };
     const pages = [
-      makePage({ ...baseAttrs, slug: 'auth-complete', status: 'complete', updated: '2025-01-01', path: '/wiki/entities/auth-complete.md' }),
-      makePage({ ...baseAttrs, slug: 'auth-active', status: 'active', updated: '2025-01-01', path: '/wiki/entities/auth-active.md' }),
+      makePage({ ...baseAttrs, slug: 'auth-complete', status: 'complete' as PageStatus, updated: '2025-01-01', path: '/wiki/entities/auth-complete.md' }),
+      makePage({ ...baseAttrs, slug: 'auth-active', status: 'active' as PageStatus, updated: '2025-01-01', path: '/wiki/entities/auth-active.md' }),
     ];
     const query = extractQuery('Read', { file_path: '/project/auth-service.js' });
     const hits = scoreQuery(query, pages);

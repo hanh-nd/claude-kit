@@ -6,29 +6,37 @@ import * as path from 'path';
 import { KIT_PATH } from './constants.js';
 import { noOp, parseTranscript, runWhenInvoked } from './utils.js';
 
+interface ExportStdin {
+  transcript_path: string;
+  session_id: string;
+}
+
 runWhenInvoked(import.meta.url, async () => {
-  const raw = await new Promise((resolve) => {
+  const raw = await new Promise<string>((resolve) => {
     let data = '';
     process.stdin.on('data', (chunk) => (data += chunk));
     process.stdin.on('end', () => resolve(data));
   });
 
-  let input;
+  let input: ExportStdin;
   try {
-    input = JSON.parse(raw);
+    input = JSON.parse(raw) as ExportStdin;
   } catch {
     noOp();
+    return;
   }
 
   const transcriptPath = input.transcript_path;
   const sessionId = input.session_id;
   if (!transcriptPath || !sessionId) {
     noOp();
+    return;
   }
 
   const { messages } = parseTranscript(transcriptPath);
   if (!messages.length) {
     noOp();
+    return;
   }
 
   try {
@@ -37,7 +45,7 @@ runWhenInvoked(import.meta.url, async () => {
 
     const existingFiles = fs
       .readdirSync(outDir)
-      .filter((file) => new RegExp(`^conv_.*_${sessionId}\.txt$`).test(file))
+      .filter((file) => new RegExp(`^conv_.*_${sessionId}\\.txt$`).test(file))
       .sort();
     let outPath = path.join(
       outDir,

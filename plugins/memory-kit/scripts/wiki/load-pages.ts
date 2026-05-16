@@ -1,15 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parsePage } from './parse-page.js';
+import { parsePage, WikiPage } from './parse-page.js';
 
 const COMPILED_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences'];
 
-export function loadAllPages(wikiRoot) {
-  const pages = [];
+export function loadAllPages(wikiRoot: string): WikiPage[] {
+  const pages: WikiPage[] = [];
 
   for (const category of COMPILED_CATEGORIES) {
     const dir = path.join(wikiRoot, 'compiled', category);
-    let entries;
+    let entries: string[];
     try {
       entries = fs.readdirSync(dir);
     } catch {

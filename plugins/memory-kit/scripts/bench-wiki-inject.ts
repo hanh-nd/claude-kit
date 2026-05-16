@@ -3,15 +3,14 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { main } from './wiki-inject-context.js';
+import { main, StdinJSON } from './wiki-inject-context.js';
 
 const CORPUS_SIZE = 500;
 const PAYLOAD_COUNT = 10;
 const ITERATIONS = 100;
 const P95_LIMIT_MS = 150;
 
-function buildSyntheticPage(index) {
-  const category = ['entities', 'concepts', 'glossary', 'preferences'][index % 4];
+function buildSyntheticPage(index: number): string {
   const slug = `page-${index}`;
   return `# Page ${index}
 
@@ -36,7 +35,7 @@ This is a synthetic wiki page number ${index} used for benchmarking the wiki inj
 `;
 }
 
-function buildSyntheticCorpus(tmpDir) {
+function buildSyntheticCorpus(tmpDir: string): void {
   const categories = ['entities', 'concepts', 'glossary', 'preferences'];
   for (const cat of categories) {
     fs.mkdirSync(path.join(tmpDir, 'wiki', 'compiled', cat), { recursive: true });
@@ -50,7 +49,7 @@ function buildSyntheticCorpus(tmpDir) {
   }
 }
 
-function buildPayloads() {
+function buildPayloads(): StdinJSON[] {
   return [
     { tool_name: 'Read', tool_input: { file_path: '/project/anchor-42.js' }, session_id: 'bench-session' },
     { tool_name: 'Edit', tool_input: { file_path: '/project/module-17.ts', new_string: 'export function pageHelper() {}' }, session_id: 'bench-session' },
@@ -65,7 +64,7 @@ function buildPayloads() {
   ];
 }
 
-function percentile(sortedArr, pct) {
+function percentile(sortedArr: number[], pct: number): number {
   const idx = Math.ceil((pct / 100) * sortedArr.length) - 1;
   return sortedArr[Math.max(0, idx)];
 }
@@ -81,7 +80,7 @@ async function runBench() {
     const settings = { wiki: { injectMinScore: 5.0 } };
 
     console.log(`Running ${ITERATIONS} iterations × ${PAYLOAD_COUNT} payloads...`);
-    const timings = [];
+    const timings: number[] = [];
 
     for (let iter = 0; iter < ITERATIONS; iter++) {
       for (const payload of payloads) {

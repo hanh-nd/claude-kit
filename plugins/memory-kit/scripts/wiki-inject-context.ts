@@ -4,14 +4,24 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { KIT_PATH, PROJECT_DIR } from './constants.js';
-import { getWikiConfig, loadSettings, noOp, runWhenInvoked } from './utils.js';
+import { getWikiConfig, loadSettings, noOp, runWhenInvoked, Settings } from './utils.js';
 import { extractQuery } from './wiki/extract-query.js';
 import { formatHit } from './wiki/format-hit.js';
 import { markInjected, readLedger, wasInjected, writeLedger } from './wiki/ledger.js';
 import { loadAllPages } from './wiki/load-pages.js';
 import { scoreQuery } from './wiki/score-query.js';
 
-function appendDebugLog(decision, wikiRoot, settings) {
+interface DebugDecision {
+  decision: string;
+  toolName?: string;
+  toolInput?: Record<string, unknown>;
+  sessionId?: string | null;
+  score?: number;
+  threshold?: number;
+  slug?: string;
+}
+
+function appendDebugLog(decision: DebugDecision, wikiRoot: string, settings: Settings): void {
   try {
     const wikiConfig = getWikiConfig(settings);
     if (!wikiConfig.debug) {
@@ -24,21 +34,39 @@ function appendDebugLog(decision, wikiRoot, settings) {
     fs.appendFileSync(logPath, line, 'utf8');
   } catch (error) {
     const logFile = path.join(KIT_PATH, 'debug.log');
-    fs.appendFileSync(logFile, JSON.stringify(error), 'utf8');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    fs.appendFileSync(logFile, JSON.stringify({ error: errorMessage }), 'utf8');
     // ignore debug log errors
   }
 }
 
-export async function main(stdinJSON, opts = {}) {
+interface HookSpecificOutput {
+  hookEventName: string;
+  additionalContext: string;
+}
+
+interface MainResponse {
+  hookSpecificOutput?: HookSpecificOutput;
+}
+
+export interface StdinJSON {
+  tool_name: string;
+  tool_input?: Record<string, unknown>;
+  session_id?: string | null;
+}
+
+export async function main(stdinJSON: StdinJSON, opts: { wikiRoot?: string; settings?: Settings } = {}): Promise<MainResponse | {}> {
   try {
     const wikiRoot = opts.wikiRoot ?? path.join(KIT_PATH, 'wiki');
     const settings = opts.settings ?? loadSettings();
 
-    const toolName = stdinJSON.tool_name;
+    const toolName = stdinJSON?.tool_name;
+    if (!toolName) return {};
+
     const toolInput = stdinJSON.tool_input ?? {};
     const sessionId = stdinJSON.session_id ?? null;
 
-    appendDebugLog({ decision: 'start', toolName, toolInput, sessionId });
+    appendDebugLog({ decision: 'start', toolName, toolInput, sessionId }, wikiRoot, settings);
 
     let wikiRootValid = false;
     try {
@@ -75,7 +103,7 @@ export async function main(stdinJSON, opts = {}) {
         threshold: wikiConfig.injectMinScore,
         toolName,
         slug: topHit.slug,
-      });
+      }, wikiRoot, settings);
       return {};
     }
 
@@ -91,7 +119,7 @@ export async function main(stdinJSON, opts = {}) {
     const updatedLedger = markInjected(ledger, topHit.slug);
     writeLedger(ledgerPath, updatedLedger);
 
-    appendDebugLog({ decision: 'injected', toolName, slug: topHit.slug, score: topHit.score });
+    appendDebugLog({ decision: 'injected', toolName, slug: topHit.slug, score: topHit.score }, wikiRoot, settings);
 
     return {
       hookSpecificOutput: {
@@ -105,13 +133,13 @@ export async function main(stdinJSON, opts = {}) {
 }
 
 runWhenInvoked(import.meta.url, async () => {
-  const raw = await new Promise((resolve) => {
+  const raw = await new Promise<string>((resolve) => {
     let data = '';
     process.stdin.on('data', (chunk) => (data += chunk));
     process.stdin.on('end', () => resolve(data));
   });
 
-  let stdinJSON;
+  let stdinJSON: StdinJSON;
   try {
     stdinJSON = JSON.parse(raw);
   } catch {

@@ -2,15 +2,25 @@ import * as assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import { formatHit } from '../../scripts/wiki/format-hit.js';
+import { WikiHit } from '../../scripts/wiki/score-query.js';
+import { WikiPage, PageStatus } from '../../scripts/wiki/parse-page.js';
 
-function makeHit(overrides = {}) {
+interface MakeHitOverrides {
+  page?: Partial<WikiPage>;
+  slug?: string;
+  category?: string;
+  path?: string;
+  score?: number;
+}
+
+function makeHit(overrides: MakeHitOverrides = {}): WikiHit {
   const { page: pageOverrides = {}, ...hitOverrides } = overrides;
-  const page = {
+  const page: WikiPage = {
     slug: 'auth-service',
     category: 'entities',
     path: '/wiki/entities/auth-service.md',
     title: 'Auth Service',
-    status: 'active',
+    status: 'active' as PageStatus,
     updated: '2026-04-01',
     summary: 'Manages authentication across all services using JWT tokens.',
     anchors: ['auth-service.js', 'login-handler.ts'],

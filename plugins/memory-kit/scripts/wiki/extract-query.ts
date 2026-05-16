@@ -1,4 +1,12 @@
-function tokenize(text) {
+export interface WikiQuery {
+  toolName: string;
+  paths: string[];
+  symbols: string[];
+  freeText: string;
+  terms: string[];
+}
+
+function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^\w\s/-]/g, ' ')
@@ -6,23 +14,23 @@ function tokenize(text) {
     .filter((t) => t.length >= 3 && !/^\d+$/.test(t));
 }
 
-function extractPaths(toolInput) {
-  const paths = [];
+function extractPaths(toolInput: Record<string, unknown>): string[] {
+  const paths: string[] = [];
   if (typeof toolInput.file_path === 'string') paths.push(toolInput.file_path);
   if (typeof toolInput.path === 'string') paths.push(toolInput.path);
   if (Array.isArray(toolInput.paths)) {
     for (const p of toolInput.paths) if (typeof p === 'string') paths.push(p);
   }
   // Patch-format files: "*** Update/Create/Delete File: <path>"
-  const patchText = typeof toolInput.command === 'string' ? toolInput.command : '';
+  const patchText = typeof toolInput.command === 'string' ? (toolInput.command as string) : '';
   for (const m of patchText.matchAll(/\*\*\* (?:Update|Create|Delete) File: (.+)/g)) {
     paths.push(m[1].trim());
   }
   return paths;
 }
 
-function extractFreeText(toolInput) {
-  const parts = [];
+function extractFreeText(toolInput: Record<string, unknown>): string {
+  const parts: string[] = [];
   if (typeof toolInput.new_string === 'string') parts.push(toolInput.new_string.slice(0, 200));
   if (typeof toolInput.content === 'string') parts.push(toolInput.content.slice(0, 200));
   if (typeof toolInput.pattern === 'string') parts.push(toolInput.pattern);
@@ -31,7 +39,7 @@ function extractFreeText(toolInput) {
   return parts.join(' ');
 }
 
-export function extractQuery(toolName, toolInput) {
+export function extractQuery(toolName: string, toolInput: Record<string, unknown>): WikiQuery {
   const safeInput = toolInput && typeof toolInput === 'object' ? toolInput : {};
 
   try {

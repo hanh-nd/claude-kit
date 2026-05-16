@@ -6,7 +6,12 @@ import * as path from 'path';
 
 import { loadAllPages } from '../../scripts/wiki/load-pages.js';
 
-function buildWikiDir(baseDir, opts = {}) {
+interface BuildWikiDirOpts {
+  compiledPages?: Record<string, string>;
+  inboxContent?: string | null;
+}
+
+function buildWikiDir(baseDir: string, opts: BuildWikiDirOpts = {}): string {
   const { compiledPages = {}, inboxContent = null } = opts;
 
   const categories = ['entities', 'concepts', 'glossary', 'preferences'];
@@ -28,7 +33,7 @@ function buildWikiDir(baseDir, opts = {}) {
   return path.join(baseDir, 'wiki');
 }
 
-function makeTmpDir() {
+function makeTmpDir(): { dir: string; cleanup: () => void } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'load-pages-test-'));
   return { dir, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }

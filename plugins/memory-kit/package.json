@@ -11,10 +11,10 @@
     "url": "git+https://github.com/hanh-nd/agent-kit.git"
   },
   "scripts": {
-    "build:plugin": "node utils/build-plugin.js",
+    "build:plugin": "node dist/utils/build-plugin.js",
     "prepublishOnly": "npm run build:plugin",
-    "build": "npm run build:plugin",
-    "test": "node --test $(find tests -name '*.test.js' | tr '\\n' ' ')"
+    "build": "tsc && npm run build:plugin",
+    "test": "tsc && node --test $(find dist/tests -name '*.test.js' | tr '\\n' ' ')"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",

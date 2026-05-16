@@ -1,12 +1,14 @@
 import * as path from 'path';
+import { WikiHit } from './score-query.js';
+import { WikiPage } from './parse-page.js';
 
 const MAX_CHARS = 1500;
 
-function buildFooter(slug) {
+function buildFooter(slug: string): string {
   return `(If this contradicts the code you can see, trust the code. Cite as [[${slug}]].)`;
 }
 
-function buildDisplayPath(hitPath, projectRoot) {
+function buildDisplayPath(hitPath: string, projectRoot?: string): string {
   if (!projectRoot) return hitPath;
   try {
     return path.relative(projectRoot, hitPath);
@@ -15,11 +17,11 @@ function buildDisplayPath(hitPath, projectRoot) {
   }
 }
 
-function buildSnippet(parts) {
+function buildSnippet(parts: string[]): string {
   return parts.join('\n');
 }
 
-export function formatHit(hit, opts = {}) {
+export function formatHit(hit: WikiHit, opts: { projectRoot?: string } = {}): string {
   const { projectRoot } = opts;
   const { slug, page } = hit;
   const footer = buildFooter(slug);
@@ -36,7 +38,7 @@ export function formatHit(hit, opts = {}) {
   return buildFullHit(slug, page, displayPath, footer);
 }
 
-function buildFullHit(slug, page, displayPath, footer) {
+function buildFullHit(slug: string, page: WikiPage, displayPath: string, footer: string): string {
   const statusPart = page.status ?? 'unknown';
   const updatedPart = page.updated ? `updated ${page.updated}` : 'no date';
   const header = `[WIKI HIT] ${slug} (${statusPart}, ${updatedPart})`;
@@ -47,7 +49,7 @@ function buildFullHit(slug, page, displayPath, footer) {
   let edgeCaseBullets = page.edgeCases.slice(0, 2);
 
   function assembleLines() {
-    const lines = [header];
+    const lines: string[] = [header];
     if (annotatesLine) lines.push(annotatesLine);
     if (page.summary) {
       lines.push('');

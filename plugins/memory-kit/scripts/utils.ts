@@ -4,14 +4,33 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { KIT_PATH } from './constants.js';
 
+export interface WikiConfig {
+  injectMinScore: number;
+  debug: boolean;
+}
+
+export interface Message {
+  role: string;
+  content: string;
+}
+
+export interface Transcript {
+  messages: Message[];
+}
+
+export interface Settings {
+  wiki?: Partial<WikiConfig>;
+  [key: string]: Record<string, unknown> | undefined;
+}
+
 /**
  * Runs `fn` only when this module is the direct entry point (i.e. invoked via CLI).
  * Skips execution when the module is imported for testing or reuse.
  *
  * @param {string} importMetaUrl - pass `import.meta.url` from the calling module
- * @param {() => Promise<void>} fn - async hook body
+ * @param {() => void | Promise<void>} fn - hook body
  */
-export function runWhenInvoked(importMetaUrl, fn) {
+export function runWhenInvoked(importMetaUrl: string, fn: () => void | Promise<void>): void {
   const entryPath = fs.realpathSync(process.argv[1]);
   const modulePath = fs.realpathSync(fileURLToPath(importMetaUrl));
   if (entryPath === modulePath) {
@@ -22,16 +41,16 @@ export function runWhenInvoked(importMetaUrl, fn) {
 /**
  * No-op function that prints an empty JSON object and exits.
  */
-export function noOp() {
+export function noOp(): void {
   console.log(JSON.stringify({}));
   process.exit(0);
 }
 
-export function loadSettings() {
+export function loadSettings(): Settings {
   try {
     const settingsPath = path.join(KIT_PATH, 'settings.json');
     if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as Settings;
     }
   } catch {
     // Fall through to defaults on parse error
@@ -39,7 +58,7 @@ export function loadSettings() {
   return {};
 }
 
-export function getWikiConfig(settings) {
+export function getWikiConfig(settings: Settings): WikiConfig {
   const w = settings?.wiki ?? {};
   return {
     injectMinScore: typeof w.injectMinScore === 'number' ? w.injectMinScore : 5.0,
@@ -47,7 +66,7 @@ export function getWikiConfig(settings) {
   };
 }
 
-export function spawnBackground(scriptUrl, args = []) {
+export function spawnBackground(scriptUrl: string | URL, args: string[] = []): void {
   const scriptPath =
     scriptUrl instanceof URL ? fileURLToPath(scriptUrl) : fileURLToPath(new URL(scriptUrl));
 
@@ -62,9 +81,9 @@ export function spawnBackground(scriptUrl, args = []) {
  * Parse a Claude JSONL transcript into an array of { role, content } messages.
  *
  * @param {string} transcriptPath
- * @returns {Promise<{ messages: Array<{ role: string, content: string }> }>}
+ * @returns {Transcript}
  */
-export function parseTranscript(transcriptPath) {
+export function parseTranscript(transcriptPath: string): Transcript {
   if (transcriptPath.includes('.codex')) {
     return parseCodexTranscript(transcriptPath);
   }
@@ -74,11 +93,18 @@ export function parseTranscript(transcriptPath) {
   return parseClaudeTranscript(transcriptPath);
 }
 
-function extractContentText(content) {
+interface ContentBlock {
+  text?: string;
+  output_text?: string;
+  input_text?: string;
+  type?: string;
+}
+
+function extractContentText(content: string | ContentBlock[]): string {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) return '';
 
-  return content
+  return (content as ContentBlock[])
     .map((block) => {
       if (!block || typeof block !== 'object') return '';
       return block.text || block.output_text || block.input_text || '';
@@ -87,11 +113,11 @@ function extractContentText(content) {
     .join('\n');
 }
 
-function parseCodexTranscript(transcriptPath) {
+function parseCodexTranscript(transcriptPath: string): Transcript {
   try {
     const content = fs.readFileSync(transcriptPath, 'utf8');
     const lines = content.trim().split('\n');
-    const messages = [];
+    const messages: Message[] = [];
 
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -105,7 +131,7 @@ function parseCodexTranscript(transcriptPath) {
         const contentText = extractContentText(payload.content);
         if (contentText) {
           messages.push({
-            role: payload.role,
+            role: payload.role as string,
             content: contentText,
           });
         }
@@ -116,16 +142,18 @@ function parseCodexTranscript(transcriptPath) {
 
     return { messages };
   } catch (error) {
-    console.error('Failed to parse Codex transcript:', error.message);
+    if (error instanceof Error) {
+      console.error('Failed to parse Codex transcript:', error.message);
+    }
     return { messages: [] };
   }
 }
 
-function parseClaudeTranscript(transcriptPath) {
+function parseClaudeTranscript(transcriptPath: string): Transcript {
   try {
     const content = fs.readFileSync(transcriptPath, 'utf8');
     const lines = content.trim().split('\n');
-    const messages = [];
+    const messages: Message[] = [];
 
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -143,15 +171,15 @@ function parseClaudeTranscript(transcriptPath) {
               contentText = msg.content;
             } else if (Array.isArray(msg.content)) {
               // Extract text from content blocks
-              contentText = msg.content
+              contentText = (msg.content as ContentBlock[])
                 .filter((block) => block.type === 'text')
-                .map((block) => block.text)
+                .map((block) => block.text || '')
                 .join('\n');
             }
 
             if (contentText) {
               messages.push({
-                role: msg.role,
+                role: msg.role as string,
                 content: contentText,
               });
             }
@@ -165,16 +193,18 @@ function parseClaudeTranscript(transcriptPath) {
 
     return { messages };
   } catch (error) {
-    console.error('Failed to parse transcript:', error.message);
+    if (error instanceof Error) {
+      console.error('Failed to parse transcript:', error.message);
+    }
     return { messages: [] };
   }
 }
 
-function parseGeminiTranscript(transcriptPath) {
+function parseGeminiTranscript(transcriptPath: string): Transcript {
   try {
     const content = fs.readFileSync(transcriptPath, 'utf8');
     const lines = content.trim().split('\n');
-    const messages = [];
+    const messages: Message[] = [];
 
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -188,12 +218,12 @@ function parseGeminiTranscript(transcriptPath) {
           if (typeof msgContent === 'string') {
             contentText = msgContent;
           } else if (Array.isArray(msgContent)) {
-            contentText = msgContent.map((block) => block.text).join('\n');
+            contentText = (msgContent as ContentBlock[]).map((block) => block.text || '').join('\n');
           }
 
           if (contentText) {
             messages.push({
-              role: msg.type,
+              role: msg.type as string,
               content: contentText,
             });
           }
@@ -206,7 +236,9 @@ function parseGeminiTranscript(transcriptPath) {
 
     return { messages };
   } catch (error) {
-    console.error('Failed to parse transcript:', error.message);
+    if (error instanceof Error) {
+      console.error('Failed to parse transcript:', error.message);
+    }
     return { messages: [] };
   }
 }
