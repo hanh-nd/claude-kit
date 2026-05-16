@@ -55,6 +55,14 @@ export function loadSettings() {
   return {};
 }
 
+export function getWikiConfig(settings) {
+  const w = settings?.wiki ?? {};
+  return {
+    injectMinScore: typeof w.injectMinScore === 'number' ? w.injectMinScore : 5.0,
+    debug: w.debug === true,
+  };
+}
+
 export function getSecurityConfig(settings) {
   const s = settings?.security ?? {};
   return {

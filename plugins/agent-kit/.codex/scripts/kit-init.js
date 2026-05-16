@@ -84,6 +84,12 @@ const DEFAULT_SETTINGS = {
     // User-controlled: set to false to skip the testing phase even when hasTests is true.
     runTests: true,
   },
+  wiki: {
+    // Minimum relevance score for a wiki page to be injected before a tool call.
+    injectMinScore: 5.0,
+    // Set to true to write per-call decisions to .agent-kit/wiki/.runtime/debug.log.
+    debug: false,
+  },
 };
 
 function ensureSettings() {

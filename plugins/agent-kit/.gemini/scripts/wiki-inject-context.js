@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { KIT_PATH, PROJECT_DIR } from './constants.js';
+import { getWikiConfig, loadSettings, noOp, runWhenInvoked } from './utils.js';
+import { extractQuery } from './wiki/extract-query.js';
+import { formatHit } from './wiki/format-hit.js';
+import { markInjected, readLedger, wasInjected, writeLedger } from './wiki/ledger.js';
+import { loadAllPages } from './wiki/load-pages.js';
+import { scoreQuery } from './wiki/score-query.js';
+
+const WIKI_ROOT = path.join(KIT_PATH, 'wiki');
+
+function isWikiRootValid() {
+  try {
+    return fs.statSync(WIKI_ROOT).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function appendDebugLog(decision) {
+  try {
+    const wikiConfig = getWikiConfig(loadSettings());
+    if (!wikiConfig.debug) {
+      return;
+    }
+
+    const logPath = path.join(WIKI_ROOT, '.runtime', 'debug.log');
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    const line = `${new Date().toISOString()} ${JSON.stringify(decision)}\n`;
+    fs.appendFileSync(logPath, line, 'utf8');
+  } catch (error) {
+    const logFile = path.join(KIT_PATH, 'debug.log');
+    fs.appendFileSync(logFile, JSON.stringify(error), 'utf8');
+    // ignore debug log errors
+  }
+}
+
+export async function main(stdinJSON) {
+  try {
+    const toolName = stdinJSON.tool_name;
+    const toolInput = stdinJSON.tool_input ?? {};
+    const sessionId = stdinJSON.session_id ?? null;
+
+    appendDebugLog({ decision: 'start', toolName, toolInput, sessionId });
+
+    if (!isWikiRootValid()) {
+      return {};
+    }
+
+    const query = extractQuery(toolName, toolInput);
+    if (query.terms.length === 0) {
+      return {};
+    }
+
+    const pages = loadAllPages(WIKI_ROOT);
+    if (pages.length === 0) {
+      return {};
+    }
+
+    const hits = scoreQuery(query, pages);
+    if (hits.length === 0) {
+      return {};
+    }
+
+    const wikiConfig = getWikiConfig(loadSettings());
+    const topHit = hits[0];
+    if (topHit.score < wikiConfig.injectMinScore) {
+      appendDebugLog({
+        decision: 'score-below-threshold',
+        score: topHit.score,
+        threshold: wikiConfig.injectMinScore,
+        toolName,
+        slug: topHit.slug,
+      });
+      return {};
+    }
+
+    const ledgerPath = path.join(WIKI_ROOT, '.runtime', 'injected.json');
+    const ledger = readLedger(ledgerPath, sessionId);
+
+    if (wasInjected(ledger, topHit.slug)) {
+      appendDebugLog({ decision: 'already-injected', toolName, slug: topHit.slug });
+      return {};
+    }
+
+    const snippet = formatHit(topHit, { projectRoot: PROJECT_DIR });
+    const updatedLedger = markInjected(ledger, topHit.slug);
+    writeLedger(ledgerPath, updatedLedger);
+
+    appendDebugLog({ decision: 'injected', toolName, slug: topHit.slug, score: topHit.score });
+
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        additionalContext: snippet,
+      },
+    };
+  } catch {
+    return {};
+  }
+}
+
+runWhenInvoked(import.meta.url, async () => {
+  const raw = await new Promise((resolve) => {
+    let data = '';
+    process.stdin.on('data', (chunk) => (data += chunk));
+    process.stdin.on('end', () => resolve(data));
+  });
+
+  let stdinJSON;
+  try {
+    stdinJSON = JSON.parse(raw);
+  } catch {
+    noOp();
+    return;
+  }
+
+  const result = await main(stdinJSON);
+  console.log(JSON.stringify(result));
+  process.exit(0);
+});
