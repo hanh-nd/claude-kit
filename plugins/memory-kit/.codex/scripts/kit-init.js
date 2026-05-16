@@ -3,14 +3,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { countTests } from '../scripts/count-tests.js';
-import { ENFORCEMENT_MODES, KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
+import { KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
 import { runWhenInvoked } from './utils.js';
 
 function ensureDirectories() {
   const dirs = [
-    'handoffs',
-    'logs',
+    'wiki/raw',
+    'wiki/compiled',
+    'wiki/compiled/entities',
+    'wiki/compiled/concepts',
+    'wiki/archive',
+    'wiki/archive/conversations',
   ];
   for (const dir of dirs) {
     const dirPath = path.join(KIT_PATH, dir);
@@ -23,7 +26,7 @@ function ensureDirectories() {
     }
   }
 
-  const files = ['project.md'];
+  const files = ['wiki/raw/inbox.md'];
   for (const file of files) {
     const filePath = path.join(KIT_PATH, file);
     if (!fs.existsSync(filePath)) {
@@ -63,20 +66,11 @@ function ensureGitExclusion() {
 }
 
 const DEFAULT_SETTINGS = {
-  security: {
-    allowOutside: false,
-    allowedOutsidePaths: [],
-    additionalSystemBinPaths: [],
-    additionalForbiddenFiles: [],
-    additionalForbiddenDirs: [],
-    enforcementMode: ENFORCEMENT_MODES.BLOCK,
-  },
-  project: {
-    // Auto-detected each session: true once the project has a meaningful test suite (>5 test files).
-    // Gates the testing phase in the `code` skill. Never auto-reset to false once true.
-    hasTests: false,
-    // User-controlled: set to false to skip the testing phase even when hasTests is true.
-    runTests: true,
+  wiki: {
+    // Minimum relevance score for a wiki page to be injected before a tool call.
+    injectMinScore: 5.0,
+    // Set to true to write per-call decisions to .agent-kit/wiki/.runtime/debug.log.
+    debug: false,
   },
 };
 
@@ -105,15 +99,6 @@ function ensureSettings() {
     }
   }
 
-  // Auto-detect test suite: once true, never revert.
-  if (!current.project.hasTests) {
-    const testCount = countTests(PROJECT_DIR);
-    if (testCount > 5) {
-      current.project.hasTests = true;
-      changed = true;
-    }
-  }
-
   if (changed) {
     try {
       fs.writeFileSync(settingsPath, JSON.stringify(current, null, 2));
@@ -124,7 +109,7 @@ function ensureSettings() {
 }
 
 /**
- * SessionStart Hook — Kit Initializer
+ * SessionStart Hook — Memory Kit Initializer
  */
 runWhenInvoked(import.meta.url, async () => {
   const raw = await new Promise((resolve) => {
@@ -137,7 +122,7 @@ runWhenInvoked(import.meta.url, async () => {
   try {
     input = JSON.parse(raw);
   } catch (error) {
-    console.error('❌ Agent-Kit failed to initialize', error.message);
+    console.error('❌ Memory-Kit failed to initialize', error.message);
     process.exit(0);
   }
 
@@ -147,7 +132,7 @@ runWhenInvoked(import.meta.url, async () => {
 
   console.log(
     JSON.stringify({
-      systemMessage: `🛠️ Agent-Kit ready | Session #${input.session_id}`,
+      systemMessage: `🧠 Memory-Kit ready`,
     })
   );
 });

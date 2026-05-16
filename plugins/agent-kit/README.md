@@ -29,44 +29,6 @@ Agent Kit ships these workflows as skills. In Claude Code, invoke them as slash 
 | `/ticket [ID]`                   | Fetch a Jira ticket and route it into the planning pipeline        |
 | `/init`                          | Extract project DNA for downstream coding and planning workflows   |
 | `/delegate <agent> <task>`       | Delegate to Gemini, Claude, or Codex CLI with optional handoff     |
-| `/wiki [compile\|query\|lint]`   | Maintain and query the persistent project knowledge wiki           |
-
----
-
-## Wiki
-
-The wiki is a persistent, compounding knowledge base that accumulates architectural decisions, feature history, patterns, and edge cases across sessions. Unlike conversation memory (which resets), the wiki survives compaction, restarts, and new sessions — it is the long-term institutional memory of your project.
-
-### How It's Auto-Populated (Hooks)
-
-You don't need to run the wiki manually. Five hooks keep it fed automatically:
-
-- **PostToolUse** — every `kit_save_handoff` call is automatically logged to `.agent-kit/wiki/raw/inbox.md`
-- **PreCompact** — before `/compact` discards context, the full session transcript is exported to `.agent-kit/wiki/raw/`
-- **PostCompact** — after compaction, the wiki index is re-injected as context so the very next turn has full project knowledge
-- **SessionEnd** — before session is cleared, the conversation transcript is exported to `.agent-kit/wiki/raw/`
-- **SessionStart (clear)** — after `/clear` resets the session, the wiki index is re-injected so the fresh session starts with full project knowledge
-
-### Operations
-
-| Command                          | Description                                                           |
-| -------------------------------- | --------------------------------------------------------------------- |
-| `/wiki` or `/wiki compile` | Ingest raw inbox + conversation exports → build/update wiki pages     |
-| `/wiki query {question}`      | Search the wiki and synthesize a cited answer                         |
-| `/wiki lint`                  | Health-check: broken links, orphan pages, contradictions, stale inbox |
-
-### Directory Structure
-
-```
-.agent-kit/wiki/
-├── raw/
-│   ├── inbox.md          # Auto-appended by PostToolUse hook (handoff logs)
-│   └── conv_*.md         # Exported by PreCompact hook (conversation transcripts)
-├── compiled/
-│   └── *.md              # Structured wiki pages built by /wiki compile
-└── archive/
-    └── *.md              # Old raw files moved here after compilation
-```
 
 ---
 

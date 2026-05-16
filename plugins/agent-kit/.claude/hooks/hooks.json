@@ -47,20 +47,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "kit-wiki-inbox",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/wiki-inbox-append.js",
-            "description": "Log kit_save_handoff calls to wiki inbox",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "",
@@ -75,20 +61,6 @@
         ]
       }
     ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "export-history",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
-            "description": "Export transcript to wiki before /compact",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
     "PostCompact": [
       {
         "matcher": "",
@@ -99,20 +71,6 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/inject-agent-instructions.js",
             "description": "Inject agent instructions after /compact",
             "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "export-history",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
-            "description": "Export transcript to wiki on session exit",
-            "timeout": 10000
           }
         ]
       }

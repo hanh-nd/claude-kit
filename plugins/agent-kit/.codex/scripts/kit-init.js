@@ -11,12 +11,6 @@ function ensureDirectories() {
   const dirs = [
     'handoffs',
     'logs',
-    'wiki/raw',
-    'wiki/compiled',
-    'wiki/compiled/entities',
-    'wiki/compiled/concepts',
-    'wiki/archive',
-    'wiki/archive/conversations',
   ];
   for (const dir of dirs) {
     const dirPath = path.join(KIT_PATH, dir);
@@ -29,7 +23,7 @@ function ensureDirectories() {
     }
   }
 
-  const files = ['project.md', 'wiki/raw/inbox.md'];
+  const files = ['project.md'];
   for (const file of files) {
     const filePath = path.join(KIT_PATH, file);
     if (!fs.existsSync(filePath)) {
@@ -83,12 +77,6 @@ const DEFAULT_SETTINGS = {
     hasTests: false,
     // User-controlled: set to false to skip the testing phase even when hasTests is true.
     runTests: true,
-  },
-  wiki: {
-    // Minimum relevance score for a wiki page to be injected before a tool call.
-    injectMinScore: 5.0,
-    // Set to true to write per-call decisions to .agent-kit/wiki/.runtime/debug.log.
-    debug: false,
   },
 };
 

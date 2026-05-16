@@ -54,31 +54,6 @@
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/wiki-inbox-append.js",
-            "statusMessage": "Updating Agent Kit wiki inbox",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/export-conversation-history.js",
-            "statusMessage": "Exporting Agent Kit conversation history",
-            "timeout": 10
-          }
-        ]
-      }
     ]
   }
 }

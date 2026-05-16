@@ -1,0 +1,93 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "name": "memory-kit-init",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/kit-init.js\"",
+            "description": "Initialize Memory-Kit",
+            "timeout": 10000
+          },
+          {
+            "name": "inject-wiki-instructions",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/inject-wiki-instructions.js\"",
+            "description": "Inject memory-kit wiki instructions at session start",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "name": "inject-wiki-instructions",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/inject-wiki-instructions.js\"",
+            "description": "Inject memory-kit wiki instructions after /clear",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "wiki-inject-context",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/wiki-inject-context.js\"",
+            "description": "Inject relevant wiki context before tool execution",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "kit-wiki-inbox",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/wiki-inbox-append.js\"",
+            "description": "Log kit_save_handoff calls to wiki inbox",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "export-history",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/export-conversation-history.js\"",
+            "description": "Export transcript to wiki before /compact",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "export-history",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/export-conversation-history.js\"",
+            "description": "Export transcript to wiki on session exit",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

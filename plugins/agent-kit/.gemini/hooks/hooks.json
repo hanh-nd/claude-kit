@@ -47,20 +47,6 @@
         ]
       }
     ],
-    "AfterTool": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "kit-wiki-inbox",
-            "type": "command",
-            "command": "node \"${extensionPath}/scripts/wiki-inbox-append.js\"",
-            "description": "Log kit_save_handoff calls to wiki inbox",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
     "BeforeTool": [
       {
         "matcher": "",
@@ -71,34 +57,6 @@
             "command": "node \"${extensionPath}/scripts/security-privacy.js\"",
             "description": "Hard-block access to sensitive files",
             "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "PreCompress": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "export-history",
-            "type": "command",
-            "command": "node \"${extensionPath}/scripts/export-conversation-history.js\"",
-            "description": "Export transcript to wiki before /compact",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "export-history",
-            "type": "command",
-            "command": "node \"${extensionPath}/scripts/export-conversation-history.js\"",
-            "description": "Export transcript to wiki on session exit",
-            "timeout": 10000
           }
         ]
       }

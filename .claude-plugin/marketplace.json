@@ -10,6 +10,11 @@
       "description": "Super Engineer - Team of AI Agents"
     },
     {
+      "name": "memory-kit",
+      "source": "./plugins/memory-kit/.claude",
+      "description": "Memory Kit - persistent context and knowledge base"
+    },
+    {
       "name": "learning-kit",
       "source": "./plugins/learning-kit/.claude",
       "description": "The Scholar - AI learning agent for mastering new subjects"

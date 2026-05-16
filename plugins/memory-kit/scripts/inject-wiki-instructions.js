@@ -21,14 +21,19 @@ runWhenInvoked(import.meta.url, () => {
 
   const sections = [];
 
-  const instructions = readFile(path.join(pluginRoot, 'docs', 'instruction.md'));
-  if (instructions) sections.push(instructions);
+  const preferences = readFile(
+    path.join(pluginRoot, '.agent-kit', 'wiki', 'compiled', 'preferences.md')
+  );
+  if (preferences) sections.push(preferences);
 
-  const projectDna = readFile(path.join(pluginRoot, '.agent-kit', 'project.md'));
-  if (projectDna) sections.push(projectDna);
+  const wikiIndex = readFile(
+    path.join(pluginRoot, '.agent-kit', 'wiki', 'compiled', 'index.md')
+  );
+  if (wikiIndex) sections.push(wikiIndex);
 
   if (sections.length === 0) {
     noOp();
+    return;
   }
 
   console.log(sections.join('\n\n---\n\n'));

@@ -1,0 +1,23 @@
+{
+  "name": "@hanhnd/memory-kit",
+  "version": "1.0.0",
+  "description": "Memory Kit - persistent context and knowledge base for AI Agents",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hanh-nd/agent-kit.git"
+  },
+  "scripts": {
+    "build:plugin": "node utils/build-plugin.js",
+    "prepublishOnly": "npm run build:plugin",
+    "build": "npm run build:plugin",
+    "test": "node --test $(find tests -name '*.test.js' | tr '\\n' ' ')"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3"
+  }
+}

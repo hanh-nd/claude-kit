@@ -1,0 +1,103 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/kit-init.js",
+            "statusMessage": "Initializing Memory Kit",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/inject-wiki-instructions.js",
+            "statusMessage": "Injecting memory-kit wiki instructions",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/inject-wiki-instructions.js",
+            "statusMessage": "Injecting memory-kit wiki instructions",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/wiki-inject-context.js",
+            "statusMessage": "Injecting relevant wiki context",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "export-history",
+            "type": "command",
+            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
+            "description": "Export transcript to wiki before /compact",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "inject-wiki-instructions",
+            "type": "command",
+            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/inject-wiki-instructions.js",
+            "description": "Inject memory-kit wiki instructions after /compact",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "kit-wiki-inbox",
+            "type": "command",
+            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/wiki-inbox-append.js",
+            "description": "Log kit_save_handoff calls to wiki inbox",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "name": "export-history",
+            "type": "command",
+            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
+            "description": "Export transcript to wiki on session exit",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

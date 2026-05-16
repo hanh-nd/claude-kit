@@ -24,16 +24,6 @@ runWhenInvoked(import.meta.url, () => {
   const instructions = readFile(path.join(pluginRoot, 'docs', 'instruction.md'));
   if (instructions) sections.push(instructions);
 
-  const preferences = readFile(
-    path.join(pluginRoot, '.agent-kit', 'wiki', 'compiled', 'preferences.md')
-  );
-  if (preferences) sections.push(preferences);
-
-  const wikiIndex = readFile(
-    path.join(pluginRoot, '.agent-kit', 'wiki', 'compiled', 'index.md')
-  );
-  if (wikiIndex) sections.push(wikiIndex);
-
   const projectDna = readFile(path.join(pluginRoot, '.agent-kit', 'project.md'));
   if (projectDna) sections.push(projectDna);
 

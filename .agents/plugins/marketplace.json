@@ -17,6 +17,18 @@
       "category": "Productivity"
     },
     {
+      "name": "memory-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/memory-kit/.codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
       "name": "learning-kit",
       "source": {
         "source": "local",

@@ -11,24 +11,14 @@ import { markInjected, readLedger, wasInjected, writeLedger } from './wiki/ledge
 import { loadAllPages } from './wiki/load-pages.js';
 import { scoreQuery } from './wiki/score-query.js';
 
-const WIKI_ROOT = path.join(KIT_PATH, 'wiki');
-
-function isWikiRootValid() {
+function appendDebugLog(decision, wikiRoot, settings) {
   try {
-    return fs.statSync(WIKI_ROOT).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-function appendDebugLog(decision) {
-  try {
-    const wikiConfig = getWikiConfig(loadSettings());
+    const wikiConfig = getWikiConfig(settings);
     if (!wikiConfig.debug) {
       return;
     }
 
-    const logPath = path.join(WIKI_ROOT, '.runtime', 'debug.log');
+    const logPath = path.join(wikiRoot, '.runtime', 'debug.log');
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
     const line = `${new Date().toISOString()} ${JSON.stringify(decision)}\n`;
     fs.appendFileSync(logPath, line, 'utf8');
@@ -39,15 +29,25 @@ function appendDebugLog(decision) {
   }
 }
 
-export async function main(stdinJSON) {
+export async function main(stdinJSON, opts = {}) {
   try {
+    const wikiRoot = opts.wikiRoot ?? path.join(KIT_PATH, 'wiki');
+    const settings = opts.settings ?? loadSettings();
+
     const toolName = stdinJSON.tool_name;
     const toolInput = stdinJSON.tool_input ?? {};
     const sessionId = stdinJSON.session_id ?? null;
 
     appendDebugLog({ decision: 'start', toolName, toolInput, sessionId });
 
-    if (!isWikiRootValid()) {
+    let wikiRootValid = false;
+    try {
+      wikiRootValid = fs.statSync(wikiRoot).isDirectory();
+    } catch {
+      wikiRootValid = false;
+    }
+
+    if (!wikiRootValid) {
       return {};
     }
 
@@ -56,7 +56,7 @@ export async function main(stdinJSON) {
       return {};
     }
 
-    const pages = loadAllPages(WIKI_ROOT);
+    const pages = loadAllPages(wikiRoot);
     if (pages.length === 0) {
       return {};
     }
@@ -66,7 +66,7 @@ export async function main(stdinJSON) {
       return {};
     }
 
-    const wikiConfig = getWikiConfig(loadSettings());
+    const wikiConfig = getWikiConfig(settings);
     const topHit = hits[0];
     if (topHit.score < wikiConfig.injectMinScore) {
       appendDebugLog({
@@ -79,11 +79,11 @@ export async function main(stdinJSON) {
       return {};
     }
 
-    const ledgerPath = path.join(WIKI_ROOT, '.runtime', 'injected.json');
+    const ledgerPath = path.join(wikiRoot, '.runtime', 'injected.json');
     const ledger = readLedger(ledgerPath, sessionId);
 
     if (wasInjected(ledger, topHit.slug)) {
-      appendDebugLog({ decision: 'already-injected', toolName, slug: topHit.slug });
+      appendDebugLog({ decision: 'already-injected', toolName, slug: topHit.slug }, wikiRoot, settings);
       return {};
     }
 
