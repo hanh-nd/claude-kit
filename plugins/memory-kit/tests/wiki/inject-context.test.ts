@@ -274,56 +274,36 @@ Handles login flows.
     }
   });
 
-  test('D5: page injected in session A, then new session B within cooldownHours → {}', async () => {
+  test('D5: page injected in session A, then new session B can inject again', async () => {
     const { dir, cleanup } = makeTmpDir();
     buildWikiWithPage(dir, 'auth-service', ANCHOR_PAGE('auth-service.js'));
     const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
     const input: WikiInjectStdin = { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-a' };
-    const opts = { wikiRoot, settings: { wiki: { injectMinScore: 1.0, cooldownHours: 24 } } };
+    const opts = { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } };
     try {
       const result1 = await main(input, opts);
       if (!('hookSpecificOutput' in result1)) return; // Skip if first call didn't inject
 
-      // New session, same payload — should be blocked by cooldown
+      // New session, same payload — should recall again. Session dedupe is per-session only.
       const result2 = await main({ ...input, session_id: 'sess-b-different' }, opts);
-      assert.deepEqual(result2, {}, 'Expected {} on second call from new session within cooldown');
+      assert.ok('hookSpecificOutput' in result2, 'Expected re-injection in a different session');
     } finally {
       cleanup();
     }
   });
 
-  test('D6: after injection, advancing mtime allows re-injection in new session', async () => {
+  test('D6: repeated query in same session is still deduped after cooldown removal', async () => {
     const { dir, cleanup } = makeTmpDir();
-    const entitiesDir = path.join(dir, '.agent-kit', 'wiki', 'compiled', 'entities');
-    fs.mkdirSync(entitiesDir, { recursive: true });
-    const pageFile = path.join(entitiesDir, 'auth-service.md');
-    fs.writeFileSync(pageFile, ANCHOR_PAGE('auth-service.js'), 'utf8');
+    buildWikiWithPage(dir, 'auth-service', ANCHOR_PAGE('auth-service.js'));
     const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
-    const opts = { wikiRoot, settings: { wiki: { injectMinScore: 1.0, cooldownHours: 24 } } };
+    const opts = { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } };
+    const input: WikiInjectStdin = { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-x' };
     try {
-      // First injection
-      const result1 = await main(
-        { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-x' },
-        opts
-      );
+      const result1 = await main(input, opts);
       if (!('hookSpecificOutput' in result1)) return; // Skip if first call didn't inject
 
-      // Advance mtime on the page file
-      const futureTime = new Date(Date.now() + 10_000);
-      fs.utimesSync(pageFile, futureTime, futureTime);
-
-      // Also update the cooldown cache mtime check — force cache rebuild by bumping mtime
-      const indexPath = path.join(wikiRoot, '.runtime', 'index.json');
-      if (fs.existsSync(indexPath)) fs.unlinkSync(indexPath);
-
-      // New session should be allowed since mtime advanced
-      const result2 = await main(
-        { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-y' },
-        opts
-      );
-      // The re-injection may or may not succeed depending on exact mtime handling;
-      // at minimum, it should not throw
-      assert.ok(result2 !== null && result2 !== undefined);
+      const result2 = await main(input, opts);
+      assert.deepEqual(result2, {}, 'Expected same-session duplicate to be blocked');
     } finally {
       cleanup();
     }

@@ -14,6 +14,9 @@
     "build:plugin": "node dist/utils/build-plugin.js",
     "prepublishOnly": "npm run build:plugin",
     "build": "tsc && npm run build:plugin",
+    "bench:wiki-inject": "node dist/test-scripts/bench-wiki-inject.js",
+    "eval:memory-impact": "node dist/test-scripts/eval-memory-impact.js",
+    "eval:memory-impact:strict": "node dist/test-scripts/eval-memory-impact.js --strict",
     "test": "tsc && node --test $(find dist/tests -name '*.test.js' | tr '\\n' ' ')"
   },
   "devDependencies": {

@@ -662,7 +662,7 @@ The trigger gate is **field-based**, not tool-name-based. Each provider sends Pr
 
 | # | Action | Expected |
 |---|---|---|
-| 1 | `npx ts-node scripts/bench-wiki-inject.ts` | Output reports `p95_cold` and `p95_warm` values |
+| 1 | `npm run bench:wiki-inject` | Output reports cold, warm, and dedupe p95 values |
 | 2 | Verify `p95_cold ≤ 50 ms` | Cold-build pass (100-page corpus fully parsed) |
 | 3 | Verify `p95_warm ≤ 10 ms` | Warm-cache pass (index.json reused, no re-parse) |
 | 4 | Script exits `0` if both thresholds met; non-zero if either violated | CI-safe signal |

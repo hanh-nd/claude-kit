@@ -45,7 +45,6 @@ export function getWikiConfig(settings) {
         injectMarginRatio: typeof w.injectMarginRatio === 'number' ? w.injectMarginRatio : 1.5,
         injectMaxResults,
         minQueryTokens: typeof w.minQueryTokens === 'number' ? w.minQueryTokens : 2,
-        cooldownHours: typeof w.cooldownHours === 'number' ? w.cooldownHours : 24,
         cacheEnabled: w.cacheEnabled === false ? false : true,
         bashAllowlist: isRecord(w.bashAllowlist) &&
             (w.bashAllowlist.mode === 'denylist' || w.bashAllowlist.mode === 'allowlist') &&

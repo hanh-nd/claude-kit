@@ -79,14 +79,3 @@ export interface CorpusIndex {
   avgKdLen: number;
   builtAt: string;
 }
-
-export interface CooldownEntry {
-  lastInjectedAt: string;
-  lastQueryHash: string;
-  lastPageMtimeMs: number;
-}
-
-export interface CooldownLedger {
-  schemaVersion: 1;
-  entries: Record<string, CooldownEntry>;
-}

@@ -29,8 +29,6 @@ export type {
 } from './transcript.js';
 export type {
   CorpusIndex,
-  CooldownEntry,
-  CooldownLedger,
   ExtractedWikiQuery,
   PageStatus,
   ParsedPageCacheEntry,

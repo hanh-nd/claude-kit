@@ -11,7 +11,6 @@ function makeConfig(overrides: Partial<WikiConfig> = {}): WikiConfig {
     injectMarginRatio: 1.5,
     injectMaxResults: 1,
     minQueryTokens: 2,
-    cooldownHours: 24,
     cacheEnabled: true,
     bashAllowlist: {
       mode: 'denylist',

@@ -8,7 +8,6 @@ import { formatHit } from './wiki/format-hit.js';
 import { applyMarginGate, applyStrongSignalGate, applyThresholdGate } from './wiki/gates.js';
 import { loadOrBuildIndex } from './wiki/index-cache.js';
 import { markInjected, readLedger, wasInjected, writeLedger } from './wiki/ledger.js';
-import { markCooldown, isOnCooldown, readCooldown, writeCooldown } from './wiki/cooldown.js';
 import { queryHash } from './wiki/query-hash.js';
 import { scoreQuery } from './wiki/score-query.js';
 import { shouldRun } from './wiki/trigger-gate.js';
@@ -103,8 +102,6 @@ export async function main(stdinJSON, opts = {}) {
         const pages = corpus.pages.map((e) => e.page);
         if (pages.length === 0)
             return {};
-        // Pre-build slug→mtime lookup to avoid repeated O(n) scans below
-        const slugToMtime = new Map(corpus.pages.map((e) => [e.slug, e.mtimeMs]));
         let hits = scoreQuery(query, pages, corpus.idf, corpus.avgBodyLength, corpus.avgSlugLen, corpus.avgHeadingLen, corpus.avgKdLen);
         // Gate: strong signal
         hits = applyStrongSignalGate(hits);
@@ -129,21 +126,16 @@ export async function main(stdinJSON, opts = {}) {
         const candidates = hits.slice(0, maxResults);
         // Dedupe check
         const ledgerPath = path.join(wikiRoot, '.runtime', 'injected.json');
-        const cooldownPath = path.join(wikiRoot, '.runtime', 'cooldown.json');
         let sessionLedger = readLedger(ledgerPath, sessionId);
-        let cooldownLedger = readCooldown(cooldownPath, config.cooldownHours);
         const hash = queryHash(query);
         const surviving = [];
         for (const hit of candidates) {
-            const pageMtimeMs = slugToMtime.get(hit.slug) ?? 0;
             if (wasInjected(sessionLedger, hit.slug, hash))
-                continue;
-            if (isOnCooldown(cooldownLedger, hit.slug, pageMtimeMs, config.cooldownHours))
                 continue;
             surviving.push(hit);
         }
         if (surviving.length === 0) {
-            appendDebugLog({ decision: 'all-deduped', toolName, reason: 'session or cooldown blocked all candidates' }, wikiRoot, settings);
+            appendDebugLog({ decision: 'all-deduped', toolName, reason: 'session ledger blocked all candidates' }, wikiRoot, settings);
             return {};
         }
         const snippets = [];
@@ -151,12 +143,9 @@ export async function main(stdinJSON, opts = {}) {
         for (const hit of surviving) {
             snippets.push(formatHit(hit, { projectRoot: PROJECT_DIR }));
             injectedSlugs.push(hit.slug);
-            const pageMtimeMs = slugToMtime.get(hit.slug) ?? 0;
             sessionLedger = markInjected(sessionLedger, hit.slug, hash);
-            cooldownLedger = markCooldown(cooldownLedger, hit.slug, hash, pageMtimeMs);
         }
         writeLedger(ledgerPath, sessionLedger);
-        writeCooldown(cooldownPath, cooldownLedger);
         appendDebugLog({
             decision: 'injected',
             toolName,

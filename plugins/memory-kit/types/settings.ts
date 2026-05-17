@@ -9,7 +9,6 @@ export interface WikiConfig {
   injectMarginRatio: number;
   injectMaxResults: number;
   minQueryTokens: number;
-  cooldownHours: number;
   cacheEnabled: boolean;
   bashAllowlist: BashAllowlist;
   stopwords: string[];
