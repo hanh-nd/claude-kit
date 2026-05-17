@@ -34,9 +34,40 @@ export function loadSettings() {
 }
 export function getWikiConfig(settings) {
     const w = isRecord(settings.wiki) ? settings.wiki : {};
+    let injectMaxResults = typeof w.injectMaxResults === 'number' ? w.injectMaxResults : 1;
+    if (injectMaxResults < 1)
+        injectMaxResults = 1;
+    if (injectMaxResults > 2)
+        injectMaxResults = 2; // hard cap: injecting more risks overwhelming the context window
     return {
         injectMinScore: typeof w.injectMinScore === 'number' ? w.injectMinScore : 5.0,
         debug: w.debug === true,
+        injectMarginRatio: typeof w.injectMarginRatio === 'number' ? w.injectMarginRatio : 1.5,
+        injectMaxResults,
+        minQueryTokens: typeof w.minQueryTokens === 'number' ? w.minQueryTokens : 2,
+        cooldownHours: typeof w.cooldownHours === 'number' ? w.cooldownHours : 24,
+        cacheEnabled: w.cacheEnabled === false ? false : true,
+        bashAllowlist: isRecord(w.bashAllowlist) &&
+            (w.bashAllowlist.mode === 'denylist' || w.bashAllowlist.mode === 'allowlist') &&
+            Array.isArray(w.bashAllowlist.patterns)
+            ? {
+                mode: w.bashAllowlist.mode,
+                patterns: w.bashAllowlist.patterns.filter((p) => typeof p === 'string'),
+            }
+            : {
+                mode: 'denylist',
+                patterns: [
+                    '^ls(\\s|$)',
+                    '^pwd(\\s|$)',
+                    '^echo(\\s|$)',
+                    '^cd(\\s|$)',
+                    '^cat(\\s|$)',
+                    '^git\\s+(status|log|diff|branch|show)(\\s|$)',
+                ],
+            },
+        stopwords: Array.isArray(w.stopwords)
+            ? w.stopwords.filter((v) => typeof v === 'string')
+            : ['the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'onto'],
     };
 }
 export function spawnBackground(scriptUrl, args = []) {

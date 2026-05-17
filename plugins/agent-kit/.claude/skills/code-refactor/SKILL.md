@@ -143,13 +143,25 @@ This is reviewer voice — a senior engineer explaining the real fix, not a cata
 
 The residuals table follows the same confidence-tier rules as Case C. Keep it short — if the residuals table is longer than the root-cause prose, reconsider whether you actually found a root cause or whether it's really Case C.
 
-**Case C — Bag of independent issues, no root cause.** List them, each with a confidence tier. Tables are appropriate here. Example shape:
+**Case C — Bag of independent issues, no root cause.** List them as numbered refactor items, each with a confidence tier. Tables are appropriate for the top-level scan, but multi-file suggestions need stable IDs so the user can approve, reject, or delegate them independently. Example shape:
 
-| Change                                            | Files touched            | Confidence | Why                                                 |
-| ------------------------------------------------- | ------------------------ | ---------- | --------------------------------------------------- |
-| Remove unused `retryCount` param from `fetchUser` | `user.ts` + 7 call sites | HIGH       | Static, tool-confirmed zero usage                   |
-| Collapse `getUserData` wrapper around `fetchUser` | `user.ts` + 3 call sites | MEDIUM     | Wrapper adds no transformation                      |
-| Delete `legacyAuthFallback` function              | `auth.ts`                | LOW        | Exported, dynamic language, unprovable reachability |
+| ID | Refactor                                          | Files touched            | Confidence | Why                                                 |
+| -- | ------------------------------------------------- | ------------------------ | ---------- | --------------------------------------------------- |
+| R1 | Remove unused `retryCount` param from `fetchUser` | `user.ts` + 7 call sites | HIGH       | Static, tool-confirmed zero usage                   |
+| R2 | Collapse `getUserData` wrapper around `fetchUser` | `user.ts` + 3 call sites | MEDIUM     | Wrapper adds no transformation                      |
+| R3 | Delete `legacyAuthFallback` function              | `auth.ts`                | LOW        | Exported, dynamic language, unprovable reachability |
+
+For any item touching multiple files, crossing a module boundary, or requiring sequencing, add a short detail block under the table:
+
+```
+#### R2 — Collapse `getUserData` wrapper
+
+**Files:** `user.ts`, `profile.ts`, `orders.ts`
+**Call sites:** 3
+**Change:** Replace wrapper calls with direct `fetchUser` calls and delete the wrapper.
+**Risk:** Medium — wrapper is internal, but call sites span 2 modules.
+**Verification:** `npm test -- user`
+```
 
 **Confidence tiers:**
 
@@ -167,17 +179,58 @@ Present the proposal and stop. This skill's output is a structured proposal — 
 
 Wrap the proposal in a structured header and output it.
 
+```markdown
+## 🧱 Refactor Proposal
+
+**Boundary:** `[files / paths analyzed]`
+**Case:** `A root cause only | B root cause + residuals | C independent issues | D nothing to refactor`
+**Refactors Proposed:** `[N]`
+**Confidence:** `HIGH | MEDIUM | LOW | mixed`
+**Hard Stops:** `[items requiring explicit per-item sign-off] | none`
+**Follow-ups:** `[suggested next steps] | none`
+
+### 🔁 Root-Cause Reversal
+
+[For Case A or B: proposal body from Phase 3. Explain the wrong upstream decision, the reversal, and the concrete call-site/module changes.]
+
+### 🧭 Refactor Index
+
+| ID | Refactor | Files | Call Sites | Confidence | Why |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| R1 | [short imperative change] | `[file list or count]` | `[N]` | `HIGH/MEDIUM/LOW` | [one-line evidence] |
+| R2 | [short imperative change] | `[file list or count]` | `[N]` | `HIGH/MEDIUM/LOW` | [one-line evidence] |
+
+[Use this for Case B residuals and all Case C items. For Case A with one root-cause reversal, omit this section unless it helps summarize multiple affected file groups.]
+
+### 🧩 Refactor Details
+
+#### R1 — [Refactor name]
+
+**Files:** `[concrete files]`
+**Call sites:** `[N]`
+**Change:** [specific structural change]
+**Risk:** [what could break and why]
+**Verification:** [test command or manual check]
+
+[Repeat one subsection per item that needs detail. Omit detail subsections for trivial one-line HIGH-confidence items.]
+
+### 🛑 Hard Stops
+
+- `[surface requiring explicit sign-off]` — [why implementation cannot proceed without explicit approval]
+- `none`
+
+### 🔍 Evidence Checked
+
+- **Call sites:** `[N]` checked via `[tool/manual trace]`
+- **Tests:** `[coverage found / no coverage found]`
+- **External surfaces:** `[exports/routes/events/schemas/reflection targets checked]`
+
+### ✅ Recommended Next Step
+
+[One concrete next action, such as "Run code-refactor implementation through the code skill after approving the hard-stop items" or "No refactor recommended."]
 ```
-REFACTOR PROPOSAL
-════════════════════════════════════════
-Boundary:    [files / paths analyzed]
-Case:        A (root cause only) | B (root cause + residuals) | C (independent issues) | D (nothing to refactor)
-Hard stops:  [items requiring explicit sign-off before implementation] | none
-Follow-ups:  [suggested next steps — e.g., "code-simplify could now dedupe within processOrder"] | none
-════════════════════════════════════════
-[Proposal body — as produced in Phase 3]
-════════════════════════════════════════
-```
+
+If a section is not applicable, omit it unless the omission would hide a risk. Do not output empty placeholder sections. For Case D, output only the metadata, a short `### ✅ Result` section, and evidence checked.
 
 ## Hard stops — require explicit per-item sign-off
 

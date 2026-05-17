@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { tokenize } from './tokenize.js';
 const BODY_LIMIT = 8192;
 const SUMMARY_LIMIT = 600;
 const VALID_STATUS_VALUES = ['active', 'complete', 'parked', 'deprecated'];
@@ -52,7 +53,7 @@ function deriveCategory(filePath) {
         return 'inbox';
     return 'concepts';
 }
-export function parsePageContent(content, slug, category, absolutePath) {
+export function parsePageContent(content, slug, category, absolutePath, stopwords = new Set()) {
     const h1 = content.match(/^#\s+(.+)$/m);
     const title = h1 ? h1[1].trim() : slug;
     const status = parseStatus(content);
@@ -66,6 +67,12 @@ export function parsePageContent(content, slug, category, absolutePath) {
     const edgesSection = extractSection(content, 'Edge Cases & Risks');
     const edgeCases = extractBullets(edgesSection).slice(0, 3);
     const bodyText = content.slice(0, BODY_LIMIT).toLowerCase();
+    const tokens = tokenize(bodyText, stopwords);
+    const termFreq = {};
+    for (const token of tokens) {
+        termFreq[token] = (termFreq[token] ?? 0) + 1;
+    }
+    const bodyLength = tokens.length;
     return {
         slug,
         category,
@@ -78,14 +85,16 @@ export function parsePageContent(content, slug, category, absolutePath) {
         keyDecisions,
         edgeCases,
         bodyText,
+        termFreq,
+        bodyLength,
     };
 }
-export function parsePage(absolutePath) {
+export function parsePage(absolutePath, stopwords = new Set()) {
     try {
         const content = fs.readFileSync(absolutePath, 'utf8');
         const slug = path.basename(absolutePath, '.md');
         const category = deriveCategory(absolutePath);
-        return parsePageContent(content, slug, category, absolutePath);
+        return parsePageContent(content, slug, category, absolutePath, stopwords);
     }
     catch {
         return null;

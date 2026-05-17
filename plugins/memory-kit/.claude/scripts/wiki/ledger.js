@@ -32,13 +32,13 @@ export function readLedger(ledgerPath, sessionId) {
         return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };
     }
 }
-export function wasInjected(ledger, slug) {
-    return Object.prototype.hasOwnProperty.call(ledger.injected, slug);
+export function wasInjected(ledger, slug, queryHash) {
+    return Object.prototype.hasOwnProperty.call(ledger.injected, `${slug}:${queryHash}`);
 }
-export function markInjected(ledger, slug) {
+export function markInjected(ledger, slug, queryHash) {
     return {
         ...ledger,
-        injected: { ...ledger.injected, [slug]: new Date().toISOString() },
+        injected: { ...ledger.injected, [`${slug}:${queryHash}`]: new Date().toISOString() },
     };
 }
 export function writeLedger(ledgerPath, ledger) {

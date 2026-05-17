@@ -102,7 +102,6 @@ runWhenInvoked(import.meta.url, async () => {
         const parsed = JSON.parse(raw);
         if (!isRecord(parsed) || typeof parsed.tool_name !== 'string' || !isRecord(parsed.tool_input)) {
             noOp();
-            return;
         }
         input = {
             tool_name: parsed.tool_name,
@@ -115,16 +114,13 @@ runWhenInvoked(import.meta.url, async () => {
     }
     catch {
         noOp();
-        return;
     }
     if (!input.tool_name || !input.tool_name.includes('kit_save_handoff')) {
         noOp();
-        return;
     }
     const entry = buildInboxEntry(input.tool_input);
     if (!entry) {
         noOp();
-        return;
     }
     const response = {};
     try {
