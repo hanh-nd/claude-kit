@@ -1,10 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { WikiLedger } from '@types';
 
-export interface WikiLedger {
-  sessionId: string;
-  startedAt: string;
-  injected: Record<string, string>;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  if (!isRecord(value)) return false;
+  return Object.values(value).every((entry) => typeof entry === 'string');
 }
 
 function buildFallbackSessionId(): string {
@@ -15,11 +19,18 @@ export function readLedger(ledgerPath: string, sessionId: string | null): WikiLe
   const effectiveSessionId = sessionId || buildFallbackSessionId();
   try {
     const raw = fs.readFileSync(ledgerPath, 'utf8');
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || typeof parsed.sessionId !== 'string') {
+      return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };
+    }
     if (parsed.sessionId !== effectiveSessionId) {
       return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };
     }
-    return parsed as WikiLedger;
+    return {
+      sessionId: parsed.sessionId,
+      startedAt: typeof parsed.startedAt === 'string' ? parsed.startedAt : new Date().toISOString(),
+      injected: isStringRecord(parsed.injected) ? parsed.injected : {},
+    };
   } catch {
     return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };
   }

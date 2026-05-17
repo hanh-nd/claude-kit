@@ -4,22 +4,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { KIT_PATH, PROJECT_DIR } from './constants.js';
-import { getWikiConfig, loadSettings, noOp, runWhenInvoked, Settings } from './utils.js';
+import { getWikiConfig, loadSettings, noOp, runWhenInvoked } from './utils.js';
 import { extractQuery } from './wiki/extract-query.js';
 import { formatHit } from './wiki/format-hit.js';
 import { markInjected, readLedger, wasInjected, writeLedger } from './wiki/ledger.js';
 import { loadAllPages } from './wiki/load-pages.js';
 import { scoreQuery } from './wiki/score-query.js';
-
-interface DebugDecision {
-  decision: string;
-  toolName?: string;
-  toolInput?: Record<string, unknown>;
-  sessionId?: string | null;
-  score?: number;
-  threshold?: number;
-  slug?: string;
-}
+import type { DebugDecision, MainResponse, WikiInjectOptions, WikiInjectStdin } from '@types';
+import type { Settings } from '@types';
 
 function appendDebugLog(decision: DebugDecision, wikiRoot: string, settings: Settings): void {
   try {
@@ -40,22 +32,25 @@ function appendDebugLog(decision: DebugDecision, wikiRoot: string, settings: Set
   }
 }
 
-interface HookSpecificOutput {
-  hookEventName: string;
-  additionalContext: string;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
-interface MainResponse {
-  hookSpecificOutput?: HookSpecificOutput;
+function parseStdin(raw: string): WikiInjectStdin | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || typeof parsed.tool_name !== 'string') return null;
+    return {
+      tool_name: parsed.tool_name,
+      tool_input: isRecord(parsed.tool_input) ? parsed.tool_input : undefined,
+      session_id: typeof parsed.session_id === 'string' ? parsed.session_id : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
-export interface StdinJSON {
-  tool_name: string;
-  tool_input?: Record<string, unknown>;
-  session_id?: string | null;
-}
-
-export async function main(stdinJSON: StdinJSON, opts: { wikiRoot?: string; settings?: Settings } = {}): Promise<MainResponse | {}> {
+export async function main(stdinJSON: WikiInjectStdin, opts: WikiInjectOptions = {}): Promise<MainResponse | Record<string, never>> {
   try {
     const wikiRoot = opts.wikiRoot ?? path.join(KIT_PATH, 'wiki');
     const settings = opts.settings ?? loadSettings();
@@ -139,10 +134,8 @@ runWhenInvoked(import.meta.url, async () => {
     process.stdin.on('end', () => resolve(data));
   });
 
-  let stdinJSON: StdinJSON;
-  try {
-    stdinJSON = JSON.parse(raw);
-  } catch {
+  const stdinJSON = parseStdin(raw);
+  if (!stdinJSON) {
     noOp();
     return;
   }

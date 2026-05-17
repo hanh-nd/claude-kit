@@ -6,7 +6,7 @@ import type {
   Provider,
   ProviderSkillConfig,
   SplitFrontmatterResult,
-} from '../types/build-plugin.js';
+} from '@types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -2,16 +2,8 @@ import * as assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import { formatHit } from '../../scripts/wiki/format-hit.js';
-import { WikiHit } from '../../scripts/wiki/score-query.js';
-import { WikiPage, PageStatus } from '../../scripts/wiki/parse-page.js';
-
-interface MakeHitOverrides {
-  page?: Partial<WikiPage>;
-  slug?: string;
-  category?: string;
-  path?: string;
-  score?: number;
-}
+import type { MakeHitOverrides } from '@types';
+import type { PageStatus, WikiHit, WikiPage } from '@types';
 
 function makeHit(overrides: MakeHitOverrides = {}): WikiHit {
   const { page: pageOverrides = {}, ...hitOverrides } = overrides;

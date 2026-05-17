@@ -1,10 +1,4 @@
-export interface WikiQuery {
-  toolName: string;
-  paths: string[];
-  symbols: string[];
-  freeText: string;
-  terms: string[];
-}
+import type { ExtractedWikiQuery } from '@types';
 
 function tokenize(text: string): string[] {
   return text
@@ -22,7 +16,7 @@ function extractPaths(toolInput: Record<string, unknown>): string[] {
     for (const p of toolInput.paths) if (typeof p === 'string') paths.push(p);
   }
   // Patch-format files: "*** Update/Create/Delete File: <path>"
-  const patchText = typeof toolInput.command === 'string' ? (toolInput.command as string) : '';
+  const patchText = typeof toolInput.command === 'string' ? toolInput.command : '';
   for (const m of patchText.matchAll(/\*\*\* (?:Update|Create|Delete) File: (.+)/g)) {
     paths.push(m[1].trim());
   }
@@ -39,7 +33,7 @@ function extractFreeText(toolInput: Record<string, unknown>): string {
   return parts.join(' ');
 }
 
-export function extractQuery(toolName: string, toolInput: Record<string, unknown>): WikiQuery {
+export function extractQuery(toolName: string, toolInput: Record<string, unknown>): ExtractedWikiQuery {
   const safeInput = toolInput && typeof toolInput === 'object' ? toolInput : {};
 
   try {

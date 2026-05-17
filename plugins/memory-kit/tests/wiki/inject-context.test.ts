@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { main, StdinJSON } from '../../scripts/wiki-inject-context.js';
+import { main } from '../../scripts/wiki-inject-context.js';
+import type { WikiInjectStdin } from '@types';
 
 function makeTmpDir(): { dir: string; cleanup: () => void } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inject-context-test-'));
@@ -90,7 +91,7 @@ describe('wiki-inject-context main', () => {
     const { dir, cleanup } = makeTmpDir();
     buildWikiWithPage(dir, 'auth-service', ANCHOR_PAGE('auth-service.js'));
     const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
-    const stdinJSON: StdinJSON = { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-dedup' };
+    const stdinJSON: WikiInjectStdin = { tool_name: 'Read', tool_input: { file_path: '/project/auth-service.js' }, session_id: 'sess-dedup' };
     const opts = { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } };
     try {
       const result1 = await main(stdinJSON, opts);
@@ -120,7 +121,7 @@ describe('wiki-inject-context main', () => {
 
   test('does not throw on any internal exception (C16)', async () => {
     await assert.doesNotReject(async () => {
-      const result = await main(null as unknown as StdinJSON);
+      const result = await main(null as unknown as WikiInjectStdin);
       assert.deepEqual(result, {});
     });
   });

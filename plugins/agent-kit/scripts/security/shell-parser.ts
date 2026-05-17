@@ -5,7 +5,7 @@
  * Heredoc bodies are not reliably scoped — tokens between <<EOF and EOF
  * are still scanned, which is sufficient for common attack patterns.
  */
-import type { ExpandedToken, SecurityPolicy, ShellCandidate } from '../../types/security.js';
+import type { ExpandedToken, SecurityPolicy, ShellCandidate } from '@types';
 
 export function tokenizeCommand(cmd: string): string[] {
   const tokenRegex = /"([^"]+)"|'([^']+)'|([^\s]+)/g;

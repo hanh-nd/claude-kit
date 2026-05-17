@@ -1,6 +1,5 @@
 import * as path from 'path';
-import { WikiHit } from './score-query.js';
-import { WikiPage } from './parse-page.js';
+import type { WikiHit, WikiPage } from '@types';
 
 const MAX_CHARS = 1500;
 

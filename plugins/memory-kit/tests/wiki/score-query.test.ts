@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import { scoreQuery } from '../../scripts/wiki/score-query.js';
 import { extractQuery } from '../../scripts/wiki/extract-query.js';
-import { WikiPage, PageStatus } from '../../scripts/wiki/parse-page.js';
+import type { PageStatus, WikiPage } from '@types';
 
 function makePage(overrides: Partial<WikiPage> = {}): WikiPage {
   return {

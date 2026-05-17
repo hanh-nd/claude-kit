@@ -1,56 +1,35 @@
-import { spawn } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { KIT_PATH } from './constants.js';
+import type { Settings, WikiConfig } from '@types';
+import type { ContentBlock, Message, Transcript } from '@types';
 
-export interface WikiConfig {
-  injectMinScore: number;
-  debug: boolean;
-}
-
-export interface Message {
-  role: string;
-  content: string;
-}
-
-export interface Transcript {
-  messages: Message[];
-}
-
-export interface Settings {
-  wiki?: Partial<WikiConfig>;
-  [key: string]: Record<string, unknown> | undefined;
-}
-
-/**
- * Runs `fn` only when this module is the direct entry point (i.e. invoked via CLI).
- * Skips execution when the module is imported for testing or reuse.
- *
- * @param {string} importMetaUrl - pass `import.meta.url` from the calling module
- * @param {() => void | Promise<void>} fn - hook body
- */
 export function runWhenInvoked(importMetaUrl: string, fn: () => void | Promise<void>): void {
+  if (!process.argv[1]) return;
   const entryPath = fs.realpathSync(process.argv[1]);
   const modulePath = fs.realpathSync(fileURLToPath(importMetaUrl));
   if (entryPath === modulePath) {
-    fn();
+    void fn();
   }
 }
 
-/**
- * No-op function that prints an empty JSON object and exits.
- */
-export function noOp(): void {
+export function noOp(): never {
   console.log(JSON.stringify({}));
   process.exit(0);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 export function loadSettings(): Settings {
   try {
     const settingsPath = path.join(KIT_PATH, 'settings.json');
     if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as Settings;
+      const parsed: unknown = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      return isRecord(parsed) ? parsed : {};
     }
   } catch {
     // Fall through to defaults on parse error
@@ -59,7 +38,7 @@ export function loadSettings(): Settings {
 }
 
 export function getWikiConfig(settings: Settings): WikiConfig {
-  const w = settings?.wiki ?? {};
+  const w = isRecord(settings.wiki) ? settings.wiki : {};
   return {
     injectMinScore: typeof w.injectMinScore === 'number' ? w.injectMinScore : 5.0,
     debug: w.debug === true,
@@ -77,12 +56,6 @@ export function spawnBackground(scriptUrl: string | URL, args: string[] = []): v
   child.unref();
 }
 
-/**
- * Parse a Claude JSONL transcript into an array of { role, content } messages.
- *
- * @param {string} transcriptPath
- * @returns {Transcript}
- */
 export function parseTranscript(transcriptPath: string): Transcript {
   if (transcriptPath.includes('.codex')) {
     return parseCodexTranscript(transcriptPath);
@@ -93,22 +66,16 @@ export function parseTranscript(transcriptPath: string): Transcript {
   return parseClaudeTranscript(transcriptPath);
 }
 
-interface ContentBlock {
-  text?: string;
-  output_text?: string;
-  input_text?: string;
-  type?: string;
-}
-
-function extractContentText(content: string | ContentBlock[]): string {
+function extractContentText(content: unknown): string {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) return '';
 
-  return (content as ContentBlock[])
+  return content
     .map((block) => {
-      if (!block || typeof block !== 'object') return '';
+      if (!isRecord(block)) return '';
       return block.text || block.output_text || block.input_text || '';
     })
+    .filter((text): text is string => typeof text === 'string')
     .filter(Boolean)
     .join('\n');
 }
@@ -123,15 +90,17 @@ function parseCodexTranscript(transcriptPath: string): Transcript {
       if (!line.trim()) continue;
 
       try {
-        const entry = JSON.parse(line);
+        const entry: unknown = JSON.parse(line);
+        if (!isRecord(entry)) continue;
         const payload = entry.payload;
+        if (!isRecord(payload)) continue;
         if (entry.type !== 'response_item' || payload?.type !== 'message') continue;
         if (payload.role !== 'user' && payload.role !== 'assistant') continue;
 
         const contentText = extractContentText(payload.content);
         if (contentText) {
           messages.push({
-            role: payload.role as string,
+            role: payload.role,
             content: contentText,
           });
         }
@@ -159,27 +128,28 @@ function parseClaudeTranscript(transcriptPath: string): Transcript {
       if (!line.trim()) continue;
 
       try {
-        const entry = JSON.parse(line);
+        const entry: unknown = JSON.parse(line);
+        if (!isRecord(entry)) continue;
 
         // Only process user and assistant messages
         if (entry.type === 'user' || entry.type === 'assistant') {
           const msg = entry.message;
-          if (msg && msg.role && msg.content) {
+          if (isRecord(msg) && (msg.role === 'user' || msg.role === 'assistant') && msg.content) {
             // Handle content that can be string or array of content blocks
             let contentText = '';
             if (typeof msg.content === 'string') {
               contentText = msg.content;
             } else if (Array.isArray(msg.content)) {
               // Extract text from content blocks
-              contentText = (msg.content as ContentBlock[])
-                .filter((block) => block.type === 'text')
-                .map((block) => block.text || '')
+              contentText = msg.content
+                .filter((block): block is ContentBlock => isRecord(block) && block.type === 'text')
+                .map((block) => block.text ?? '')
                 .join('\n');
             }
 
             if (contentText) {
               messages.push({
-                role: msg.role as string,
+                role: msg.role,
                 content: contentText,
               });
             }
@@ -210,7 +180,8 @@ function parseGeminiTranscript(transcriptPath: string): Transcript {
       if (!line.trim()) continue;
 
       try {
-        const msg = JSON.parse(line);
+        const msg: unknown = JSON.parse(line);
+        if (!isRecord(msg)) continue;
 
         if (msg.type === 'user' || msg.type === 'gemini') {
           let contentText = '';
@@ -218,12 +189,15 @@ function parseGeminiTranscript(transcriptPath: string): Transcript {
           if (typeof msgContent === 'string') {
             contentText = msgContent;
           } else if (Array.isArray(msgContent)) {
-            contentText = (msgContent as ContentBlock[]).map((block) => block.text || '').join('\n');
+            contentText = msgContent
+              .filter((block): block is ContentBlock => isRecord(block))
+              .map((block) => block.text ?? '')
+              .join('\n');
           }
 
           if (contentText) {
             messages.push({
-              role: msg.type as string,
+              role: msg.type,
               content: contentText,
             });
           }

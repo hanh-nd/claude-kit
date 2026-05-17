@@ -5,6 +5,7 @@ import * as path from 'path';
 
 import { KIT_PATH } from './constants.js';
 import { noOp, runWhenInvoked } from './utils.js';
+import type { InboxStdin, InboxToolInput } from '@types';
 
 const HANDOFF_TYPES = [
   'brainstorm',
@@ -60,15 +61,8 @@ function deriveFeatureSlug({ slug, content }: { slug: string; content: string })
   );
 }
 
-export interface InboxToolInput {
-  type?: string;
-  slug?: string;
-  content?: string;
-}
-
-export interface InboxStdin {
-  tool_name: string;
-  tool_input: InboxToolInput;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 /**
@@ -121,7 +115,19 @@ runWhenInvoked(import.meta.url, async () => {
 
   let input: InboxStdin;
   try {
-    input = JSON.parse(raw) as InboxStdin;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || typeof parsed.tool_name !== 'string' || !isRecord(parsed.tool_input)) {
+      noOp();
+      return;
+    }
+    input = {
+      tool_name: parsed.tool_name,
+      tool_input: {
+        type: typeof parsed.tool_input.type === 'string' ? parsed.tool_input.type : undefined,
+        slug: typeof parsed.tool_input.slug === 'string' ? parsed.tool_input.slug : undefined,
+        content: typeof parsed.tool_input.content === 'string' ? parsed.tool_input.content : undefined,
+      },
+    };
   } catch {
     noOp();
     return;

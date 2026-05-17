@@ -5,10 +5,10 @@ import * as path from 'path';
 
 import { KIT_PATH } from './constants.js';
 import { noOp, parseTranscript, runWhenInvoked } from './utils.js';
+import type { ExportStdin } from '@types';
 
-interface ExportStdin {
-  transcript_path: string;
-  session_id: string;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 runWhenInvoked(import.meta.url, async () => {
@@ -20,7 +20,15 @@ runWhenInvoked(import.meta.url, async () => {
 
   let input: ExportStdin;
   try {
-    input = JSON.parse(raw) as ExportStdin;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || typeof parsed.transcript_path !== 'string' || typeof parsed.session_id !== 'string') {
+      noOp();
+      return;
+    }
+    input = {
+      transcript_path: parsed.transcript_path,
+      session_id: parsed.session_id,
+    };
   } catch {
     noOp();
     return;

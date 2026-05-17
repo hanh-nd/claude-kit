@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { SecurityPolicy } from '../../types/security.js';
+import type { SecurityPolicy } from '@types';
 
 type WorkspacePolicy = Pick<
   SecurityPolicy,

@@ -2,14 +2,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 const BODY_LIMIT = 8192;
 const SUMMARY_LIMIT = 600;
-export const VALID_STATUSES = new Set(['active', 'complete', 'parked', 'deprecated']);
+const VALID_STATUS_VALUES = ['active', 'complete', 'parked', 'deprecated'];
+export const VALID_STATUSES = new Set(VALID_STATUS_VALUES);
 const VALID_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences', 'inbox'];
+function isPageStatus(value) {
+    return value === 'active' || value === 'complete' || value === 'parked' || value === 'deprecated';
+}
 function parseStatus(text) {
     const match = text.match(/^Status:\s*(\w+)/im);
     if (!match)
         return null;
     const val = match[1].toLowerCase();
-    return VALID_STATUSES.has(val) ? val : null;
+    return isPageStatus(val) ? val : null;
 }
 function parseUpdated(text) {
     const match = text.match(/^>\s*Last updated:\s*(\d{4}-\d{2}-\d{2})/im);

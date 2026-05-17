@@ -11,7 +11,7 @@ import {
   PROJECT_DIR,
 } from '../constants.js';
 import { getSecurityConfig, loadSettings } from '../utils.js';
-import type { SecurityPolicy } from '../../types/security.js';
+import type { SecurityPolicy } from '@types';
 
 export const PATH_ARG_KEYS = new Set(['file_path', 'path', 'notebook_path']);
 export const COMMAND_ARG_KEYS = new Set(['command']);

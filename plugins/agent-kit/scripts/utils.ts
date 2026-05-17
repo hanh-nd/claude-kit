@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENFORCEMENT_MODES, KIT_PATH } from './constants.js';
-import type { AgentKitSettings, SecurityConfig } from '../types/security.js';
+import type { AgentKitSettings, SecurityConfig } from '@types';
 
 export function spawnBackground(scriptUrl: string | URL, args: string[] = []): void {
   const scriptPath =

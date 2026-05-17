@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parsePage, WikiPage } from './parse-page.js';
+import { parsePage } from './parse-page.js';
+import type { WikiPage } from '@types';
 
 const COMPILED_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences'];
 

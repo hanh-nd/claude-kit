@@ -1,5 +1,5 @@
 import * as path from 'path';
-import type { SecurityPolicy } from '../../types/security.js';
+import type { SecurityPolicy } from '@types';
 
 export function isBlockedFilename(
   name: string,

@@ -2,6 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type {
+  Provider,
+  ProviderSkillConfig,
+  SplitFrontmatterResult,
+} from '@types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,12 +14,6 @@ const pluginRoot = path.resolve(__dirname, '..', '..');
 
 const sharedBundleDirs = ['scripts'];
 const requiredSkillKeys = ['name', 'description'];
-
-interface Provider {
-  root: string;
-  skillKeys: string[];
-  configPath?: string;
-}
 
 const providers: Record<string, Provider> = {
   claude: {
@@ -70,7 +69,7 @@ function materializeTree(source: string, destination: string): void {
   fs.cpSync(source, destination, { recursive: true, errorOnExist: false, force: true });
 }
 
-function splitFrontmatter(content: string, filePath: string): { yaml: string; body: string } {
+function splitFrontmatter(content: string, filePath: string): SplitFrontmatterResult {
   if (!content.startsWith('---\n')) {
     throw new Error(`${filePath} is missing YAML frontmatter`);
   }
@@ -196,7 +195,7 @@ function buildProviderSkills(source: string, destination: string, providerName: 
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
 
-  const providerConfigs: { skillDir: string; relativePath: string; content: string }[] = [];
+  const providerConfigs: ProviderSkillConfig[] = [];
 
   for (const filePath of walkFiles(source)) {
     const relative = path.relative(source, filePath);
@@ -214,10 +213,10 @@ function buildProviderSkills(source: string, destination: string, providerName: 
     fs.writeFileSync(outputPath, `${frontmatter}${body}`, 'utf8');
 
     const sidecarConfig = configPath ? buildProviderConfig(yaml, providerName) : null;
-    if (sidecarConfig) {
+    if (configPath && sidecarConfig) {
       providerConfigs.push({
         skillDir: path.dirname(outputPath),
-        relativePath: configPath!,
+        relativePath: configPath,
         content: sidecarConfig,
       });
     }

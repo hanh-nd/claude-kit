@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
-import { runWhenInvoked, Settings, WikiConfig } from './utils.js';
+import { runWhenInvoked } from './utils.js';
+import type { Settings } from '@types';
 
 function ensureDirectories(): void {
   const dirs = [
@@ -74,30 +75,34 @@ const DEFAULT_SETTINGS: Settings = {
   },
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function ensureSettings(): void {
   const settingsPath = path.join(KIT_PATH, 'settings.json');
   let current: Settings = {};
   if (fs.existsSync(settingsPath)) {
     try {
-      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as Settings;
+      const parsed: unknown = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      current = isRecord(parsed) ? parsed : {};
     } catch {
       // Corrupted — start fresh
     }
   }
 
   let changed = false;
-  for (const [section, defaults] of Object.entries(DEFAULT_SETTINGS)) {
-    if (typeof current[section] !== 'object' || current[section] === null) {
-      current[section] = {};
-      changed = true;
-    }
-    const currentSection = current[section] as Record<string, unknown>;
-    for (const [key, value] of Object.entries(defaults as Record<string, unknown>)) {
-      if (!(key in currentSection)) {
-        currentSection[key] = value;
-        changed = true;
-      }
-    }
+  if (!isRecord(current.wiki)) {
+    current.wiki = {};
+    changed = true;
+  }
+  if (current.wiki.injectMinScore === undefined) {
+    current.wiki.injectMinScore = DEFAULT_SETTINGS.wiki?.injectMinScore;
+    changed = true;
+  }
+  if (current.wiki.debug === undefined) {
+    current.wiki.debug = DEFAULT_SETTINGS.wiki?.debug;
+    changed = true;
   }
 
   if (changed) {

@@ -1,4 +1,4 @@
-import { WikiPage } from "./parse-page.js";
+import type { ScoredWikiQuery, WikiHit, WikiPage } from '@types';
 
 const STATUS_BOOST: Record<string, number> = {
   active: 2,
@@ -32,27 +32,7 @@ function countTermMatches(terms: string[], text: string): number {
   return count;
 }
 
-export interface WikiQuery {
-  terms: string[];
-}
-
-export interface WikiHit {
-  slug: string;
-  category: string;
-  path: string;
-  score: number;
-  breakdown: {
-    filename: number;
-    heading: number;
-    keyDecision: number;
-    body: number;
-    status: number;
-    staleness: number;
-  };
-  page: WikiPage;
-}
-
-function scorePage(query: WikiQuery, page: WikiPage): WikiHit | null {
+function scorePage(query: ScoredWikiQuery, page: WikiPage): WikiHit | null {
   const { terms } = query;
   if (terms.length === 0) return null;
 
@@ -111,7 +91,7 @@ function compareHits(a: WikiHit, b: WikiHit): number {
   return a.slug.localeCompare(b.slug);
 }
 
-export function scoreQuery(query: WikiQuery, pages: WikiPage[]): WikiHit[] {
+export function scoreQuery(query: ScoredWikiQuery, pages: WikiPage[]): WikiHit[] {
   const hits: WikiHit[] = [];
   for (const page of pages) {
     const hit = scorePage(query, page);

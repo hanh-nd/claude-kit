@@ -5,11 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import { loadAllPages } from '../../scripts/wiki/load-pages.js';
-
-interface BuildWikiDirOpts {
-  compiledPages?: Record<string, string>;
-  inboxContent?: string | null;
-}
+import type { BuildWikiDirOpts } from '@types';
 
 function buildWikiDir(baseDir: string, opts: BuildWikiDirOpts = {}): string {
   const { compiledPages = {}, inboxContent = null } = opts;

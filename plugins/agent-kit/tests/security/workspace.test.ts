@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, describe, before, after } from 'node:test';
 import { realpathSafe, isOutsideWorkspace, shouldBlockOutside } from '../../scripts/security/workspace.js';
-import type { SecurityPolicy } from '../../types/security.js';
+import type { SecurityPolicy } from '@types';
 
 describe('workspace', () => {
   let tmpDir: string;

@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { buildInboxEntry, InboxToolInput } from '../../scripts/wiki-inbox-append.js';
+import { buildInboxEntry } from '../../scripts/wiki-inbox-append.js';
+import type { InboxToolInput } from '@types';
 
 function makeTmpDir(): { dir: string; cleanup: () => void } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inbox-append-test-'));

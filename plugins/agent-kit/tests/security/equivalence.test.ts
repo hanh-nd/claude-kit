@@ -5,7 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, before, after, describe } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import type { ChildRunResult, SecurityCase } from '../../types/tests.js';
+import type { ChildRunResult, SecurityCase } from '@types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.resolve(__dirname, '../../scripts/security-privacy.js');

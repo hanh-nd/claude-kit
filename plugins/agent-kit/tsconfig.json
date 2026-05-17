@@ -3,6 +3,10 @@
     "target": "es2023",
     "module": "ESNext",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@types": ["types/index.ts"]
+    },
     "outDir": "./dist",
     "rootDir": "./",
     "esModuleInterop": true,

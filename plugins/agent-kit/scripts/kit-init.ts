@@ -6,8 +6,8 @@ import * as path from 'path';
 import { countTests } from '../scripts/count-tests.js';
 import { ENFORCEMENT_MODES, KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
 import { runWhenInvoked } from './utils.js';
-import type { AgentKitSettings } from '../types/security.js';
-import type { DefaultSettings, InitHookInput } from '../types/kit.js';
+import type { AgentKitSettings } from '@types';
+import type { DefaultSettings, InitHookInput } from '@types';
 
 function ensureDirectories(): void {
   const dirs = [

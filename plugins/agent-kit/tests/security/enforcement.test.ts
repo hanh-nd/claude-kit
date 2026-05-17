@@ -5,7 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, describe, before, after } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import type { EnforcementMode } from '../../types/security.js';
+import type { EnforcementMode } from '@types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

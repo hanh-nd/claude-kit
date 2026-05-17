@@ -1,33 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { PageStatus, WikiPage } from '@types';
 
 const BODY_LIMIT = 8192;
 const SUMMARY_LIMIT = 600;
+const VALID_STATUS_VALUES: readonly PageStatus[] = ['active', 'complete', 'parked', 'deprecated'];
 
-export type PageStatus = 'active' | 'complete' | 'parked' | 'deprecated';
-
-export const VALID_STATUSES: Set<PageStatus> = new Set(['active', 'complete', 'parked', 'deprecated']);
+export const VALID_STATUSES: Set<PageStatus> = new Set(VALID_STATUS_VALUES);
 const VALID_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences', 'inbox'];
 
-export interface WikiPage {
-  slug: string;
-  category: string;
-  path: string;
-  title: string;
-  status: PageStatus | null;
-  updated: string | null;
-  summary: string;
-  anchors: string[];
-  keyDecisions: string[];
-  edgeCases: string[];
-  bodyText: string;
+function isPageStatus(value: string): value is PageStatus {
+  return value === 'active' || value === 'complete' || value === 'parked' || value === 'deprecated';
 }
 
 function parseStatus(text: string): PageStatus | null {
   const match = text.match(/^Status:\s*(\w+)/im);
   if (!match) return null;
   const val = match[1].toLowerCase();
-  return VALID_STATUSES.has(val as PageStatus) ? (val as PageStatus) : null;
+  return isPageStatus(val) ? val : null;
 }
 
 function parseUpdated(text: string): string | null {

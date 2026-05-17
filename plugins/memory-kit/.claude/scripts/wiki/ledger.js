@@ -1,5 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
+function isRecord(value) {
+    return typeof value === 'object' && value !== null;
+}
+function isStringRecord(value) {
+    if (!isRecord(value))
+        return false;
+    return Object.values(value).every((entry) => typeof entry === 'string');
+}
 function buildFallbackSessionId() {
     return `pid-${process.pid}-${Date.now()}`;
 }
@@ -8,10 +16,17 @@ export function readLedger(ledgerPath, sessionId) {
     try {
         const raw = fs.readFileSync(ledgerPath, 'utf8');
         const parsed = JSON.parse(raw);
+        if (!isRecord(parsed) || typeof parsed.sessionId !== 'string') {
+            return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };
+        }
         if (parsed.sessionId !== effectiveSessionId) {
             return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };
         }
-        return parsed;
+        return {
+            sessionId: parsed.sessionId,
+            startedAt: typeof parsed.startedAt === 'string' ? parsed.startedAt : new Date().toISOString(),
+            injected: isStringRecord(parsed.injected) ? parsed.injected : {},
+        };
     }
     catch {
         return { sessionId: effectiveSessionId, startedAt: new Date().toISOString(), injected: {} };

@@ -3,19 +3,23 @@
     "target": "es2023",
     "module": "ESNext",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@types": ["types/index.ts"]
+    },
     "outDir": "./dist",
     "rootDir": "./",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": true,
     "strict": true,
     "noImplicitAny": true
   },
   "include": [
     "scripts/**/*",
     "utils/**/*",
-    "tests/**/*"
+    "tests/**/*",
+    "types/**/*"
   ]
 }

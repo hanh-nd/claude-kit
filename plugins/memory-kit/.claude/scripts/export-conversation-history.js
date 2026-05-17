@@ -3,6 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { KIT_PATH } from './constants.js';
 import { noOp, parseTranscript, runWhenInvoked } from './utils.js';
+function isRecord(value) {
+    return typeof value === 'object' && value !== null;
+}
 runWhenInvoked(import.meta.url, async () => {
     const raw = await new Promise((resolve) => {
         let data = '';
@@ -11,7 +14,15 @@ runWhenInvoked(import.meta.url, async () => {
     });
     let input;
     try {
-        input = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (!isRecord(parsed) || typeof parsed.transcript_path !== 'string' || typeof parsed.session_id !== 'string') {
+            noOp();
+            return;
+        }
+        input = {
+            transcript_path: parsed.transcript_path,
+            session_id: parsed.session_id,
+        };
     }
     catch {
         noOp();

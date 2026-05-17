@@ -67,30 +67,33 @@ const DEFAULT_SETTINGS = {
         debug: false,
     },
 };
+function isRecord(value) {
+    return typeof value === 'object' && value !== null;
+}
 function ensureSettings() {
     const settingsPath = path.join(KIT_PATH, 'settings.json');
     let current = {};
     if (fs.existsSync(settingsPath)) {
         try {
-            current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const parsed = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            current = isRecord(parsed) ? parsed : {};
         }
         catch {
             // Corrupted — start fresh
         }
     }
     let changed = false;
-    for (const [section, defaults] of Object.entries(DEFAULT_SETTINGS)) {
-        if (typeof current[section] !== 'object' || current[section] === null) {
-            current[section] = {};
-            changed = true;
-        }
-        const currentSection = current[section];
-        for (const [key, value] of Object.entries(defaults)) {
-            if (!(key in currentSection)) {
-                currentSection[key] = value;
-                changed = true;
-            }
-        }
+    if (!isRecord(current.wiki)) {
+        current.wiki = {};
+        changed = true;
+    }
+    if (current.wiki.injectMinScore === undefined) {
+        current.wiki.injectMinScore = DEFAULT_SETTINGS.wiki?.injectMinScore;
+        changed = true;
+    }
+    if (current.wiki.debug === undefined) {
+        current.wiki.debug = DEFAULT_SETTINGS.wiki?.debug;
+        changed = true;
     }
     if (changed) {
         try {

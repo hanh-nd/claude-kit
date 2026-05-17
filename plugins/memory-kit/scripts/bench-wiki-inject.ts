@@ -3,7 +3,9 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { main, StdinJSON } from './wiki-inject-context.js';
+import { main } from './wiki-inject-context.js';
+import type { Settings } from '@types';
+import type { WikiInjectStdin } from '@types';
 
 const CORPUS_SIZE = 500;
 const PAYLOAD_COUNT = 10;
@@ -49,7 +51,7 @@ function buildSyntheticCorpus(tmpDir: string): void {
   }
 }
 
-function buildPayloads(): StdinJSON[] {
+function buildPayloads(): WikiInjectStdin[] {
   return [
     { tool_name: 'Read', tool_input: { file_path: '/project/anchor-42.js' }, session_id: 'bench-session' },
     { tool_name: 'Edit', tool_input: { file_path: '/project/module-17.ts', new_string: 'export function pageHelper() {}' }, session_id: 'bench-session' },
@@ -69,7 +71,7 @@ function percentile(sortedArr: number[], pct: number): number {
   return sortedArr[Math.max(0, idx)];
 }
 
-async function runBench() {
+async function runBench(): Promise<void> {
   console.log('Building synthetic corpus...');
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-wiki-inject-'));
   try {
@@ -77,7 +79,7 @@ async function runBench() {
 
     const payloads = buildPayloads();
     const wikiRoot = path.join(tmpDir, 'wiki');
-    const settings = { wiki: { injectMinScore: 5.0 } };
+    const settings: Settings = { wiki: { injectMinScore: 5.0 } };
 
     console.log(`Running ${ITERATIONS} iterations × ${PAYLOAD_COUNT} payloads...`);
     const timings: number[] = [];

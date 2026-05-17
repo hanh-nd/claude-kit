@@ -48,6 +48,9 @@ function deriveFeatureSlug({ slug, content }) {
     return (sanitizeFeatureSlug(contentSlugCandidate(content)) ||
         'untitled-handoff');
 }
+function isRecord(value) {
+    return typeof value === 'object' && value !== null;
+}
 /**
  * Build a structured inbox entry from a kit_save_handoff tool call.
  * Returns null if required fields (type, slug) are missing.
@@ -96,7 +99,19 @@ runWhenInvoked(import.meta.url, async () => {
     });
     let input;
     try {
-        input = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        if (!isRecord(parsed) || typeof parsed.tool_name !== 'string' || !isRecord(parsed.tool_input)) {
+            noOp();
+            return;
+        }
+        input = {
+            tool_name: parsed.tool_name,
+            tool_input: {
+                type: typeof parsed.tool_input.type === 'string' ? parsed.tool_input.type : undefined,
+                slug: typeof parsed.tool_input.slug === 'string' ? parsed.tool_input.slug : undefined,
+                content: typeof parsed.tool_input.content === 'string' ? parsed.tool_input.content : undefined,
+            },
+        };
     }
     catch {
         noOp();

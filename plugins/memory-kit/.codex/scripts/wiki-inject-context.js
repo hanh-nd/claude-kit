@@ -26,6 +26,24 @@ function appendDebugLog(decision, wikiRoot, settings) {
         // ignore debug log errors
     }
 }
+function isRecord(value) {
+    return typeof value === 'object' && value !== null;
+}
+function parseStdin(raw) {
+    try {
+        const parsed = JSON.parse(raw);
+        if (!isRecord(parsed) || typeof parsed.tool_name !== 'string')
+            return null;
+        return {
+            tool_name: parsed.tool_name,
+            tool_input: isRecord(parsed.tool_input) ? parsed.tool_input : undefined,
+            session_id: typeof parsed.session_id === 'string' ? parsed.session_id : null,
+        };
+    }
+    catch {
+        return null;
+    }
+}
 export async function main(stdinJSON, opts = {}) {
     try {
         const wikiRoot = opts.wikiRoot ?? path.join(KIT_PATH, 'wiki');
@@ -97,11 +115,8 @@ runWhenInvoked(import.meta.url, async () => {
         process.stdin.on('data', (chunk) => (data += chunk));
         process.stdin.on('end', () => resolve(data));
     });
-    let stdinJSON;
-    try {
-        stdinJSON = JSON.parse(raw);
-    }
-    catch {
+    const stdinJSON = parseStdin(raw);
+    if (!stdinJSON) {
         noOp();
         return;
     }
