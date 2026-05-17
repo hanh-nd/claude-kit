@@ -4,9 +4,9 @@ A collection of specialized AI agents for software development, research, and le
 
 ## Available Plugins
 
-| Plugin                                     | Description                                                 | Language     |
+| Plugin                                     | Description                                                 | Type         |
 | :----------------------------------------- | :---------------------------------------------------------- | :----------- |
-| [**agent-kit**](./plugins/agent-kit)       | Super Engineer - Team of AI Agents for software development | Node.js (TS) |
+| [**agent-kit**](./plugins/agent-kit)       | Super Engineer - Team of AI Agents for software development | Plugin bundle |
 | [**memory-kit**](./plugins/memory-kit)     | Memory Kit - persistent context and knowledge base          | Node.js (TS) |
 | [**learning-kit**](./plugins/learning-kit) | The Scholar - AI learning agent for mastering new subjects  | Node.js (TS) |
 
@@ -53,10 +53,9 @@ gemini extension link .gemini
 
 This is a polyglot monorepo. Each plugin in `plugins/` is an independent project.
 
-### Node.js Plugins (agent-kit)
+### Build Everything
 
 ```bash
-cd plugins/agent-kit
 npm install
 npm run build
 ```

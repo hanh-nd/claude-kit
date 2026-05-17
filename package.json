@@ -4,11 +4,13 @@
   "description": "Marketplace of AI Agents for software development",
   "private": true,
   "workspaces": [
+    "mcp",
     "plugins/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "publish:mcp": "npm publish --workspace @hanhnd/agent-kit",
     "prepare": "husky"
   },
   "repository": {

@@ -159,12 +159,9 @@ gemini extension link .gemini
 ```bash
 # Build once
 npm run build
-
-# Watch mode (rebuilds on file changes)
-npm run dev
 ```
 
-The MCP server source is in `src/`. Agent personas are in `agents/`. Canonical skill modules are in `skills/`; `npm run build:skills` generates provider-safe copies into `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/`.
+This workspace builds the provider plugin bundles. Agent personas are in `agents/`. Canonical skill modules are in `skills/`; `npm run build` generates provider-safe copies into `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/`.
 
 ---
 

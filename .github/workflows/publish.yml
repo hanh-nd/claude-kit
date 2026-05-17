@@ -1,15 +1,17 @@
-name: Publish Marketplace Plugins
+name: Publish MCP Package
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'plugins/**'
+      - 'mcp/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/publish.yml'
 
 jobs:
-  publish-node-plugins:
+  publish-mcp:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,10 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build agent-kit
-        run: npm run build -w @hanhnd/agent-kit
+      - name: Build MCP package
+        run: npm run build --workspace @hanhnd/agent-kit
 
       - name: Publish @hanhnd/agent-kit
-        run: npm publish -w @hanhnd/agent-kit --provenance --access public
+        run: npm run publish:mcp -- --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
