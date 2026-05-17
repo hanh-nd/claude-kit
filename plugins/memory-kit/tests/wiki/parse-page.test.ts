@@ -100,6 +100,20 @@ describe('parsePageContent', () => {
     assert.ok(page.bodyText === page.bodyText.toLowerCase());
   });
 
+  test('emits termFreq as Record<string, number> (AC-8)', () => {
+    const page = parsePageContent(FULL_PAGE, 'my-entity', 'entities', '/wiki/entities/my-entity.md');
+    assert.ok(typeof page.termFreq === 'object' && page.termFreq !== null);
+    for (const [key, val] of Object.entries(page.termFreq)) {
+      assert.ok(typeof key === 'string');
+      assert.ok(typeof val === 'number' && val > 0);
+    }
+  });
+
+  test('emits positive bodyLength (AC-8)', () => {
+    const page = parsePageContent(FULL_PAGE, 'my-entity', 'entities', '/wiki/entities/my-entity.md');
+    assert.ok(typeof page.bodyLength === 'number' && page.bodyLength > 0);
+  });
+
   test('never throws on malformed content (C13)', () => {
     assert.doesNotThrow(() => {
       parsePageContent('', 'empty', 'concepts', '/path/empty.md');

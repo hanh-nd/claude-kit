@@ -24,7 +24,6 @@ You don't need to manually feed the wiki all the time. Four hooks keep it fed an
 
 - **PostToolUse (kit-wiki-inbox)** — every `kit_save_handoff` call is automatically logged to `.agent-kit/wiki/raw/inbox.md`
 - **PreCompact / SessionEnd (export-history)** — before `/compact` discards context or when a session ends, the full session transcript is exported to `.agent-kit/wiki/raw/`
-- **SessionStart / PostCompact (inject-wiki-instructions)** — re-injects the compiled wiki index and preferences as system context so the very next turn has full project knowledge
 - **PreToolUse (wiki-inject-context)** — automatically identifies terms in a tool call and injects relevant compiled wiki pages dynamically before the tool runs
 
 ### Directory Structure

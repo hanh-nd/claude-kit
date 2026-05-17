@@ -1,4 +1,5 @@
 import type { Settings } from './settings.js';
+import type { WikiScoreBreakdown } from './wiki.js';
 
 export interface DebugDecision {
   decision: string;
@@ -8,6 +9,10 @@ export interface DebugDecision {
   score?: number;
   threshold?: number;
   slug?: string;
+  reason?: string;
+  breakdown?: WikiScoreBreakdown;
+  top3?: Array<{ slug: string; score: number; breakdown: WikiScoreBreakdown }>;
+  injectedSlugs?: string[];
 }
 
 export interface HookSpecificOutput {

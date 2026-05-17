@@ -23,7 +23,6 @@ runWhenInvoked(import.meta.url, async () => {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || typeof parsed.transcript_path !== 'string' || typeof parsed.session_id !== 'string') {
       noOp();
-      return;
     }
     input = {
       transcript_path: parsed.transcript_path,
@@ -31,20 +30,17 @@ runWhenInvoked(import.meta.url, async () => {
     };
   } catch {
     noOp();
-    return;
   }
 
   const transcriptPath = input.transcript_path;
   const sessionId = input.session_id;
   if (!transcriptPath || !sessionId) {
     noOp();
-    return;
   }
 
   const { messages } = parseTranscript(transcriptPath);
   if (!messages.length) {
     noOp();
-    return;
   }
 
   try {

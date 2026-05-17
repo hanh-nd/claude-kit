@@ -1,12 +1,6 @@
-import type { ExtractedWikiQuery } from '@types';
-
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s/-]/g, ' ')
-    .split(/[\s/\\.,;:()[\]{}<>'"=`@#!?%*&^~]+/)
-    .filter((t) => t.length >= 3 && !/^\d+$/.test(t));
-}
+import * as path from 'node:path';
+import { tokenize } from './tokenize.js';
+import type { ExtractedWikiQuery, WikiConfig } from '@types';
 
 function extractPaths(toolInput: Record<string, unknown>): string[] {
   const paths: string[] = [];
@@ -33,26 +27,57 @@ function extractFreeText(toolInput: Record<string, unknown>): string {
   return parts.join(' ');
 }
 
-export function extractQuery(toolName: string, toolInput: Record<string, unknown>): ExtractedWikiQuery {
+function buildPathPrefixes(paths: string[]): string[] {
+  const prefixSet = new Set<string>();
+  for (const p of paths) {
+    const normalized = p.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
+    // Build all directory-level prefixes (exclude the filename itself)
+    for (let i = 1; i < parts.length; i++) {
+      prefixSet.add('/' + parts.slice(0, i).join('/'));
+    }
+  }
+  return Array.from(prefixSet);
+}
+
+export function extractQuery(
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  config?: WikiConfig,
+): ExtractedWikiQuery {
   const safeInput = toolInput && typeof toolInput === 'object' ? toolInput : {};
+  const stopwords = new Set(config?.stopwords ?? []);
 
   try {
     const paths = extractPaths(safeInput);
+    const pathPrefixes = buildPathPrefixes(paths);
     const freeText = extractFreeText(safeInput);
 
-    const allText = [...paths, freeText].join(' ');
-    const allTokens = tokenize(allText);
+    // For Bash, do not derive symbols from paths (commands are not file paths)
+    const isBash = toolName === 'Bash';
+    const symbols: string[] = isBash
+      ? []
+      : paths.flatMap((p) => {
+          const base = path.basename(p, path.extname(p));
+          return tokenize(base, stopwords);
+        });
 
-    const symbols = paths.flatMap((p) => {
-      const base = (p.split(/[/\\]/).pop() ?? '').replace(/\.[^.]+$/, '');
-      return tokenize(base);
-    });
+    const rawFreeTextTokens = tokenize(freeText, stopwords);
+    // Dedupe preserving order, cap at top-20 unique
+    const seen = new Set<string>();
+    const freeTextTokens: string[] = [];
+    for (const t of rawFreeTextTokens) {
+      if (!seen.has(t)) {
+        seen.add(t);
+        freeTextTokens.push(t);
+        if (freeTextTokens.length === 20) break;
+      }
+    }
 
-    const termSet = new Set([...allTokens]);
-    const terms = [...termSet];
+    const terms = Array.from(new Set([...symbols, ...freeTextTokens]));
 
-    return { toolName, paths, symbols, freeText, terms };
+    return { toolName, paths, pathPrefixes, symbols, freeText, freeTextTokens, terms };
   } catch {
-    return { toolName, paths: [], symbols: [], freeText: '', terms: [] };
+    return { toolName, paths: [], pathPrefixes: [], symbols: [], freeText: '', freeTextTokens: [], terms: [] };
   }
 }

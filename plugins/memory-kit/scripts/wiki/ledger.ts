@@ -36,14 +36,14 @@ export function readLedger(ledgerPath: string, sessionId: string | null): WikiLe
   }
 }
 
-export function wasInjected(ledger: WikiLedger, slug: string): boolean {
-  return Object.prototype.hasOwnProperty.call(ledger.injected, slug);
+export function wasInjected(ledger: WikiLedger, slug: string, queryHash: string): boolean {
+  return Object.prototype.hasOwnProperty.call(ledger.injected, `${slug}:${queryHash}`);
 }
 
-export function markInjected(ledger: WikiLedger, slug: string): WikiLedger {
+export function markInjected(ledger: WikiLedger, slug: string, queryHash: string): WikiLedger {
   return {
     ...ledger,
-    injected: { ...ledger.injected, [slug]: new Date().toISOString() },
+    injected: { ...ledger.injected, [`${slug}:${queryHash}`]: new Date().toISOString() },
   };
 }
 

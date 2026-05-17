@@ -19,6 +19,8 @@ function makeHit(overrides: MakeHitOverrides = {}): WikiHit {
     keyDecisions: ['Use JWT with 1h expiry', 'PKCE for mobile clients', 'Refresh via httpOnly cookie'],
     edgeCases: ['Token expiry during long ops', 'Concurrent refresh race'],
     bodyText: 'auth service manages jwt tokens',
+    termFreq: { auth: 1, service: 1, jwt: 1, token: 1 },
+    bodyLength: 5,
     ...pageOverrides,
   };
   return {
@@ -26,7 +28,17 @@ function makeHit(overrides: MakeHitOverrides = {}): WikiHit {
     category: page.category,
     path: page.path,
     score: 10,
-    breakdown: { filename: 2, heading: 1, keyDecision: 1, body: 1, status: 2, staleness: 0 },
+    breakdown: {
+      anchorExactPath: 0,
+      anchorExactSymbol: 0,
+      filenameBM25: 2,
+      headingBM25: 1,
+      keyDecisionBM25: 1,
+      bodyBM25: 1,
+      statusBoost: 2,
+      stalenessPenalty: 0,
+      strongSignal: true,
+    },
     page,
     ...hitOverrides,
   };

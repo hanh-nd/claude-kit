@@ -7,11 +7,15 @@ import { KIT_PATH, PROJECT_DIR } from './constants.js';
 import { getWikiConfig, loadSettings, noOp, runWhenInvoked } from './utils.js';
 import { extractQuery } from './wiki/extract-query.js';
 import { formatHit } from './wiki/format-hit.js';
+import { applyMarginGate, applyStrongSignalGate, applyThresholdGate } from './wiki/gates.js';
+import { loadOrBuildIndex } from './wiki/index-cache.js';
 import { markInjected, readLedger, wasInjected, writeLedger } from './wiki/ledger.js';
-import { loadAllPages } from './wiki/load-pages.js';
+import { markCooldown, isOnCooldown, readCooldown, writeCooldown } from './wiki/cooldown.js';
+import { queryHash } from './wiki/query-hash.js';
 import { scoreQuery } from './wiki/score-query.js';
+import { shouldRun } from './wiki/trigger-gate.js';
 import type { DebugDecision, MainResponse, WikiInjectOptions, WikiInjectStdin } from '@types';
-import type { Settings } from '@types';
+import type { Settings, WikiHit } from '@types';
 
 function appendDebugLog(decision: DebugDecision, wikiRoot: string, settings: Settings): void {
   try {
@@ -28,7 +32,6 @@ function appendDebugLog(decision: DebugDecision, wikiRoot: string, settings: Set
     const logFile = path.join(KIT_PATH, 'debug.log');
     const errorMessage = error instanceof Error ? error.message : String(error);
     fs.appendFileSync(logFile, JSON.stringify({ error: errorMessage }), 'utf8');
-    // ignore debug log errors
   }
 }
 
@@ -54,6 +57,7 @@ export async function main(stdinJSON: WikiInjectStdin, opts: WikiInjectOptions =
   try {
     const wikiRoot = opts.wikiRoot ?? path.join(KIT_PATH, 'wiki');
     const settings = opts.settings ?? loadSettings();
+    const config = getWikiConfig(settings);
 
     const toolName = stdinJSON?.tool_name;
     if (!toolName) return {};
@@ -61,65 +65,139 @@ export async function main(stdinJSON: WikiInjectStdin, opts: WikiInjectOptions =
     const toolInput = stdinJSON.tool_input ?? {};
     const sessionId = stdinJSON.session_id ?? null;
 
-    appendDebugLog({ decision: 'start', toolName, toolInput, sessionId }, wikiRoot, settings);
-
+    // FM-1: verify wiki root exists
     let wikiRootValid = false;
     try {
       wikiRootValid = fs.statSync(wikiRoot).isDirectory();
     } catch {
       wikiRootValid = false;
     }
+    if (!wikiRootValid) return {};
 
-    if (!wikiRootValid) {
+    // Phase 1: pre-check with empty anchor prefixes — avoids loading the index for
+    // shell/no-field denies (the common fast-reject path).
+    // The only case that needs a retry is a read-type tool whose file extension is not
+    // in CODE_EXTENSIONS but might be covered by an anchor-path prefix in the corpus.
+    const preGate = shouldRun(toolName, toolInput, new Set<string>(), config);
+    if (!preGate.allow && preGate.reason !== 'read-no-code-ext-or-anchor-prefix') {
+      appendDebugLog({ decision: 'gate-rejected', toolName, reason: preGate.reason }, wikiRoot, settings);
       return {};
     }
 
-    const query = extractQuery(toolName, toolInput);
-    if (query.terms.length === 0) {
+    // Load corpus index (always needed for scoring, and supplies anchor prefixes for phase 2)
+    const corpus = loadOrBuildIndex(wikiRoot, config);
+
+    // Phase 2: re-check only when the pre-gate was conditionally denied (read + no code ext)
+    if (!preGate.allow) {
+      const anchorPathPrefixes = new Set<string>(
+        corpus.pages.flatMap((e) =>
+          e.page.anchors.flatMap((a) => {
+            const parts = a.replace(/\\/g, '/').split('/').filter(Boolean);
+            const prefixes: string[] = [];
+            for (let i = 1; i < parts.length; i++) {
+              prefixes.push('/' + parts.slice(0, i).join('/'));
+            }
+            return prefixes;
+          }),
+        ),
+      );
+      const fullGate = shouldRun(toolName, toolInput, anchorPathPrefixes, config);
+      if (!fullGate.allow) {
+        appendDebugLog({ decision: 'gate-rejected', toolName, reason: fullGate.reason }, wikiRoot, settings);
+        return {};
+      }
+    }
+
+    const query = extractQuery(toolName, toolInput, config);
+
+    // FM-8: min query tokens gate
+    if (query.terms.length < config.minQueryTokens) {
+      appendDebugLog({ decision: 'min-query-tokens', toolName, reason: `terms=${query.terms.length} < min=${config.minQueryTokens}` }, wikiRoot, settings);
       return {};
     }
 
-    const pages = loadAllPages(wikiRoot);
-    if (pages.length === 0) {
-      return {};
-    }
+    const pages = corpus.pages.map((e) => e.page);
+    if (pages.length === 0) return {};
 
-    const hits = scoreQuery(query, pages);
+    // Pre-build slug→mtime lookup to avoid repeated O(n) scans below
+    const slugToMtime = new Map<string, number>(corpus.pages.map((e) => [e.slug, e.mtimeMs]));
+
+    let hits: WikiHit[] = scoreQuery(query, pages, corpus.idf, corpus.avgBodyLength, corpus.avgSlugLen, corpus.avgHeadingLen, corpus.avgKdLen);
+
+    // Gate: strong signal
+    hits = applyStrongSignalGate(hits);
     if (hits.length === 0) {
+      appendDebugLog({ decision: 'strong-signal-gate', toolName, reason: 'no strong-signal hits' }, wikiRoot, settings);
       return {};
     }
 
-    const wikiConfig = getWikiConfig(settings);
-    const topHit = hits[0];
-    if (topHit.score < wikiConfig.injectMinScore) {
-      appendDebugLog({
-        decision: 'score-below-threshold',
-        score: topHit.score,
-        threshold: wikiConfig.injectMinScore,
-        toolName,
-        slug: topHit.slug,
-      }, wikiRoot, settings);
+    // Gate: threshold
+    hits = applyThresholdGate(hits, config.injectMinScore);
+    if (hits.length === 0) {
+      appendDebugLog({ decision: 'threshold', toolName, reason: `below injectMinScore=${config.injectMinScore}` }, wikiRoot, settings);
       return {};
     }
 
+    // Gate: margin
+    hits = applyMarginGate(hits, config.injectMarginRatio);
+    if (hits.length === 0) {
+      appendDebugLog({ decision: 'margin', toolName, reason: `margin ratio < ${config.injectMarginRatio}` }, wikiRoot, settings);
+      return {};
+    }
+
+    const top3 = hits.slice(0, 3).map((h) => ({ slug: h.slug, score: h.score, breakdown: h.breakdown }));
+    const maxResults = Math.min(hits.length, config.injectMaxResults, 2);
+    const candidates = hits.slice(0, maxResults);
+
+    // Dedupe check
     const ledgerPath = path.join(wikiRoot, '.runtime', 'injected.json');
-    const ledger = readLedger(ledgerPath, sessionId);
+    const cooldownPath = path.join(wikiRoot, '.runtime', 'cooldown.json');
+    let sessionLedger = readLedger(ledgerPath, sessionId);
+    let cooldownLedger = readCooldown(cooldownPath, config.cooldownHours);
 
-    if (wasInjected(ledger, topHit.slug)) {
-      appendDebugLog({ decision: 'already-injected', toolName, slug: topHit.slug }, wikiRoot, settings);
+    const hash = queryHash(query);
+    const surviving: WikiHit[] = [];
+    for (const hit of candidates) {
+      const pageMtimeMs = slugToMtime.get(hit.slug) ?? 0;
+      if (wasInjected(sessionLedger, hit.slug, hash)) continue;
+      if (isOnCooldown(cooldownLedger, hit.slug, pageMtimeMs, config.cooldownHours)) continue;
+      surviving.push(hit);
+    }
+
+    if (surviving.length === 0) {
+      appendDebugLog({ decision: 'all-deduped', toolName, reason: 'session or cooldown blocked all candidates' }, wikiRoot, settings);
       return {};
     }
 
-    const snippet = formatHit(topHit, { projectRoot: PROJECT_DIR });
-    const updatedLedger = markInjected(ledger, topHit.slug);
-    writeLedger(ledgerPath, updatedLedger);
+    const snippets: string[] = [];
+    const injectedSlugs: string[] = [];
+    for (const hit of surviving) {
+      snippets.push(formatHit(hit, { projectRoot: PROJECT_DIR }));
+      injectedSlugs.push(hit.slug);
+      const pageMtimeMs = slugToMtime.get(hit.slug) ?? 0;
+      sessionLedger = markInjected(sessionLedger, hit.slug, hash);
+      cooldownLedger = markCooldown(cooldownLedger, hit.slug, hash, pageMtimeMs);
+    }
 
-    appendDebugLog({ decision: 'injected', toolName, slug: topHit.slug, score: topHit.score }, wikiRoot, settings);
+    writeLedger(ledgerPath, sessionLedger);
+    writeCooldown(cooldownPath, cooldownLedger);
+
+    appendDebugLog(
+      {
+        decision: 'injected',
+        toolName,
+        injectedSlugs,
+        top3,
+        breakdown: surviving[0]?.breakdown,
+      },
+      wikiRoot,
+      settings,
+    );
 
     return {
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
-        additionalContext: snippet,
+        additionalContext: snippets.join('\n\n'),
       },
     };
   } catch {
@@ -137,7 +215,6 @@ runWhenInvoked(import.meta.url, async () => {
   const stdinJSON = parseStdin(raw);
   if (!stdinJSON) {
     noOp();
-    return;
   }
 
   const result = await main(stdinJSON);

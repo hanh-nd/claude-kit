@@ -14,6 +14,7 @@ export type {
   WikiInjectStdin,
 } from './hooks.js';
 export type {
+  BashAllowlist,
   Settings,
   WikiConfig,
 } from './settings.js';
@@ -27,8 +28,12 @@ export type {
   Transcript,
 } from './transcript.js';
 export type {
+  CorpusIndex,
+  CooldownEntry,
+  CooldownLedger,
   ExtractedWikiQuery,
   PageStatus,
+  ParsedPageCacheEntry,
   ScoredWikiQuery,
   WikiHit,
   WikiLedger,

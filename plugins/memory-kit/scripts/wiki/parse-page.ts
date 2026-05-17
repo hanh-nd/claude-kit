@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { tokenize } from './tokenize.js';
 import type { PageStatus, WikiPage } from '@types';
 
 const BODY_LIMIT = 8192;
@@ -59,7 +60,13 @@ function deriveCategory(filePath: string): string {
   return 'concepts';
 }
 
-export function parsePageContent(content: string, slug: string, category: string, absolutePath: string): WikiPage {
+export function parsePageContent(
+  content: string,
+  slug: string,
+  category: string,
+  absolutePath: string,
+  stopwords: ReadonlySet<string> = new Set(),
+): WikiPage {
   const h1 = content.match(/^#\s+(.+)$/m);
   const title = h1 ? h1[1].trim() : slug;
 
@@ -80,6 +87,13 @@ export function parsePageContent(content: string, slug: string, category: string
 
   const bodyText = content.slice(0, BODY_LIMIT).toLowerCase();
 
+  const tokens = tokenize(bodyText, stopwords);
+  const termFreq: Record<string, number> = {};
+  for (const token of tokens) {
+    termFreq[token] = (termFreq[token] ?? 0) + 1;
+  }
+  const bodyLength = tokens.length;
+
   return {
     slug,
     category,
@@ -92,15 +106,17 @@ export function parsePageContent(content: string, slug: string, category: string
     keyDecisions,
     edgeCases,
     bodyText,
+    termFreq,
+    bodyLength,
   };
 }
 
-export function parsePage(absolutePath: string): WikiPage | null {
+export function parsePage(absolutePath: string, stopwords: ReadonlySet<string> = new Set()): WikiPage | null {
   try {
     const content = fs.readFileSync(absolutePath, 'utf8');
     const slug = path.basename(absolutePath, '.md');
     const category = deriveCategory(absolutePath);
-    return parsePageContent(content, slug, category, absolutePath);
+    return parsePageContent(content, slug, category, absolutePath, stopwords);
   } catch {
     return null;
   }

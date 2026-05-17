@@ -1,11 +1,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { loadOrBuildIndex } from './index-cache.js';
 import { parsePage } from './parse-page.js';
-import type { WikiPage } from '@types';
+import type { WikiConfig, WikiPage } from '@types';
 
-const COMPILED_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences'];
+export function loadAllPages(wikiRoot: string, config?: WikiConfig): WikiPage[] {
+  if (config) {
+    const index = loadOrBuildIndex(wikiRoot, config);
+    const pages = index.pages.map((e) => e.page);
 
-export function loadAllPages(wikiRoot: string): WikiPage[] {
+    if (pages.length === 0) {
+      const inboxPath = path.join(wikiRoot, 'raw', 'inbox.md');
+      const inboxPage = parsePage(inboxPath, new Set(config.stopwords));
+      if (inboxPage) return [inboxPage];
+    }
+
+    return pages;
+  }
+
+  // Fallback path when called without config (for backward compat with existing tests)
+  const COMPILED_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences'];
   const pages: WikiPage[] = [];
 
   for (const category of COMPILED_CATEGORIES) {

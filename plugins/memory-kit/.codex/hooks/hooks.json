@@ -9,23 +9,6 @@
             "command": "node ${CODEX_PLUGIN_ROOT}/scripts/kit-init.js",
             "statusMessage": "Initializing Memory Kit",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/inject-wiki-instructions.js",
-            "statusMessage": "Injecting memory-kit wiki instructions",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/inject-wiki-instructions.js",
-            "statusMessage": "Injecting memory-kit wiki instructions",
-            "timeout": 5
           }
         ]
       }
@@ -53,20 +36,6 @@
             "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
             "description": "Export transcript to wiki before /compact",
             "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "inject-wiki-instructions",
-            "type": "command",
-            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/inject-wiki-instructions.js",
-            "description": "Inject memory-kit wiki instructions after /compact",
-            "timeout": 5000
           }
         ]
       }

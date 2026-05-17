@@ -10,25 +10,6 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/kit-init.js",
             "description": "Initialize Memory-Kit",
             "timeout": 10000
-          },
-          {
-            "name": "inject-wiki-instructions",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/inject-wiki-instructions.js",
-            "description": "Inject memory-kit wiki instructions at session start",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "clear",
-        "hooks": [
-          {
-            "name": "inject-wiki-instructions",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/inject-wiki-instructions.js",
-            "description": "Inject memory-kit wiki instructions after /clear",
-            "timeout": 5000
           }
         ]
       }

@@ -54,12 +54,12 @@ describe('readLedger', () => {
     const existingLedger = {
       sessionId: 'my-session',
       startedAt: '2025-01-01T00:00:00Z',
-      injected: { 'auth-service': '2025-01-01T00:00:00Z' },
+      injected: { 'auth-service:hash123': '2025-01-01T00:00:00Z' },
     };
     fs.writeFileSync(ledgerPath, JSON.stringify(existingLedger), 'utf8');
     try {
       const ledger = readLedger(ledgerPath, 'my-session');
-      assert.ok(wasInjected(ledger, 'auth-service'));
+      assert.ok(wasInjected(ledger, 'auth-service', 'hash123'));
     } finally {
       cleanup();
     }
@@ -74,26 +74,47 @@ describe('readLedger', () => {
 describe('wasInjected', () => {
   test('returns false when key not in ledger', () => {
     const ledger = { sessionId: 'sess', startedAt: '', injected: {} };
-    assert.equal(wasInjected(ledger, 'auth-service'), false);
+    assert.equal(wasInjected(ledger, 'auth-service', 'hash123'), false);
   });
 
   test('returns true when key is in ledger', () => {
-    const ledger = { sessionId: 'sess', startedAt: '', injected: { 'auth-service': '2025-01-01T00:00:00Z' } };
-    assert.equal(wasInjected(ledger, 'auth-service'), true);
+    const ledger = { sessionId: 'sess', startedAt: '', injected: { 'auth-service:hash123': '2025-01-01T00:00:00Z' } };
+    assert.equal(wasInjected(ledger, 'auth-service', 'hash123'), true);
+  });
+
+  test('same slug + different hash → not injected', () => {
+    const ledger = { sessionId: 'sess', startedAt: '', injected: { 'auth-service:hash123': '2025-01-01T00:00:00Z' } };
+    assert.equal(wasInjected(ledger, 'auth-service', 'different-hash'), false);
   });
 });
 
 describe('markInjected', () => {
   test('adds new key to injected map', () => {
     const ledger = { sessionId: 'sess', startedAt: '', injected: {} };
-    const updated = markInjected(ledger, 'auth-service');
-    assert.ok(wasInjected(updated, 'auth-service'));
+    const updated = markInjected(ledger, 'auth-service', 'hash123');
+    assert.ok(wasInjected(updated, 'auth-service', 'hash123'));
   });
 
   test('does not mutate original ledger', () => {
     const ledger = { sessionId: 'sess', startedAt: '', injected: {} };
-    markInjected(ledger, 'auth-service');
+    markInjected(ledger, 'auth-service', 'hash123');
     assert.deepEqual(ledger.injected, {});
+  });
+
+  test('same slug + different hash → both inject independently', () => {
+    let ledger = { sessionId: 'sess', startedAt: '', injected: {} };
+    ledger = markInjected(ledger, 'auth-service', 'hash-a');
+    ledger = markInjected(ledger, 'auth-service', 'hash-b');
+    assert.ok(wasInjected(ledger, 'auth-service', 'hash-a'));
+    assert.ok(wasInjected(ledger, 'auth-service', 'hash-b'));
+  });
+
+  test('same slug + same hash → second wasInjected returns true (dedup)', () => {
+    let ledger = { sessionId: 'sess', startedAt: '', injected: {} };
+    ledger = markInjected(ledger, 'auth-service', 'hash123');
+    assert.ok(wasInjected(ledger, 'auth-service', 'hash123'));
+    // Attempting to inject again: wasInjected should block
+    assert.ok(wasInjected(ledger, 'auth-service', 'hash123'));
   });
 });
 
@@ -101,11 +122,11 @@ describe('writeLedger', () => {
   test('creates ledger file with correct content (C9)', () => {
     const { dir, cleanup } = makeTmpDir();
     const ledgerPath = path.join(dir, 'injected.json');
-    const ledger = { sessionId: 'sess', startedAt: '2025-01-01T00:00:00Z', injected: { 'auth-service': '2025-01-01T00:00:00Z' } };
+    const ledger = { sessionId: 'sess', startedAt: '2025-01-01T00:00:00Z', injected: { 'auth-service:hash123': '2025-01-01T00:00:00Z' } };
     try {
       writeLedger(ledgerPath, ledger);
       const saved = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'));
-      assert.ok('auth-service' in saved.injected);
+      assert.ok('auth-service:hash123' in saved.injected);
     } finally {
       cleanup();
     }
@@ -128,7 +149,7 @@ describe('writeLedger', () => {
     const ledgerPath = path.join(dir, 'injected.json');
     try {
       for (let i = 0; i < 5; i++) {
-        const ledger = { sessionId: 'sess', startedAt: '2025-01-01T00:00:00Z', injected: { [`slug-${i}`]: new Date().toISOString() } };
+        const ledger = { sessionId: 'sess', startedAt: '2025-01-01T00:00:00Z', injected: { [`slug-${i}:hash${i}`]: new Date().toISOString() } };
         writeLedger(ledgerPath, ledger);
       }
       const content = fs.readFileSync(ledgerPath, 'utf8');

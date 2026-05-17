@@ -7,10 +7,11 @@ import { main } from './wiki-inject-context.js';
 import type { Settings } from '@types';
 import type { WikiInjectStdin } from '@types';
 
-const CORPUS_SIZE = 500;
+const CORPUS_SIZE = 100;
 const PAYLOAD_COUNT = 10;
 const ITERATIONS = 100;
-const P95_LIMIT_MS = 150;
+const P95_LIMIT_MS = 50;
+const P95_LIMIT_MS_WARM = 10;
 
 function buildSyntheticPage(index: number): string {
   const slug = `page-${index}`;
@@ -55,14 +56,14 @@ function buildPayloads(): WikiInjectStdin[] {
   return [
     { tool_name: 'Read', tool_input: { file_path: '/project/anchor-42.js' }, session_id: 'bench-session' },
     { tool_name: 'Edit', tool_input: { file_path: '/project/module-17.ts', new_string: 'export function pageHelper() {}' }, session_id: 'bench-session' },
-    { tool_name: 'Write', tool_input: { file_path: '/project/anchor-100.js', content: 'const x = 1;' }, session_id: 'bench-session' },
-    { tool_name: 'Grep', tool_input: { pattern: 'anchor-200', path: '/project' }, session_id: 'bench-session' },
+    { tool_name: 'Write', tool_input: { file_path: '/project/anchor-10.js', content: 'const x = 1;' }, session_id: 'bench-session' },
     { tool_name: 'Bash', tool_input: { command: 'ls /project' }, session_id: 'bench-session' },
-    { tool_name: 'Read', tool_input: { file_path: '/project/page-300.md' }, session_id: 'bench-session' },
-    { tool_name: 'Glob', tool_input: { pattern: '**/*.ts', path: '/project' }, session_id: 'bench-session' },
-    { tool_name: 'Edit', tool_input: { file_path: '/project/anchor-5.js', new_string: 'module-5 helper' }, session_id: 'bench-session' },
-    { tool_name: 'Read', tool_input: { file_path: '/project/page-50.md' }, session_id: 'bench-session' },
-    { tool_name: 'Bash', tool_input: { command: 'node scripts/build.js' }, session_id: 'bench-session' },
+    { tool_name: 'Read', tool_input: { file_path: '/project/module-30.ts' }, session_id: 'bench-session' },
+    { tool_name: 'Edit', tool_input: { file_path: '/project/anchor-5.js', new_string: 'module-5 helper function for page 5' }, session_id: 'bench-session' },
+    { tool_name: 'Read', tool_input: { file_path: '/project/anchor-50.js' }, session_id: 'bench-session' },
+    { tool_name: 'Write', tool_input: { file_path: '/project/module-60.ts', content: 'export class PageService {}' }, session_id: 'bench-session' },
+    { tool_name: 'Edit', tool_input: { file_path: '/project/module-25.ts', new_string: 'decision alpha beta gamma' }, session_id: 'bench-session' },
+    { tool_name: 'Read', tool_input: { file_path: '/project/anchor-80.js' }, session_id: 'bench-session' },
   ];
 }
 
@@ -81,34 +82,65 @@ async function runBench(): Promise<void> {
     const wikiRoot = path.join(tmpDir, 'wiki');
     const settings: Settings = { wiki: { injectMinScore: 5.0 } };
 
-    console.log(`Running ${ITERATIONS} iterations × ${PAYLOAD_COUNT} payloads...`);
-    const timings: number[] = [];
+    console.log(`Running cold pass: ${ITERATIONS} iterations × ${PAYLOAD_COUNT} payloads (${CORPUS_SIZE}-page corpus)...`);
+    const coldTimings: number[] = [];
 
     for (let iter = 0; iter < ITERATIONS; iter++) {
       for (const payload of payloads) {
         const start = performance.now();
-        await main({ ...payload, session_id: `session-${iter}` }, { wikiRoot, settings });
-        timings.push(performance.now() - start);
+        await main({ ...payload, session_id: `session-cold-${iter}` }, { wikiRoot, settings });
+        coldTimings.push(performance.now() - start);
       }
     }
 
-    timings.sort((a, b) => a - b);
-    const p95 = percentile(timings, 95);
-    const p50 = percentile(timings, 50);
-    const maxTime = timings[timings.length - 1];
+    coldTimings.sort((a, b) => a - b);
+    const p95Cold = percentile(coldTimings, 95);
+    const p50Cold = percentile(coldTimings, 50);
 
-    console.log(`Results (${timings.length} samples):`);
-    console.log(`  p50: ${p50.toFixed(2)} ms`);
-    console.log(`  p95: ${p95.toFixed(2)} ms`);
-    console.log(`  max: ${maxTime.toFixed(2)} ms`);
-    console.log(`  limit: ${P95_LIMIT_MS} ms`);
+    console.log(`Cold results (${coldTimings.length} samples):`);
+    console.log(`  p50: ${p50Cold.toFixed(2)} ms`);
+    console.log(`  p95: ${p95Cold.toFixed(2)} ms  (limit: ${P95_LIMIT_MS} ms)`);
+    console.log(`  max: ${coldTimings[coldTimings.length - 1].toFixed(2)} ms`);
 
-    if (p95 > P95_LIMIT_MS) {
-      console.error(`FAIL: p95 ${p95.toFixed(2)} ms exceeds ${P95_LIMIT_MS} ms limit`);
-      process.exit(1);
+    // Warm pass — re-run same payloads with same session so cache is warm
+    console.log(`\nRunning warm pass: ${ITERATIONS} iterations × ${PAYLOAD_COUNT} payloads...`);
+    const warmTimings: number[] = [];
+    const warmSession = 'session-warm';
+
+    // Prime the session ledger + cooldown ledger for warmSession so the warm loop hits the dedup fast-exit path
+    for (const payload of payloads) {
+      await main({ ...payload, session_id: warmSession }, { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } });
     }
 
-    console.log(`PASS: p95 ${p95.toFixed(2)} ms <= ${P95_LIMIT_MS} ms`);
+    for (let iter = 0; iter < ITERATIONS; iter++) {
+      for (const payload of payloads) {
+        const start = performance.now();
+        await main({ ...payload, session_id: warmSession }, { wikiRoot, settings });
+        warmTimings.push(performance.now() - start);
+      }
+    }
+
+    warmTimings.sort((a, b) => a - b);
+    const p95Warm = percentile(warmTimings, 95);
+    const p50Warm = percentile(warmTimings, 50);
+
+    console.log(`Warm results (${warmTimings.length} samples):`);
+    console.log(`  p50: ${p50Warm.toFixed(2)} ms`);
+    console.log(`  p95: ${p95Warm.toFixed(2)} ms  (limit: ${P95_LIMIT_MS_WARM} ms)`);
+    console.log(`  max: ${warmTimings[warmTimings.length - 1].toFixed(2)} ms`);
+
+    let failed = false;
+    if (p95Cold > P95_LIMIT_MS) {
+      console.error(`\nFAIL: cold p95 ${p95Cold.toFixed(2)} ms exceeds ${P95_LIMIT_MS} ms limit`);
+      failed = true;
+    }
+    if (p95Warm > P95_LIMIT_MS_WARM) {
+      console.error(`FAIL: warm p95 ${p95Warm.toFixed(2)} ms exceeds ${P95_LIMIT_MS_WARM} ms limit`);
+      failed = true;
+    }
+    if (failed) process.exit(1);
+
+    console.log(`\nPASS: cold p95 ${p95Cold.toFixed(2)} ms <= ${P95_LIMIT_MS} ms, warm p95 ${p95Warm.toFixed(2)} ms <= ${P95_LIMIT_MS_WARM} ms`);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
