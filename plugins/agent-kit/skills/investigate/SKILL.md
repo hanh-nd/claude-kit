@@ -89,9 +89,10 @@ The root cause is the earliest actionable trigger inside the codebase or its con
 
 ---
 
-## Phase 4: Report
+## Phase 4: Persist & Handoff
 
-Write the Investigation Report immediately after a hypothesis is confirmed or after the 3-strike rule triggers.
+1. **Constraint check.** Verify no source code changes remain from temporary investigation probes.
+2. **Persist the report immediately** Call `kit_save_handoff(type: "investigation", content: <full investigation report markdown below>, slug: <short-issue-slug>)`.
 
 ```
 # 🔍 INVESTIGATION REPORT: [Short Descriptive Title]
@@ -163,6 +164,25 @@ Write the Investigation Report immediately after a hypothesis is confirmed or af
 - `CONFIRMED` — root cause traced to a specific condition and confirmed with direct evidence.
 - `PROBABLE` — strong hypothesis supported by circumstantial evidence but not fully reproducible (e.g., intermittent issue, restricted environment).
 - `INCONCLUSIVE` — 3-strike rule triggered; hypotheses exhausted without confirmation; report documents what was ruled out.
+
+3. **Present execution menu** for `CONFIRMED` or `PROBABLE` reports:
+
+```
+✅ Investigation saved → `<returned-path>`
+
+What would you like to do next?
+
+1) Execute fix now  — Start /code with this Investigation Report
+2) Done             — No further action
+```
+
+If status is `INCONCLUSIVE`, still save the report, but output only:
+
+```
+✅ Investigation saved → `<returned-path>`
+
+Status is INCONCLUSIVE. Continue investigation before implementation.
+```
 
 ---
 
