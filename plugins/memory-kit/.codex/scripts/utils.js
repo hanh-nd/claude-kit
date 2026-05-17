@@ -1,8 +1,6 @@
-import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { KIT_PATH } from './constants.js';
 export function runWhenInvoked(importMetaUrl, fn) {
     if (!process.argv[1])
         return;
@@ -18,64 +16,6 @@ export function noOp() {
 }
 function isRecord(value) {
     return typeof value === 'object' && value !== null;
-}
-export function loadSettings() {
-    try {
-        const settingsPath = path.join(KIT_PATH, 'settings.json');
-        if (fs.existsSync(settingsPath)) {
-            const parsed = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-            return isRecord(parsed) ? parsed : {};
-        }
-    }
-    catch {
-        // Fall through to defaults on parse error
-    }
-    return {};
-}
-export function getWikiConfig(settings) {
-    const w = isRecord(settings.wiki) ? settings.wiki : {};
-    let injectMaxResults = typeof w.injectMaxResults === 'number' ? w.injectMaxResults : 1;
-    if (injectMaxResults < 1)
-        injectMaxResults = 1;
-    if (injectMaxResults > 2)
-        injectMaxResults = 2; // hard cap: injecting more risks overwhelming the context window
-    return {
-        injectMinScore: typeof w.injectMinScore === 'number' ? w.injectMinScore : 5.0,
-        debug: w.debug === true,
-        injectMarginRatio: typeof w.injectMarginRatio === 'number' ? w.injectMarginRatio : 1.5,
-        injectMaxResults,
-        minQueryTokens: typeof w.minQueryTokens === 'number' ? w.minQueryTokens : 2,
-        cacheEnabled: w.cacheEnabled === false ? false : true,
-        bashAllowlist: isRecord(w.bashAllowlist) &&
-            (w.bashAllowlist.mode === 'denylist' || w.bashAllowlist.mode === 'allowlist') &&
-            Array.isArray(w.bashAllowlist.patterns)
-            ? {
-                mode: w.bashAllowlist.mode,
-                patterns: w.bashAllowlist.patterns.filter((p) => typeof p === 'string'),
-            }
-            : {
-                mode: 'denylist',
-                patterns: [
-                    '^ls(\\s|$)',
-                    '^pwd(\\s|$)',
-                    '^echo(\\s|$)',
-                    '^cd(\\s|$)',
-                    '^cat(\\s|$)',
-                    '^git\\s+(status|log|diff|branch|show)(\\s|$)',
-                ],
-            },
-        stopwords: Array.isArray(w.stopwords)
-            ? w.stopwords.filter((v) => typeof v === 'string')
-            : ['the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'onto'],
-    };
-}
-export function spawnBackground(scriptUrl, args = []) {
-    const scriptPath = scriptUrl instanceof URL ? fileURLToPath(scriptUrl) : fileURLToPath(new URL(scriptUrl));
-    const child = spawn(process.execPath, [scriptPath, ...args], {
-        detached: true,
-        stdio: 'ignore',
-    });
-    child.unref();
 }
 export function parseTranscript(transcriptPath) {
     if (transcriptPath.includes('.codex')) {
@@ -122,10 +62,7 @@ function parseCodexTranscript(transcriptPath) {
                     continue;
                 const contentText = extractContentText(payload.content);
                 if (contentText) {
-                    messages.push({
-                        role: payload.role,
-                        content: contentText,
-                    });
+                    messages.push({ role: payload.role, content: contentText });
                 }
             }
             catch {
@@ -135,9 +72,8 @@ function parseCodexTranscript(transcriptPath) {
         return { messages };
     }
     catch (error) {
-        if (error instanceof Error) {
+        if (error instanceof Error)
             console.error('Failed to parse Codex transcript:', error.message);
-        }
         return { messages: [] };
     }
 }
@@ -153,42 +89,34 @@ function parseClaudeTranscript(transcriptPath) {
                 const entry = JSON.parse(line);
                 if (!isRecord(entry))
                     continue;
-                // Only process user and assistant messages
                 if (entry.type === 'user' || entry.type === 'assistant') {
                     const msg = entry.message;
                     if (isRecord(msg) && (msg.role === 'user' || msg.role === 'assistant') && msg.content) {
-                        // Handle content that can be string or array of content blocks
                         let contentText = '';
                         if (typeof msg.content === 'string') {
                             contentText = msg.content;
                         }
                         else if (Array.isArray(msg.content)) {
-                            // Extract text from content blocks
                             contentText = msg.content
                                 .filter((block) => isRecord(block) && block.type === 'text')
                                 .map((block) => block.text ?? '')
                                 .join('\n');
                         }
                         if (contentText) {
-                            messages.push({
-                                role: msg.role,
-                                content: contentText,
-                            });
+                            messages.push({ role: msg.role, content: contentText });
                         }
                     }
                 }
             }
             catch {
-                // Skip malformed lines
                 continue;
             }
         }
         return { messages };
     }
     catch (error) {
-        if (error instanceof Error) {
+        if (error instanceof Error)
             console.error('Failed to parse transcript:', error.message);
-        }
         return { messages: [] };
     }
 }
@@ -217,24 +145,28 @@ function parseGeminiTranscript(transcriptPath) {
                             .join('\n');
                     }
                     if (contentText) {
-                        messages.push({
-                            role: msg.type,
-                            content: contentText,
-                        });
+                        messages.push({ role: msg.type, content: contentText });
                     }
                 }
             }
             catch {
-                // Skip malformed lines
                 continue;
             }
         }
         return { messages };
     }
     catch (error) {
-        if (error instanceof Error) {
-            console.error('Failed to parse transcript:', error.message);
-        }
+        if (error instanceof Error)
+            console.error('Failed to parse Gemini transcript:', error.message);
         return { messages: [] };
     }
+}
+export function readdirSorted(dir) {
+    if (!fs.existsSync(dir))
+        return [];
+    return fs
+        .readdirSync(dir)
+        .filter((f) => f.endsWith('.md'))
+        .sort()
+        .map((f) => path.join(dir, f));
 }

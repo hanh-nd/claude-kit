@@ -1,10 +1,38 @@
 {
   "name": "memory-kit",
   "version": "1.0.0",
-  "description": "Persistent context and knowledge base for AI Agents",
+  "description": "Memory Kit - Persistent context and knowledge base for AI Agents",
   "author": {
-    "name": "hanhnd"
+    "name": "hanhnd",
+    "url": "https://github.com/hanh-nd"
   },
-  "keywords": ["memory", "wiki", "knowledge"],
-  "hooks": "./hooks/hooks.json"
+  "homepage": "https://github.com/hanh-nd/agent-kit/tree/main/plugins/memory-kit",
+  "repository": "https://github.com/hanh-nd/agent-kit",
+  "keywords": [
+    "memory",
+    "context",
+    "knowledge",
+    "persistence"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Memory Kit",
+    "shortDescription": "Persistent context and knowledge base for AI Agents",
+    "longDescription": "Memory Kit is a memory management system for AI agents that allows them to store and retrieve information from past conversations and experiences. It uses a combination of vector embeddings and semantic search to find relevant information and provides a simple API for agents to interact with their memory.",
+    "developerName": "hanhnd",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "MCP"
+    ],
+    "websiteURL": "https://github.com/hanh-nd/agent-kit",
+    "defaultPrompt": [
+      "Use Memory Kit to retrieve relevant context from past conversations.",
+      "Use Memory Kit to store key insights from this session."
+    ],
+    "brandColor": "#10A37F"
+  }
 }

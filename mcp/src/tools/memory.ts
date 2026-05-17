@@ -1,0 +1,96 @@
+import * as path from 'path';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { Embedder } from '../memory/embedder.js';
+import { MemoryIndexer } from '../memory/indexer.js';
+import { MemoryStore } from '../memory/store.js';
+import type { MemoryConfig } from '../memory/types.js';
+import { mcpJson, mcpText } from '../utils/utils.js';
+import { resolveMemoryConfig, type ProjectSettings } from './config.js';
+
+/**
+ * Registers tool handlers onto an already-constructed indexer/store pair.
+ * Exported for unit testing with mocks.
+ */
+export function registerMemoryToolHandlers(
+  server: McpServer,
+  indexer: MemoryIndexer,
+  store: MemoryStore,
+  config: MemoryConfig,
+): void {
+  server.tool(
+    'kit_memory_search',
+    'Search persistent memory for context relevant to the current question. Returns semantically relevant results using hybrid dense+BM25+RRF search.',
+    {
+      query: z.string().min(1).describe('Search query'),
+      top_k: z.number().int().positive().optional().describe('Number of results to return'),
+    },
+    async ({ query, top_k }) => {
+      try {
+        const results = await indexer.search(query, top_k ?? config.topK);
+
+        if (results.length === 0) {
+          const degradedNote = !store.vecAvailable
+            ? '⚠️ Vector search unavailable — showing keyword-only results.\n\n'
+            : '';
+          return mcpText(`${degradedNote}No memories found for query: "${query}"`);
+        }
+
+        const degradedNote = !store.vecAvailable
+          ? '⚠️ Vector search unavailable — showing keyword-only results.\n\n'
+          : '';
+
+        const formatted = results
+          .map((r) => {
+            const heading = r.chunk.heading ? `[${r.chunk.heading}]` : '[No Heading]';
+            return `### ${heading} (score: ${r.score.toFixed(3)})\n${r.chunk.content}\n_Source: ${r.chunk.source}_`;
+          })
+          .join('\n\n---\n\n');
+
+        return mcpText(`${degradedNote}${formatted}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return mcpText(`kit_memory_search failed: ${message}`);
+      }
+    },
+  );
+
+  server.tool(
+    'kit_memory_save',
+    "Append content to today's memory file and index it immediately.",
+    {
+      content: z.string().min(1).describe('Content to save to memory'),
+    },
+    async ({ content }) => {
+      try {
+        const stats = await indexer.save(content);
+        return mcpJson({ saved: true, chunks_indexed: stats.indexed, chunks_deleted: stats.deleted });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return mcpJson({ saved: false, error: message });
+      }
+    },
+  );
+}
+
+/**
+ * Initializes the memory subsystem and registers all memory tools.
+ * Returns the MemoryIndexer so the caller can fire startupIndex() after server.connect().
+ * Returns null when memory is disabled (settings.memory.enabled !== true).
+ */
+export function registerMemoryTools(
+  server: McpServer,
+  settings: ProjectSettings,
+  workspaceRoot: string,
+): MemoryIndexer | null {
+  if (settings.memory?.enabled !== true) return null;
+
+  const config = resolveMemoryConfig(settings, workspaceRoot);
+  const store = new MemoryStore(path.join(config.memoryDir, 'index.db'), config);
+  const embedder = new Embedder(config.embeddingModel);
+  const indexer = new MemoryIndexer(store, embedder, config);
+
+  registerMemoryToolHandlers(server, indexer, store, config);
+
+  return indexer;
+}

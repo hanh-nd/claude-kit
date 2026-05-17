@@ -9,10 +9,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-// Import modular tool registrations
 import { registerCoreTools } from './tools/core.js';
 import { registerAgentTools } from './tools/agent.js';
 import { registerIntegrationTools } from './tools/integration.js';
+import { loadProjectSettings } from './tools/config.js';
+import { registerMemoryTools } from './tools/memory.js';
+import { getWorkspaceRoot } from './utils/utils.js';
 
 const server = new McpServer({
   name: 'kit-agents',
@@ -23,9 +25,12 @@ const server = new McpServer({
 // REGISTER MODULAR TOOLS
 // ═══════════════════════════════════════════════════════════════
 
-registerIntegrationTools(server); // Bitbucket, Jira tools (REST API)
-registerCoreTools(server); // Extension info, handoff persistence
-registerAgentTools(server); // Gemini/Claude CLI delegation
+registerIntegrationTools(server);
+registerCoreTools(server);
+registerAgentTools(server);
+
+const settings = loadProjectSettings(getWorkspaceRoot());
+const memoryIndexer = registerMemoryTools(server, settings, getWorkspaceRoot());
 
 // ═══════════════════════════════════════════════════════════════
 // START SERVER
@@ -33,3 +38,8 @@ registerAgentTools(server); // Gemini/Claude CLI delegation
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
+
+// Fire-and-forget startup indexing — must run after server.connect
+if (memoryIndexer) {
+  void memoryIndexer.startupIndex();
+}

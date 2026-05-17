@@ -6,50 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/kit-init.js",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/kit-init.js",
             "statusMessage": "Initializing Memory Kit",
             "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CODEX_PLUGIN_ROOT}/scripts/wiki-inject-context.js",
-            "statusMessage": "Injecting relevant wiki context",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "export-history",
-            "type": "command",
-            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
-            "description": "Export transcript to wiki before /compact",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "kit-wiki-inbox",
-            "type": "command",
-            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/wiki-inbox-append.js",
-            "description": "Log kit_save_handoff calls to wiki inbox",
-            "timeout": 5000
           }
         ]
       }
@@ -59,11 +18,10 @@
         "matcher": "",
         "hooks": [
           {
-            "name": "export-history",
             "type": "command",
-            "command": "node \"${CODEX_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
-            "description": "Export transcript to wiki on session exit",
-            "timeout": 10000
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/kit-session-end.js",
+            "statusMessage": "Saving session summary to memory",
+            "timeout": 30
           }
         ]
       }

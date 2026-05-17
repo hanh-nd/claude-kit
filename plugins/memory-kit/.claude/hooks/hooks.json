@@ -2,70 +2,24 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup",
         "hooks": [
           {
             "name": "memory-kit-init",
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/kit-init.js",
-            "description": "Initialize Memory-Kit",
             "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "wiki-inject-context",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/wiki-inject-context.js",
-            "description": "Inject relevant wiki context before tool execution",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "export-history",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
-            "description": "Export transcript to wiki before /compact",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "name": "kit-wiki-inbox",
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/wiki-inbox-append.js",
-            "description": "Log kit_save_handoff calls to wiki inbox",
-            "timeout": 5000
           }
         ]
       }
     ],
     "SessionEnd": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "name": "export-history",
+            "name": "memory-kit-session-end",
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/export-conversation-history.js",
-            "description": "Export transcript to wiki on session exit",
-            "timeout": 10000
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/kit-session-end.js",
+            "timeout": 30000
           }
         ]
       }

@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_MEMORY_CONFIG, type MemoryConfig } from '../memory/types.js';
 
 /**
  * Default file extensions - expanded to support more languages
@@ -39,7 +40,26 @@ export const DEFAULT_EXTENSIONS = [
  */
 export interface ProjectSettings {
   fileExtensions?: string[];
+  memory?: Partial<MemoryConfig>;
   [key: string]: unknown;
+}
+
+export { MemoryConfig };
+
+/**
+ * Merge DEFAULT_MEMORY_CONFIG with settings.memory; resolve memoryDir when not explicitly set.
+ */
+export function resolveMemoryConfig(settings: ProjectSettings, workspaceRoot: string): MemoryConfig {
+  const override = settings.memory ?? {};
+  return {
+    ...DEFAULT_MEMORY_CONFIG,
+    ...override,
+    enabled: override.enabled ?? DEFAULT_MEMORY_CONFIG.enabled,
+    memoryDir:
+      typeof override.memoryDir === 'string' && override.memoryDir.length > 0
+        ? override.memoryDir
+        : path.join(workspaceRoot, '.agent-kit', 'memory'),
+  };
 }
 
 /**
