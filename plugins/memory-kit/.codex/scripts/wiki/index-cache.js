@@ -5,6 +5,7 @@ import { parsePage } from './parse-page.js';
 import { tokenize } from './tokenize.js';
 export const INDEX_FILE = '.runtime/index.json';
 const COMPILED_CATEGORIES = ['entities', 'concepts', 'glossary', 'preferences'];
+const INDEX_SCHEMA_VERSION = 2;
 function isRecord(value) {
     return typeof value === 'object' && value !== null;
 }
@@ -12,7 +13,7 @@ function loadCachedIndex(indexPath) {
     try {
         const raw = fs.readFileSync(indexPath, 'utf8');
         const parsed = JSON.parse(raw);
-        if (!isRecord(parsed) || parsed.schemaVersion !== 1)
+        if (!isRecord(parsed) || parsed.schemaVersion !== INDEX_SCHEMA_VERSION)
             return null;
         return parsed;
     }
@@ -78,7 +79,13 @@ function computeAvgSlugLen(pages) {
 function computeAvgHeadingLen(pages) {
     if (pages.length === 0)
         return 0;
-    const total = pages.reduce((sum, e) => sum + tokenize([e.page.title, ...e.page.anchors].join(' '), NO_STOPWORDS).length, 0);
+    const total = pages.reduce((sum, e) => sum + tokenize([e.page.title, ...e.page.anchors, ...e.page.aliases].join(' '), NO_STOPWORDS).length, 0);
+    return total / pages.length;
+}
+function computeAvgAliasLen(pages) {
+    if (pages.length === 0)
+        return 0;
+    const total = pages.reduce((sum, e) => sum + tokenize(e.page.aliases.join(' '), NO_STOPWORDS).length, 0);
     return total / pages.length;
 }
 function computeAvgKdLen(pages) {
@@ -103,13 +110,14 @@ export function loadOrBuildIndex(wikiRoot, config) {
             pages.push({ slug: page.slug, path: absPath, mtimeMs, page });
         }
         return {
-            schemaVersion: 1,
+            schemaVersion: INDEX_SCHEMA_VERSION,
             stopwordsHash: swHash,
             pages,
             idf: buildIdf(pages),
             avgBodyLength: computeAvgBodyLength(pages),
             avgSlugLen: computeAvgSlugLen(pages),
             avgHeadingLen: computeAvgHeadingLen(pages),
+            avgAliasLen: computeAvgAliasLen(pages),
             avgKdLen: computeAvgKdLen(pages),
             builtAt: new Date().toISOString(),
         };
@@ -150,13 +158,14 @@ export function loadOrBuildIndex(wikiRoot, config) {
     }
     const useCache = !anyChanged && cached !== null;
     const index = {
-        schemaVersion: 1,
+        schemaVersion: INDEX_SCHEMA_VERSION,
         stopwordsHash: swHash,
         pages: newPages,
         idf: useCache ? cached.idf : buildIdf(newPages),
         avgBodyLength: useCache ? cached.avgBodyLength : computeAvgBodyLength(newPages),
         avgSlugLen: useCache ? (cached.avgSlugLen ?? computeAvgSlugLen(newPages)) : computeAvgSlugLen(newPages),
         avgHeadingLen: useCache ? (cached.avgHeadingLen ?? computeAvgHeadingLen(newPages)) : computeAvgHeadingLen(newPages),
+        avgAliasLen: useCache ? (cached.avgAliasLen ?? computeAvgAliasLen(newPages)) : computeAvgAliasLen(newPages),
         avgKdLen: useCache ? (cached.avgKdLen ?? computeAvgKdLen(newPages)) : computeAvgKdLen(newPages),
         builtAt: new Date().toISOString(),
     };

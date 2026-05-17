@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { derivePageAliases, normalizeAnchorBullet } from './normalize-anchor.js';
 import { tokenize } from './tokenize.js';
 import type { PageStatus, WikiPage } from '@types';
 
@@ -77,7 +78,9 @@ export function parsePageContent(
   const summary = summarySection.replace(/\s+/g, ' ').trim().slice(0, SUMMARY_LIMIT);
 
   const anchorsSection = extractSection(content, 'Anchors');
-  const anchors = extractBullets(anchorsSection);
+  const normalizedAnchors = extractBullets(anchorsSection).flatMap((anchor) => normalizeAnchorBullet(anchor, stopwords));
+  const anchors = normalizedAnchors.map((anchor) => anchor.value);
+  const aliases = derivePageAliases({ slug, title, anchors: normalizedAnchors, stopwords });
 
   const decisionsSection = extractSection(content, 'Key Decisions');
   const keyDecisions = extractBullets(decisionsSection).slice(0, 5);
@@ -103,6 +106,7 @@ export function parsePageContent(
     updated,
     summary,
     anchors,
+    aliases,
     keyDecisions,
     edgeCases,
     bodyText,

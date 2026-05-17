@@ -9,6 +9,7 @@ export interface WikiPage {
   updated: string | null;
   summary: string;
   anchors: string[];
+  aliases: string[];
   keyDecisions: string[];
   edgeCases: string[];
   bodyText: string;
@@ -20,6 +21,7 @@ export interface ExtractedWikiQuery {
   toolName: string;
   paths: string[];
   pathPrefixes: string[];
+  pathTokens: string[];
   symbols: string[];
   freeText: string;
   freeTextTokens: string[];
@@ -30,17 +32,21 @@ export interface ScoredWikiQuery {
   toolName: string;
   paths: string[];
   pathPrefixes: string[];
+  pathTokens: string[];
   symbols: string[];
+  freeTextTokens: string[];
   terms: string[];
 }
 
 export interface WikiScoreBreakdown {
   anchorExactPath: number;
   anchorExactSymbol: number;
+  aliasMatch: number;
   filenameBM25: number;
   headingBM25: number;
   keyDecisionBM25: number;
   bodyBM25: number;
+  conceptIntentBoost: number;
   statusBoost: number;
   stalenessPenalty: number;
   strongSignal: boolean;
@@ -69,13 +75,14 @@ export interface ParsedPageCacheEntry {
 }
 
 export interface CorpusIndex {
-  schemaVersion: 1;
+  schemaVersion: 2;
   stopwordsHash: string;
   pages: ParsedPageCacheEntry[];
   idf: Record<string, number>;
   avgBodyLength: number;
   avgSlugLen: number;
   avgHeadingLen: number;
+  avgAliasLen: number;
   avgKdLen: number;
   builtAt: string;
 }

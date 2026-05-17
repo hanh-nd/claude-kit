@@ -113,6 +113,85 @@ describe('wiki-inject-context main', () => {
     }
   });
 
+  test('injects for labeled Primary skill path anchor', async () => {
+    const { dir, cleanup } = makeTmpDir();
+    buildWikiWithPage(dir, 'ak-plan-skill', ANCHOR_PAGE('Primary: `skills/plan/SKILL.md`'));
+    const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
+    try {
+      const result = await main(
+        { tool_name: 'Read', tool_input: { file_path: '/repo/skills/plan/SKILL.md' }, session_id: 'sess-primary-anchor' },
+        { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } }
+      );
+      assert.ok('hookSpecificOutput' in result && result.hookSpecificOutput);
+      assert.ok(result.hookSpecificOutput.additionalContext.includes('[WIKI HIT] ak-plan-skill'));
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('injects for multi-path Related anchor', async () => {
+    const { dir, cleanup } = makeTmpDir();
+    buildWikiWithPage(dir, 'jira-integration', ANCHOR_PAGE('Related: `src/tools/integration.ts`, `skills/ticket/SKILL.md`'));
+    const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
+    try {
+      const result = await main(
+        { tool_name: 'Read', tool_input: { file_path: '/repo/skills/ticket/SKILL.md' }, session_id: 'sess-related-anchor' },
+        { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } }
+      );
+      assert.ok('hookSpecificOutput' in result && result.hookSpecificOutput);
+      assert.ok(result.hookSpecificOutput.additionalContext.includes('[WIKI HIT] jira-integration'));
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('injects through alias-assisted match', async () => {
+    const { dir, cleanup } = makeTmpDir();
+    buildWikiWithPage(dir, 'skill-vs-subagent-decision', `# Skill vs Subagent Decision
+
+Status: active
+> Last updated: 2025-01-01
+
+## Summary
+Framework for choosing skill or subagent execution.
+
+## Anchors
+- skill subagent decision
+
+## Key Decisions
+- Parallel agents can batch independent work
+`);
+    const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
+    try {
+      const result = await main(
+        { tool_name: 'Edit', tool_input: { file_path: '/repo/notes.md', new_string: 'use subagent batching for parallel agents' }, session_id: 'sess-alias-match' },
+        { wikiRoot, settings: { wiki: { injectMinScore: 1.0 } } }
+      );
+      assert.ok('hookSpecificOutput' in result && result.hookSpecificOutput);
+      assert.ok(result.hookSpecificOutput.additionalContext.includes('[WIKI HIT] skill-vs-subagent-decision'));
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('ambiguous alias matches are rejected by margin gate', async () => {
+    const { dir, cleanup } = makeTmpDir();
+    buildWikiWithPage(dir, 'skill-decision-a', ANCHOR_PAGE('skill subagent decision'));
+    const entitiesDir = path.join(dir, '.agent-kit', 'wiki', 'compiled', 'entities');
+    fs.writeFileSync(path.join(entitiesDir, 'skill-decision-b.md'), ANCHOR_PAGE('skill subagent decision'), 'utf8');
+    const wikiRoot = path.join(dir, '.agent-kit', 'wiki');
+    try {
+      const result = await main(
+        { tool_name: 'Edit', tool_input: { file_path: '/repo/notes.md', new_string: 'skill subagent decision' }, session_id: 'sess-ambiguous-alias' },
+        { wikiRoot, settings: { wiki: { debug: true, injectMinScore: 1.0, injectMarginRatio: 100.0 } } }
+      );
+      assert.deepEqual(result, {});
+      assert.ok(readDebugLog(wikiRoot).includes('margin'));
+    } finally {
+      cleanup();
+    }
+  });
+
   test('deduplicates injections within same session — same queryHash (C8)', async () => {
     const { dir, cleanup } = makeTmpDir();
     buildWikiWithPage(dir, 'auth-service', ANCHOR_PAGE('auth-service.js'));

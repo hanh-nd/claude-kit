@@ -102,7 +102,7 @@ export async function main(stdinJSON, opts = {}) {
         const pages = corpus.pages.map((e) => e.page);
         if (pages.length === 0)
             return {};
-        let hits = scoreQuery(query, pages, corpus.idf, corpus.avgBodyLength, corpus.avgSlugLen, corpus.avgHeadingLen, corpus.avgKdLen);
+        let hits = scoreQuery(query, pages, corpus.idf, corpus.avgBodyLength, corpus.avgSlugLen, corpus.avgHeadingLen, corpus.avgKdLen, corpus.avgAliasLen);
         // Gate: strong signal
         hits = applyStrongSignalGate(hits);
         if (hits.length === 0) {

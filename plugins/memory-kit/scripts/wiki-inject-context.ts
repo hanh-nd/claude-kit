@@ -118,7 +118,7 @@ export async function main(stdinJSON: WikiInjectStdin, opts: WikiInjectOptions =
     const pages = corpus.pages.map((e) => e.page);
     if (pages.length === 0) return {};
 
-    let hits: WikiHit[] = scoreQuery(query, pages, corpus.idf, corpus.avgBodyLength, corpus.avgSlugLen, corpus.avgHeadingLen, corpus.avgKdLen);
+    let hits: WikiHit[] = scoreQuery(query, pages, corpus.idf, corpus.avgBodyLength, corpus.avgSlugLen, corpus.avgHeadingLen, corpus.avgKdLen, corpus.avgAliasLen);
 
     // Gate: strong signal
     hits = applyStrongSignalGate(hits);

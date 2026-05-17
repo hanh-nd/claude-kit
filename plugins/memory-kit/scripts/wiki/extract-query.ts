@@ -40,6 +40,24 @@ function buildPathPrefixes(paths: string[]): string[] {
   return Array.from(prefixSet);
 }
 
+function extractPathTokens(paths: string[], stopwords: ReadonlySet<string>): string[] {
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  for (const p of paths) {
+    const normalized = p.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
+    for (const part of parts) {
+      const base = path.basename(part, path.extname(part));
+      for (const token of tokenize(base, stopwords)) {
+        if (seen.has(token)) continue;
+        seen.add(token);
+        tokens.push(token);
+      }
+    }
+  }
+  return tokens;
+}
+
 export function extractQuery(
   toolName: string,
   toolInput: Record<string, unknown>,
@@ -55,6 +73,7 @@ export function extractQuery(
 
     // For Bash, do not derive symbols from paths (commands are not file paths)
     const isBash = toolName === 'Bash';
+    const pathTokens = isBash ? [] : extractPathTokens(paths, stopwords);
     const symbols: string[] = isBash
       ? []
       : paths.flatMap((p) => {
@@ -74,10 +93,10 @@ export function extractQuery(
       }
     }
 
-    const terms = Array.from(new Set([...symbols, ...freeTextTokens]));
+    const terms = Array.from(new Set([...pathTokens, ...symbols, ...freeTextTokens]));
 
-    return { toolName, paths, pathPrefixes, symbols, freeText, freeTextTokens, terms };
+    return { toolName, paths, pathPrefixes, pathTokens, symbols, freeText, freeTextTokens, terms };
   } catch {
-    return { toolName, paths: [], pathPrefixes: [], symbols: [], freeText: '', freeTextTokens: [], terms: [] };
+    return { toolName, paths: [], pathPrefixes: [], pathTokens: [], symbols: [], freeText: '', freeTextTokens: [], terms: [] };
   }
 }

@@ -82,6 +82,62 @@ describe('parsePageContent', () => {
     assert.deepEqual(page.anchors, ['auth-service.js', 'login-handler.ts']);
   });
 
+  test('normalizes labeled backticked path anchors', () => {
+    const content = `# Plan Skill
+
+## Anchors
+- Primary: \`skills/plan/SKILL.md\`
+`;
+    const page = parsePageContent(content, 'ak-plan-skill', 'entities', '/wiki/entities/ak-plan-skill.md');
+
+    assert.deepEqual(page.anchors, ['skills/plan/SKILL.md']);
+  });
+
+  test('normalizes multiple paths from one Related anchor bullet', () => {
+    const content = `# Jira Integration
+
+## Anchors
+- Related: \`src/tools/integration.ts\`, \`skills/ticket/SKILL.md\`
+`;
+    const page = parsePageContent(content, 'jira-integration', 'entities', '/wiki/entities/jira-integration.md');
+
+    assert.deepEqual(page.anchors, ['src/tools/integration.ts', 'skills/ticket/SKILL.md']);
+  });
+
+  test('keeps useful plain prose anchors as symbol anchors and aliases', () => {
+    const content = `# Fail Open Pattern
+
+## Anchors
+- hook failure no-op behavior
+`;
+    const page = parsePageContent(content, 'fail-open-pattern', 'concepts', '/wiki/concepts/fail-open-pattern.md');
+
+    assert.deepEqual(page.anchors, ['hook failure no-op behavior']);
+    assert.ok(page.aliases.includes('hook failure no op behavior'));
+  });
+
+  test('derives aliases from slug, title, and anchor values', () => {
+    const content = `# Plan Skill
+
+## Anchors
+- Primary: \`skills/plan/SKILL.md\`
+`;
+    const page = parsePageContent(content, 'ak-plan-skill', 'entities', '/wiki/entities/ak-plan-skill.md');
+
+    assert.ok(page.aliases.includes('ak plan skill'));
+    assert.ok(page.aliases.includes('Plan Skill'));
+    assert.ok(page.aliases.includes('skills plan SKILL md'));
+    assert.ok(!page.aliases.includes('Primary'));
+  });
+
+  test('missing anchor section still emits aliases from slug and title', () => {
+    const page = parsePageContent('# Plan Skill\n\nNo sections', 'ak-plan-skill', 'entities', '/path/ak-plan-skill.md');
+
+    assert.deepEqual(page.anchors, []);
+    assert.ok(page.aliases.includes('ak plan skill'));
+    assert.ok(page.aliases.includes('Plan Skill'));
+  });
+
   test('parses key decisions (max 5)', () => {
     const page = parsePageContent(FULL_PAGE, 'my-entity', 'entities', '/wiki/entities/my-entity.md');
     assert.equal(page.keyDecisions.length, 3);

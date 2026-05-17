@@ -10,7 +10,9 @@ export function queryHash(q) {
     const canonical = [
         q.toolName,
         [...q.paths].sort().join(','),
+        [...q.pathTokens].sort().join(','),
         [...q.symbols].sort().join(','),
+        [...q.freeTextTokens].sort().join(','),
         [...q.terms].sort().join(','),
     ].join('|');
     return fnv1a32(canonical).toString(16).padStart(8, '0');

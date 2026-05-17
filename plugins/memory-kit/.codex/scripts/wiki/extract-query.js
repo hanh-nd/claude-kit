@@ -44,6 +44,24 @@ function buildPathPrefixes(paths) {
     }
     return Array.from(prefixSet);
 }
+function extractPathTokens(paths, stopwords) {
+    const seen = new Set();
+    const tokens = [];
+    for (const p of paths) {
+        const normalized = p.replace(/\\/g, '/');
+        const parts = normalized.split('/').filter(Boolean);
+        for (const part of parts) {
+            const base = path.basename(part, path.extname(part));
+            for (const token of tokenize(base, stopwords)) {
+                if (seen.has(token))
+                    continue;
+                seen.add(token);
+                tokens.push(token);
+            }
+        }
+    }
+    return tokens;
+}
 export function extractQuery(toolName, toolInput, config) {
     const safeInput = toolInput && typeof toolInput === 'object' ? toolInput : {};
     const stopwords = new Set(config?.stopwords ?? []);
@@ -53,6 +71,7 @@ export function extractQuery(toolName, toolInput, config) {
         const freeText = extractFreeText(safeInput);
         // For Bash, do not derive symbols from paths (commands are not file paths)
         const isBash = toolName === 'Bash';
+        const pathTokens = isBash ? [] : extractPathTokens(paths, stopwords);
         const symbols = isBash
             ? []
             : paths.flatMap((p) => {
@@ -71,10 +90,10 @@ export function extractQuery(toolName, toolInput, config) {
                     break;
             }
         }
-        const terms = Array.from(new Set([...symbols, ...freeTextTokens]));
-        return { toolName, paths, pathPrefixes, symbols, freeText, freeTextTokens, terms };
+        const terms = Array.from(new Set([...pathTokens, ...symbols, ...freeTextTokens]));
+        return { toolName, paths, pathPrefixes, pathTokens, symbols, freeText, freeTextTokens, terms };
     }
     catch {
-        return { toolName, paths: [], pathPrefixes: [], symbols: [], freeText: '', freeTextTokens: [], terms: [] };
+        return { toolName, paths: [], pathPrefixes: [], pathTokens: [], symbols: [], freeText: '', freeTextTokens: [], terms: [] };
     }
 }

@@ -8,10 +8,12 @@ function makeBreakdown(overrides: Partial<WikiScoreBreakdown> = {}): WikiScoreBr
   return {
     anchorExactPath: 0,
     anchorExactSymbol: 0,
+    aliasMatch: 0,
     filenameBM25: 0,
     headingBM25: 0,
     keyDecisionBM25: 0,
     bodyBM25: 0,
+    conceptIntentBoost: 0,
     statusBoost: 2,
     stalenessPenalty: 0,
     strongSignal: true,
@@ -29,6 +31,7 @@ function makeHit(score: number, breakdown: WikiScoreBreakdown, slug = 'slug-a'):
     updated: '2025-01-01',
     summary: '',
     anchors: [],
+    aliases: [],
     keyDecisions: [],
     edgeCases: [],
     bodyText: '',
@@ -53,12 +56,22 @@ describe('applyStrongSignalGate', () => {
     const bd = makeBreakdown({
       anchorExactPath: 0,
       anchorExactSymbol: 0,
+      aliasMatch: 0,
       filenameBM25: 0,
       headingBM25: 0,
       bodyBM25: 5,
+      conceptIntentBoost: 0,
       strongSignal: false,
     });
     assert.deepEqual(applyStrongSignalGate([makeHit(7, bd)]), []);
+  });
+
+  test('alias strong-signal hit is kept', () => {
+    const bd = makeBreakdown({
+      aliasMatch: 2.5,
+      strongSignal: true,
+    });
+    assert.equal(applyStrongSignalGate([makeHit(7, bd)]).length, 1);
   });
 });
 

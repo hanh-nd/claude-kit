@@ -31,6 +31,21 @@ describe('extractQuery', () => {
       assert.ok(q.pathPrefixes.includes('/project'));
       assert.ok(q.pathPrefixes.includes('/project/src'));
     });
+
+    test('extracts meaningful path tokens from generic skill path', () => {
+      const q = extractQuery('Read', { file_path: '/repo/skills/plan/SKILL.md' }, CONFIG);
+      assert.ok(q.pathTokens.includes('skill'));
+      assert.ok(q.pathTokens.includes('plan'));
+      assert.ok(q.pathTokens.includes('skill'));
+      assert.ok(q.terms.includes('plan'));
+    });
+
+    test('extracts hyphenated parent directory tokens from generic skill path', () => {
+      const q = extractQuery('Read', { file_path: '/repo/skills/code-review/SKILL.md' }, CONFIG);
+      assert.ok(q.pathTokens.includes('code'));
+      assert.ok(q.pathTokens.includes('review'));
+      assert.ok(q.terms.includes('review'));
+    });
   });
 
   describe('Edit tool', () => {
@@ -81,6 +96,7 @@ describe('extractQuery', () => {
       const q = extractQuery('Bash', { command: 'cat /project/auth-service.ts' }, CONFIG);
       // symbols should be empty for Bash (only freeTextTokens)
       assert.deepEqual(q.symbols, []);
+      assert.deepEqual(q.pathTokens, []);
     });
   });
 
@@ -88,6 +104,13 @@ describe('extractQuery', () => {
     test('stopwords filtered from freeTextTokens', () => {
       const q = extractQuery('Edit', { file_path: '/a.ts', new_string: 'the and for with' }, CONFIG);
       assert.deepEqual(q.freeTextTokens, []);
+    });
+
+    test('stopwords are filtered from pathTokens', () => {
+      const q = extractQuery('Read', { file_path: '/project/the/and/auth.ts' }, CONFIG);
+      assert.ok(!q.pathTokens.includes('the'));
+      assert.ok(!q.pathTokens.includes('and'));
+      assert.ok(q.pathTokens.includes('auth'));
     });
   });
 
@@ -145,6 +168,8 @@ describe('extractQuery', () => {
       const patch = '*** Begin Patch\n*** Update File: src/auth-service.js\n@@ function login() {}';
       const q = extractQuery('apply_patch', { command: patch }, CONFIG);
       assert.ok(q.paths.includes('src/auth-service.js'));
+      assert.ok(q.pathTokens.includes('auth'));
+      assert.ok(q.pathTokens.includes('service'));
       assert.ok(q.terms.some((t) => t.includes('auth') || t.includes('service')));
     });
 
@@ -206,6 +231,12 @@ describe('extractQuery', () => {
       }, CONFIG);
       const termSet = new Set(q.terms);
       assert.equal(q.terms.length, termSet.size);
+    });
+
+    test('deduplicates pathTokens', () => {
+      const q = extractQuery('Read', { file_path: '/project/auth/auth-service.ts' }, CONFIG);
+      const pathTokenSet = new Set(q.pathTokens);
+      assert.equal(q.pathTokens.length, pathTokenSet.size);
     });
   });
 });

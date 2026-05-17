@@ -18,6 +18,7 @@ function makePage(overrides: Partial<WikiPage> = {}): WikiPage {
     updated: '2025-01-01',
     summary: 'Manages authentication for all services',
     anchors: ['auth-service.js', 'login-handler.ts'],
+    aliases: ['auth service', 'login handler'],
     keyDecisions: ['Use JWT tokens', 'PKCE for mobile'],
     edgeCases: ['Token expiry race'],
     bodyText: 'auth service manages jwt tokens login authentication handler',
@@ -139,10 +140,12 @@ describe('scoreQuery', () => {
       const { breakdown } = hits[0];
       assert.ok('anchorExactPath' in breakdown);
       assert.ok('anchorExactSymbol' in breakdown);
+      assert.ok('aliasMatch' in breakdown);
       assert.ok('filenameBM25' in breakdown);
       assert.ok('headingBM25' in breakdown);
       assert.ok('keyDecisionBM25' in breakdown);
       assert.ok('bodyBM25' in breakdown);
+      assert.ok('conceptIntentBoost' in breakdown);
       assert.ok('statusBoost' in breakdown);
       assert.ok('stalenessPenalty' in breakdown);
       assert.ok('strongSignal' in breakdown);
@@ -168,7 +171,7 @@ describe('scoreQuery', () => {
   });
 
   test('body-only match yields strongSignal === false (AC-5)', () => {
-    const query = { toolName: 'Read', paths: [], pathPrefixes: [], symbols: [], terms: ['jwt'] };
+    const query = { toolName: 'Read', paths: [], pathPrefixes: [], pathTokens: [], symbols: [], freeTextTokens: [], terms: ['jwt'] };
     const page = makePage({
       slug: 'unrelated-page',
       anchors: [],
@@ -200,8 +203,8 @@ describe('scoreQuery', () => {
     const avg = getAvgBodyLength(pages);
 
     const targetPage = pages[4];
-    const queryCommon = { toolName: 'Read', paths: [], pathPrefixes: [], symbols: [], terms: ['config'] };
-    const queryRare = { toolName: 'Read', paths: [], pathPrefixes: [], symbols: [], terms: ['acquirelock'] };
+    const queryCommon = { toolName: 'Read', paths: [], pathPrefixes: [], pathTokens: [], symbols: [], freeTextTokens: [], terms: ['config'] };
+    const queryRare = { toolName: 'Read', paths: [], pathPrefixes: [], pathTokens: [], symbols: [], freeTextTokens: [], terms: ['acquirelock'] };
 
     const allHitsCommon = scoreQuery(queryCommon, [targetPage], idf, avg);
     const allHitsRare = scoreQuery(queryRare, [targetPage], idf, avg);
@@ -213,5 +216,142 @@ describe('scoreQuery', () => {
         `Expected acquirelock bodyBM25 (${allHitsRare[0].breakdown.bodyBM25}) > config bodyBM25 (${allHitsCommon[0].breakdown.bodyBM25})`,
       );
     }
+  });
+
+  test('normalized labeled path anchors produce exact path score', () => {
+    const query = extractQuery('Read', { file_path: '/repo/skills/plan/SKILL.md' }, CONFIG);
+    const page = makePage({
+      slug: 'ak-plan-skill',
+      title: 'Plan Skill',
+      anchors: ['skills/plan/SKILL.md'],
+      aliases: ['ak plan skill', 'plan skill', 'skills plan skill'],
+      keyDecisions: [],
+      bodyText: '',
+      termFreq: {},
+      bodyLength: 0,
+    });
+    const hits = scoreQuery(query, [page], buildIdf([page]), getAvgBodyLength([page]));
+
+    assert.ok(hits.length > 0);
+    assert.ok(hits[0].breakdown.anchorExactPath > 0);
+    assert.equal(hits[0].breakdown.strongSignal, true);
+  });
+
+  test('alias match is a strong signal', () => {
+    const query = {
+      toolName: 'Edit',
+      paths: [],
+      pathPrefixes: [],
+      pathTokens: [],
+      symbols: [],
+      freeTextTokens: ['subagent'],
+      terms: ['subagent'],
+    };
+    const page = makePage({
+      slug: 'skill-vs-subagent-decision',
+      category: 'concepts',
+      title: 'Skill vs Subagent Decision',
+      anchors: [],
+      aliases: ['skill subagent decision'],
+      keyDecisions: [],
+      bodyText: '',
+      termFreq: {},
+      bodyLength: 0,
+    });
+    const hits = scoreQuery(query, [page], buildIdf([page]), getAvgBodyLength([page]));
+
+    assert.ok(hits.length > 0);
+    assert.ok(hits[0].breakdown.aliasMatch > 0);
+    assert.equal(hits[0].breakdown.strongSignal, true);
+  });
+
+  test('concept edit intent outranks narrower entity page', () => {
+    const query = extractQuery('Edit', {
+      file_path: '/repo/skills/plan/SKILL.md',
+      new_string: 'add Parallel agents execution option with subagent batching',
+    }, CONFIG);
+    const entityPage = makePage({
+      slug: 'ak-plan-skill',
+      title: 'Plan Skill',
+      anchors: ['skills/plan/SKILL.md'],
+      aliases: ['plan skill', 'skills plan skill'],
+      keyDecisions: ['Parallelism annotations'],
+      bodyText: 'plan skill wbs contracts',
+      termFreq: { plan: 2, skill: 2, wbs: 1, contract: 1 },
+      bodyLength: 6,
+    });
+    const conceptPage = makePage({
+      slug: 'skill-vs-subagent-decision',
+      category: 'concepts',
+      title: 'Skill vs Subagent Decision',
+      anchors: [],
+      aliases: ['skill subagent decision'],
+      keyDecisions: ['Parallelism uses subagent batching for independent work'],
+      bodyText: 'skill subagent decision parallel agents execution batching',
+      termFreq: { skill: 1, subagent: 2, decision: 1, parallel: 1, agent: 1, execution: 1, batching: 1 },
+      bodyLength: 8,
+    });
+    const pages = [entityPage, conceptPage];
+    const hits = scoreQuery(query, pages, buildIdf(pages), getAvgBodyLength(pages));
+
+    assert.equal(hits[0].slug, 'skill-vs-subagent-decision');
+    assert.ok(hits[0].breakdown.conceptIntentBoost > 0);
+  });
+
+  test('pure exact path read keeps entity page first over concept page', () => {
+    const query = extractQuery('Read', { file_path: '/repo/skills/plan/SKILL.md' }, CONFIG);
+    const entityPage = makePage({
+      slug: 'ak-plan-skill',
+      title: 'Plan Skill',
+      anchors: ['skills/plan/SKILL.md'],
+      aliases: ['plan skill', 'skills plan skill'],
+      bodyText: 'plan skill wbs',
+      termFreq: { plan: 1, skill: 1, wbs: 1 },
+      bodyLength: 3,
+    });
+    const conceptPage = makePage({
+      slug: 'skill-vs-subagent-decision',
+      category: 'concepts',
+      title: 'Skill vs Subagent Decision',
+      anchors: [],
+      aliases: ['skill subagent decision'],
+      bodyText: 'skill subagent decision plan',
+      termFreq: { skill: 1, subagent: 1, decision: 1, plan: 1 },
+      bodyLength: 4,
+    });
+    const pages = [conceptPage, entityPage];
+    const hits = scoreQuery(query, pages, buildIdf(pages), getAvgBodyLength(pages));
+
+    assert.equal(hits[0].slug, 'ak-plan-skill');
+  });
+
+  test('ties sort deterministically by slug when pages score equally', () => {
+    const query = extractQuery('Read', { file_path: '/repo/skills/plan/SKILL.md' }, CONFIG);
+    const pageA = makePage({
+      slug: 'aaa-page',
+      title: 'Plan Skill',
+      anchors: ['skills/plan/SKILL.md'],
+      aliases: ['plan skill'],
+      updated: '2025-01-01',
+      path: '/wiki/entities/shared.md',
+      bodyText: '',
+      termFreq: {},
+      bodyLength: 0,
+    });
+    const pageB = makePage({
+      slug: 'bbb-page',
+      title: 'Plan Skill',
+      anchors: ['skills/plan/SKILL.md'],
+      aliases: ['plan skill'],
+      updated: '2025-01-01',
+      path: '/wiki/entities/shared.md',
+      bodyText: '',
+      termFreq: {},
+      bodyLength: 0,
+    });
+    const pages = [pageB, pageA];
+    const hits = scoreQuery(query, pages, buildIdf(pages), getAvgBodyLength(pages));
+
+    assert.equal(hits[0].slug, 'aaa-page');
   });
 });

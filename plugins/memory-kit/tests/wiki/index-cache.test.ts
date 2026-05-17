@@ -57,7 +57,7 @@ describe('loadOrBuildIndex', () => {
       const config = makeConfig();
       const index = loadOrBuildIndex(dir, config);
 
-      assert.equal(index.schemaVersion, 1);
+      assert.equal(index.schemaVersion, 2);
       assert.ok(index.pages.length > 0);
       assert.ok(typeof index.idf === 'object');
       assert.ok(index.avgBodyLength > 0);
@@ -123,14 +123,14 @@ describe('loadOrBuildIndex', () => {
       fs.writeFileSync(indexPath, 'not valid json{{{{', 'utf8');
 
       const index = loadOrBuildIndex(dir, config);
-      assert.equal(index.schemaVersion, 1);
+      assert.equal(index.schemaVersion, 2);
       assert.ok(index.pages.length > 0);
     } finally {
       cleanup();
     }
   });
 
-  test('schemaVersion !== 1 triggers cold rebuild', () => {
+  test('schemaVersion !== 2 triggers cold rebuild', () => {
     const { dir, cleanup } = makeTmpDir();
     try {
       writeTestPage(dir, 'entities', 'auth-service', SAMPLE_PAGE);
@@ -138,11 +138,12 @@ describe('loadOrBuildIndex', () => {
       const indexPath = path.join(dir, INDEX_FILE);
 
       fs.mkdirSync(path.dirname(indexPath), { recursive: true });
-      fs.writeFileSync(indexPath, JSON.stringify({ schemaVersion: 2, pages: [], idf: {}, avgBodyLength: 0, builtAt: '' }), 'utf8');
+      fs.writeFileSync(indexPath, JSON.stringify({ schemaVersion: 1, pages: [], idf: {}, avgBodyLength: 0, builtAt: '' }), 'utf8');
 
       const index = loadOrBuildIndex(dir, config);
-      assert.equal(index.schemaVersion, 1);
+      assert.equal(index.schemaVersion, 2);
       assert.ok(index.pages.length > 0);
+      assert.ok(index.pages[0].page.aliases.length > 0);
     } finally {
       cleanup();
     }
@@ -200,7 +201,7 @@ describe('loadOrBuildIndex', () => {
     }
   });
 
-  test('cold build includes avgSlugLen, avgHeadingLen, avgKdLen', () => {
+  test('cold build includes avgSlugLen, avgHeadingLen, avgAliasLen, avgKdLen', () => {
     const { dir, cleanup } = makeTmpDir();
     try {
       writeTestPage(dir, 'entities', 'auth-service', SAMPLE_PAGE);
@@ -208,6 +209,7 @@ describe('loadOrBuildIndex', () => {
       const index = loadOrBuildIndex(dir, config);
       assert.ok(typeof index.avgSlugLen === 'number');
       assert.ok(typeof index.avgHeadingLen === 'number');
+      assert.ok(typeof index.avgAliasLen === 'number');
       assert.ok(typeof index.avgKdLen === 'number');
     } finally {
       cleanup();

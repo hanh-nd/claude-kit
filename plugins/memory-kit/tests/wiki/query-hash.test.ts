@@ -9,7 +9,9 @@ function makeQuery(overrides: Partial<ScoredWikiQuery> = {}): ScoredWikiQuery {
     toolName: 'Read',
     paths: ['/project/auth.ts'],
     pathPrefixes: ['/project'],
+    pathTokens: ['project', 'auth'],
     symbols: ['auth'],
+    freeTextTokens: [],
     terms: ['auth', 'service'],
     ...overrides,
   };
@@ -39,6 +41,18 @@ describe('queryHash', () => {
     assert.equal(queryHash(q1), queryHash(q2));
   });
 
+  test('same query with pathTokens in different order produces same hash', () => {
+    const q1 = makeQuery({ pathTokens: ['auth', 'project'] });
+    const q2 = makeQuery({ pathTokens: ['project', 'auth'] });
+    assert.equal(queryHash(q1), queryHash(q2));
+  });
+
+  test('same query with freeTextTokens in different order produces same hash', () => {
+    const q1 = makeQuery({ freeTextTokens: ['parallel', 'subagent'] });
+    const q2 = makeQuery({ freeTextTokens: ['subagent', 'parallel'] });
+    assert.equal(queryHash(q1), queryHash(q2));
+  });
+
   test('same query with terms in different order produces same hash', () => {
     const q1 = makeQuery({ terms: ['auth', 'login'] });
     const q2 = makeQuery({ terms: ['login', 'auth'] });
@@ -54,6 +68,18 @@ describe('queryHash', () => {
   test('different paths produce different hash', () => {
     const q1 = makeQuery({ paths: ['/project/auth.ts'] });
     const q2 = makeQuery({ paths: ['/project/other.ts'] });
+    assert.notEqual(queryHash(q1), queryHash(q2));
+  });
+
+  test('different pathTokens produce different hash', () => {
+    const q1 = makeQuery({ pathTokens: ['auth'] });
+    const q2 = makeQuery({ pathTokens: ['ledger'] });
+    assert.notEqual(queryHash(q1), queryHash(q2));
+  });
+
+  test('different freeTextTokens produce different hash', () => {
+    const q1 = makeQuery({ freeTextTokens: ['parallel'] });
+    const q2 = makeQuery({ freeTextTokens: ['subagent'] });
     assert.notEqual(queryHash(q1), queryHash(q2));
   });
 });
