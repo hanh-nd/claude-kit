@@ -5,11 +5,12 @@
  * Heredoc bodies are not reliably scoped — tokens between <<EOF and EOF
  * are still scanned, which is sufficient for common attack patterns.
  */
+import type { ExpandedToken, SecurityPolicy, ShellCandidate } from '../../types/security.js';
 
-export function tokenizeCommand(cmd) {
+export function tokenizeCommand(cmd: string): string[] {
   const tokenRegex = /"([^"]+)"|'([^']+)'|([^\s]+)/g;
   const tokens = [];
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = tokenRegex.exec(cmd)) !== null) {
     const token = match[1] ?? match[2] ?? match[3];
     if (token) tokens.push(token);
@@ -17,9 +18,9 @@ export function tokenizeCommand(cmd) {
   return tokens;
 }
 
-export function expandToken(token, policy) {
+export function expandToken(token: string, policy: Pick<SecurityPolicy, 'homeDir' | 'knownEnvVars'>): ExpandedToken {
   let expanded = token;
-  const unresolvedVars = [];
+  const unresolvedVars: string[] = [];
 
   // Tilde expansion — only at position 0, no ~user form
   if (expanded === '~') {
@@ -41,9 +42,12 @@ export function expandToken(token, policy) {
   return { expanded, unresolvedVars };
 }
 
-export function extractCandidates(cmd, policy) {
+export function extractCandidates(
+  cmd: string,
+  policy: Pick<SecurityPolicy, 'homeDir' | 'knownEnvVars'>,
+): ShellCandidate[] {
   const tokens = tokenizeCommand(cmd);
-  const candidates = [];
+  const candidates: ShellCandidate[] = [];
   for (const token of tokens) {
     const { expanded, unresolvedVars } = expandToken(token, policy);
     const hasPathSep = /[/\\]/.test(expanded);

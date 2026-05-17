@@ -11,13 +11,14 @@ import {
   PROJECT_DIR,
 } from '../constants.js';
 import { getSecurityConfig, loadSettings } from '../utils.js';
+import type { SecurityPolicy } from '../../types/security.js';
 
 export const PATH_ARG_KEYS = new Set(['file_path', 'path', 'notebook_path']);
 export const COMMAND_ARG_KEYS = new Set(['command']);
 
 const KNOWN_ENV_VAR_NAMES = ['HOME', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'USER', 'LOGNAME', 'TMPDIR', 'TMP', 'TEMP'];
 
-function realpathBestEffort(p) {
+function realpathBestEffort(p: string): string {
   try {
     return fs.realpathSync(p);
   } catch {
@@ -25,13 +26,13 @@ function realpathBestEffort(p) {
   }
 }
 
-function expandTilde(p) {
+function expandTilde(p: string): string {
   if (p === '~') return os.homedir();
   if (p.startsWith('~/') || p.startsWith('~\\')) return path.join(os.homedir(), p.slice(2));
   return p;
 }
 
-export function loadPolicy() {
+export function loadPolicy(): Readonly<SecurityPolicy> {
   const settings = loadSettings();
   const cfg = getSecurityConfig(settings);
 
@@ -66,7 +67,7 @@ export function loadPolicy() {
     ...cfg.additionalSystemBinPaths,
   ];
 
-  const knownEnvVars = {};
+  const knownEnvVars: Record<string, string> = {};
   for (const name of KNOWN_ENV_VAR_NAMES) {
     if (process.env[name] !== undefined) {
       knownEnvVars[name] = process.env[name];

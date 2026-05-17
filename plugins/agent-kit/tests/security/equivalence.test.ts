@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, before, after, describe } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import type { ChildRunResult, SecurityCase } from '../../types/tests.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.resolve(__dirname, '../../scripts/security-privacy.js');
@@ -13,8 +14,8 @@ const PROJECT_DIR = path.resolve(__dirname, '../..');
 // skip entire suite if entry script missing
 const entryExists = fs.existsSync(ENTRY);
 
-let tmpDir;
-let symlinkPath;
+let tmpDir: string;
+let symlinkPath: string;
 
 describe('security-privacy equivalence', { skip: !entryExists }, () => {
   before(() => {
@@ -27,16 +28,18 @@ describe('security-privacy equivalence', { skip: !entryExists }, () => {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best effort */ }
   });
 
-  function run(payload) {
+  function run(payload: unknown): ChildRunResult {
     const result = spawnSync(process.execPath, [ENTRY], {
       input: JSON.stringify(payload),
       env: { ...process.env, CLAUDE_PROJECT_DIR: PROJECT_DIR },
       encoding: 'utf8',
     });
-    return { exitCode: result.status ?? result.error?.code, stderr: result.stderr ?? '' };
+    const errorCode = result.error && 'code' in result.error ? result.error.code : undefined;
+    const exitCode = result.status ?? (typeof errorCode === 'string' || typeof errorCode === 'number' ? errorCode : undefined);
+    return { exitCode, stderr: result.stderr ?? '' };
   }
 
-  const EQUAL_CASES = [
+  const EQUAL_CASES: SecurityCase[] = [
     { name: 'read safe file', payload: { tool_name: 'Read', tool_input: { file_path: 'src/foo.ts' } }, expect: { exitCode: 0 } },
     { name: 'npm test', payload: { tool_name: 'Bash', tool_input: { command: 'npm test' } }, expect: { exitCode: 0 } },
     { name: 'ls -la', payload: { tool_name: 'Bash', tool_input: { command: 'ls -la' } }, expect: { exitCode: 0 } },
@@ -47,7 +50,7 @@ describe('security-privacy equivalence', { skip: !entryExists }, () => {
   ];
 
   // These are cases where NEW entry must block but OLD may not — skip against OLD
-  const IMPROVE_CASES = [
+  const IMPROVE_CASES: SecurityCase[] = [
     { name: 'tilde expansion ~/.ssh/id_rsa', payload: { tool_name: 'Bash', tool_input: { command: 'cat ~/.ssh/id_rsa' } }, expect: { exitCode: 2 } },
     { name: 'env var $HOME/.ssh/id_rsa', payload: { tool_name: 'Bash', tool_input: { command: 'cat $HOME/.ssh/id_rsa' } }, expect: { exitCode: 2 } },
     { name: 'env var ${HOME}/.ssh/id_rsa', payload: { tool_name: 'Bash', tool_input: { command: 'cat ${HOME}/.ssh/id_rsa' } }, expect: { exitCode: 2 } },

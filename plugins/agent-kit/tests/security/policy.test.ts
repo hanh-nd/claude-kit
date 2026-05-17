@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('policy', () => {
-  let tmpDir;
-  let origEnv;
+  let tmpDir: string;
+  let origEnv: NodeJS.ProcessEnv;
 
   before(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ak-pol-'));
@@ -24,12 +24,6 @@ describe('policy', () => {
     }
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best effort */ }
   });
-
-  async function loadPolicyWith(kitPath, projectDir) {
-    // Re-import with different env
-    const mod = await import(`../../scripts/security/policy.js?t=${Date.now()}`);
-    return mod;
-  }
 
   test('loadPolicy returns frozen object', async () => {
     const { loadPolicy } = await import(`../../scripts/security/policy.js?t=${Date.now()}`);

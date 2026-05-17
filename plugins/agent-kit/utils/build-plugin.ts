@@ -2,15 +2,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type {
+  Provider,
+  ProviderSkillConfig,
+  SplitFrontmatterResult,
+} from '../types/build-plugin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const pluginRoot = path.resolve(__dirname, '..');
+const pluginRoot = path.resolve(__dirname, '..', '..');
 
-const sharedBundleDirs = ['agents', 'docs', 'scripts'];
+const sourceBundleDirs = ['agents', 'docs'];
+const compiledBundleDirs = ['scripts'];
 const requiredSkillKeys = ['name', 'description'];
 
-const providers = {
+const providers: Record<string, Provider> = {
   claude: {
     root: path.join(pluginRoot, '.claude'),
     skillKeys: [
@@ -42,7 +48,7 @@ const providers = {
   },
 };
 
-function walkEntries(dir) {
+function walkEntries(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   return entries.flatMap((entry) => {
     const fullPath = path.join(dir, entry.name);
@@ -51,11 +57,11 @@ function walkEntries(dir) {
   });
 }
 
-function walkFiles(dir) {
+function walkFiles(dir: string): string[] {
   return walkEntries(dir).filter((entryPath) => fs.lstatSync(entryPath).isFile());
 }
 
-function materializeTree(source, destination) {
+function materializeTree(source: string, destination: string): void {
   if (!fs.existsSync(source)) {
     throw new Error(`Missing source directory: ${source}`);
   }
@@ -64,7 +70,7 @@ function materializeTree(source, destination) {
   fs.cpSync(source, destination, { recursive: true, errorOnExist: false, force: true });
 }
 
-function splitFrontmatter(content, filePath) {
+function splitFrontmatter(content: string, filePath: string): SplitFrontmatterResult {
   if (!content.startsWith('---\n')) {
     throw new Error(`${filePath} is missing YAML frontmatter`);
   }
@@ -80,11 +86,11 @@ function splitFrontmatter(content, filePath) {
   };
 }
 
-function parseTopLevelChunks(yaml) {
+function parseTopLevelChunks(yaml: string): Map<string, string[]> {
   const lines = yaml.replace(/\n$/, '').split('\n');
-  const chunks = new Map();
+  const chunks = new Map<string, string[]>();
   let currentKey = null;
-  let currentLines = [];
+  let currentLines: string[] = [];
 
   for (const line of lines) {
     const match = line.match(/^([A-Za-z0-9_-]+):(?:\s.*)?$/);
@@ -106,17 +112,17 @@ function parseTopLevelChunks(yaml) {
   return chunks;
 }
 
-function stripProviderIndent(lines) {
+function stripProviderIndent(lines: string[]): string[] {
   return lines.map((line) => (line.startsWith('    ') ? line.slice(4) : line));
 }
 
-function parseProviderChunks(providerLines) {
-  const providerChunks = {};
+function parseProviderChunks(providerLines: string[] | undefined): Record<string, Record<string, string[]>> {
+  const providerChunks: Record<string, Record<string, string[]>> = {};
   if (!providerLines) return providerChunks;
 
-  let currentProvider = null;
-  let currentKey = null;
-  let currentLines = [];
+  let currentProvider: string | null = null;
+  let currentKey: string | null = null;
+  let currentLines: string[] = [];
 
   function flushKey() {
     if (currentProvider && currentKey) {
@@ -157,11 +163,11 @@ function parseProviderChunks(providerLines) {
   return providerChunks;
 }
 
-function buildSkillFrontmatter(yaml, providerName, skillKeys) {
+function buildSkillFrontmatter(yaml: string, providerName: string, skillKeys: string[]): string {
   const chunks = parseTopLevelChunks(yaml);
   const providerChunks = parseProviderChunks(chunks.get('providers'));
   const overrides = new Map(Object.entries(providerChunks[providerName] ?? {}));
-  const output = [];
+  const output: string[] = [];
 
   for (const key of skillKeys) {
     const lines = overrides.get(key) ?? chunks.get(key);
@@ -177,7 +183,7 @@ function buildSkillFrontmatter(yaml, providerName, skillKeys) {
   return `---\n${output.join('\n')}\n---\n`;
 }
 
-function buildProviderConfig(yaml, providerName) {
+function buildProviderConfig(yaml: string, providerName: string): string | null {
   const chunks = parseTopLevelChunks(yaml);
   const providerChunks = parseProviderChunks(chunks.get('providers'));
   const providerConfig = Object.values(providerChunks[providerName] ?? {}).flat();
@@ -185,12 +191,12 @@ function buildProviderConfig(yaml, providerName) {
   return providerConfig.length ? `${providerConfig.join('\n')}\n` : null;
 }
 
-function buildProviderSkills(source, destination, providerName, providerConfig) {
+function buildProviderSkills(source: string, destination: string, providerName: string, providerConfig: Provider): void {
   const { skillKeys, configPath } = providerConfig;
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
 
-  const providerConfigs = [];
+  const providerConfigs: ProviderSkillConfig[] = [];
 
   for (const filePath of walkFiles(source)) {
     const relative = path.relative(source, filePath);
@@ -208,7 +214,7 @@ function buildProviderSkills(source, destination, providerName, providerConfig) 
     fs.writeFileSync(outputPath, `${frontmatter}${body}`, 'utf8');
 
     const sidecarConfig = configPath ? buildProviderConfig(yaml, providerName) : null;
-    if (sidecarConfig) {
+    if (configPath && sidecarConfig) {
       providerConfigs.push({
         skillDir: path.dirname(outputPath),
         relativePath: configPath,
@@ -224,7 +230,7 @@ function buildProviderSkills(source, destination, providerName, providerConfig) 
   }
 }
 
-function validateProviderSkills(providerName, targetRoot, skillKeys) {
+function validateProviderSkills(providerName: string, targetRoot: string, skillKeys: string[]): void {
   for (const filePath of walkFiles(targetRoot).filter((file) => path.basename(file) === 'SKILL.md')) {
     const { yaml } = splitFrontmatter(fs.readFileSync(filePath, 'utf8'), filePath);
     for (const key of parseTopLevelChunks(yaml).keys()) {
@@ -235,7 +241,7 @@ function validateProviderSkills(providerName, targetRoot, skillKeys) {
   }
 }
 
-function buildSkills() {
+function buildSkills(): void {
   const source = path.join(pluginRoot, 'skills');
   if (!fs.existsSync(source)) {
     throw new Error(`Missing skills source directory: ${source}`);
@@ -250,16 +256,23 @@ function buildSkills() {
   console.log(`Built skills for ${Object.keys(providers).join(', ')}`);
 }
 
-function buildSharedBundles() {
+function buildSharedBundles(): void {
   for (const [providerName, provider] of Object.entries(providers)) {
-    for (const dirName of sharedBundleDirs) {
+    for (const dirName of sourceBundleDirs) {
       materializeTree(
         path.join(pluginRoot, dirName),
         path.join(provider.root, dirName),
       );
     }
+    for (const dirName of compiledBundleDirs) {
+      materializeTree(
+        path.join(pluginRoot, 'dist', dirName),
+        path.join(provider.root, dirName),
+      );
+    }
   }
 
+  const sharedBundleDirs = [...sourceBundleDirs, ...compiledBundleDirs];
   console.log(
     `Built shared provider directories for ${Object.keys(providers).join(', ')}: ${sharedBundleDirs.join(', ')}`,
   );

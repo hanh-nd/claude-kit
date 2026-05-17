@@ -2,8 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ENFORCEMENT_MODES, KIT_PATH } from '../constants.js';
 import { blockAction, noOp } from '../utils.js';
+import type { SecurityPolicy } from '../../types/security.js';
 
-export function enforce(reason, policy) {
+export function enforce(reason: string, policy: Pick<SecurityPolicy, 'enforcementMode'>): void {
   if (policy.enforcementMode === ENFORCEMENT_MODES.AUDIT) {
     try {
       const logPath = path.join(KIT_PATH, 'logs', 'security-audit.log');

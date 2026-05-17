@@ -4,10 +4,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, describe, before, after } from 'node:test';
 import { realpathSafe, isOutsideWorkspace, shouldBlockOutside } from '../../scripts/security/workspace.js';
+import type { SecurityPolicy } from '../../types/security.js';
 
 describe('workspace', () => {
-  let tmpDir;
-  let policy;
+  let tmpDir: string;
+  let policy: Pick<SecurityPolicy, 'projectDir' | 'caseInsensitive' | 'allowedOutsidePaths' | 'allowOutside'>;
 
   before(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ak-ws-'));
@@ -44,7 +45,7 @@ describe('workspace', () => {
       fs.symlinkSync('/etc/passwd', linkPath);
       assert.ok(shouldBlockOutside(linkPath, policy), 'symlink to /etc/passwd must be blocked');
     } catch (e) {
-      if (e.code === 'EEXIST') {
+      if (e instanceof Error && 'code' in e && e.code === 'EEXIST') {
         assert.ok(shouldBlockOutside(linkPath, policy));
       } else {
         // Can't create symlink, skip

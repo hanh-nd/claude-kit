@@ -1,13 +1,19 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { SecurityPolicy } from '../../types/security.js';
 
-export function realpathSafe(p, policy) {
+type WorkspacePolicy = Pick<
+  SecurityPolicy,
+  'projectDir' | 'caseInsensitive' | 'allowedOutsidePaths' | 'allowOutside'
+>;
+
+export function realpathSafe(p: string, policy: Pick<SecurityPolicy, 'projectDir'>): string {
   try {
     const abs = path.resolve(policy.projectDir, p);
     try {
       return fs.realpathSync(abs);
     } catch (err) {
-      if (err.code !== 'ENOENT' && err.code !== 'ENOTDIR') return abs;
+      if (!(err instanceof Error) || !('code' in err) || (err.code !== 'ENOENT' && err.code !== 'ENOTDIR')) return abs;
       // Walk up to find deepest existing ancestor
       const segments = abs.split(path.sep);
       let i = segments.length - 1;
@@ -27,7 +33,7 @@ export function realpathSafe(p, policy) {
   }
 }
 
-export function isOutsideWorkspace(filePath, policy) {
+export function isOutsideWorkspace(filePath: string, policy: Pick<SecurityPolicy, 'projectDir' | 'caseInsensitive'>): boolean {
   const resolved = realpathSafe(filePath, policy);
   const projectDir = policy.projectDir;
   if (policy.caseInsensitive) {
@@ -38,7 +44,10 @@ export function isOutsideWorkspace(filePath, policy) {
   return resolved !== projectDir && !resolved.startsWith(projectDir + path.sep);
 }
 
-export function isInAllowedOutsidePath(filePath, policy) {
+export function isInAllowedOutsidePath(
+  filePath: string,
+  policy: Pick<SecurityPolicy, 'projectDir' | 'caseInsensitive' | 'allowedOutsidePaths'>,
+): boolean {
   if (policy.allowedOutsidePaths.length === 0) return false;
   const resolved = realpathSafe(filePath, policy);
   return policy.allowedOutsidePaths.some((allowed) => {
@@ -51,7 +60,7 @@ export function isInAllowedOutsidePath(filePath, policy) {
   });
 }
 
-export function shouldBlockOutside(filePath, policy) {
+export function shouldBlockOutside(filePath: string, policy: WorkspacePolicy): boolean {
   return (
     isOutsideWorkspace(filePath, policy) &&
     !isInAllowedOutsidePath(filePath, policy) &&

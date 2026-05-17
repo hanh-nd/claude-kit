@@ -6,8 +6,10 @@ import * as path from 'path';
 import { countTests } from '../scripts/count-tests.js';
 import { ENFORCEMENT_MODES, KIT_DIR, KIT_PATH, PROJECT_DIR } from './constants.js';
 import { runWhenInvoked } from './utils.js';
+import type { AgentKitSettings } from '../types/security.js';
+import type { DefaultSettings, InitHookInput } from '../types/kit.js';
 
-function ensureDirectories() {
+function ensureDirectories(): void {
   const dirs = [
     'handoffs',
     'logs',
@@ -36,7 +38,7 @@ function ensureDirectories() {
   }
 }
 
-function ensureGitExclusion() {
+function ensureGitExclusion(): void {
   const gitDir = path.join(PROJECT_DIR, '.git');
   if (!fs.existsSync(gitDir)) return;
 
@@ -62,7 +64,7 @@ function ensureGitExclusion() {
   }
 }
 
-const DEFAULT_SETTINGS = {
+const DEFAULT_SETTINGS: DefaultSettings = {
   security: {
     allowOutside: false,
     allowedOutsidePaths: [],
@@ -80,28 +82,49 @@ const DEFAULT_SETTINGS = {
   },
 };
 
-function ensureSettings() {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseSettings(content: string): AgentKitSettings {
+  const parsed: unknown = JSON.parse(content);
+  return isRecord(parsed) ? parsed : {};
+}
+
+function ensureSettings(): void {
   const settingsPath = path.join(KIT_PATH, 'settings.json');
-  let current = {};
+  let current: AgentKitSettings = {};
   if (fs.existsSync(settingsPath)) {
     try {
-      current = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      current = parseSettings(fs.readFileSync(settingsPath, 'utf8'));
     } catch {
       // Corrupted — start fresh
     }
   }
 
   let changed = false;
-  for (const [section, defaults] of Object.entries(DEFAULT_SETTINGS)) {
-    if (typeof current[section] !== 'object' || current[section] === null) {
-      current[section] = {};
+
+  if (!isRecord(current.security)) {
+    current.security = {};
+    changed = true;
+  }
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS.security)) {
+    const settingKey = key as keyof typeof DEFAULT_SETTINGS.security;
+    if (current.security[settingKey] === undefined) {
+      current.security[settingKey] = value;
       changed = true;
     }
-    for (const [key, value] of Object.entries(defaults)) {
-      if (!(key in current[section])) {
-        current[section][key] = value;
-        changed = true;
-      }
+  }
+
+  if (!isRecord(current.project)) {
+    current.project = {};
+    changed = true;
+  }
+  for (const [key, value] of Object.entries(DEFAULT_SETTINGS.project)) {
+    const settingKey = key as keyof typeof DEFAULT_SETTINGS.project;
+    if (current.project[settingKey] === undefined) {
+      current.project[settingKey] = value;
+      changed = true;
     }
   }
 
@@ -127,17 +150,19 @@ function ensureSettings() {
  * SessionStart Hook — Kit Initializer
  */
 runWhenInvoked(import.meta.url, async () => {
-  const raw = await new Promise((resolve) => {
+  const raw = await new Promise<string>((resolve) => {
     let data = '';
-    process.stdin.on('data', (chunk) => (data += chunk));
+    process.stdin.on('data', (chunk: Buffer) => (data += chunk.toString()));
     process.stdin.on('end', () => resolve(data));
   });
 
-  let input;
+  let input: InitHookInput;
   try {
-    input = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    input = isRecord(parsed) ? parsed : {};
   } catch (error) {
-    console.error('❌ Agent-Kit failed to initialize', error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Agent-Kit failed to initialize', message);
     process.exit(0);
   }
 

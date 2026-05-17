@@ -5,12 +5,13 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, describe, before, after } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import type { ChildRunResult } from '../../types/tests.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.resolve(__dirname, '../../scripts/security-privacy.js');
 const PROJECT_DIR = path.resolve(__dirname, '../..');
 
-let tmpDir;
+let tmpDir: string;
 
 before(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ak-int-'));
@@ -20,7 +21,7 @@ after(() => {
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best effort */ }
 });
 
-function run(payload, env = {}) {
+function run(payload: unknown, env: NodeJS.ProcessEnv = {}): ChildRunResult {
   const result = spawnSync(process.execPath, [ENTRY], {
     input: JSON.stringify(payload),
     env: { ...process.env, CLAUDE_PROJECT_DIR: PROJECT_DIR, ...env },

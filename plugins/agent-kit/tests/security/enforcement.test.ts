@@ -5,11 +5,12 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { test, describe, before, after } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import type { EnforcementMode } from '../../types/security.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // We test enforce() via a child-process helper since it calls process.exit
-function runEnforce(reason, mode, kitPath) {
+function runEnforce(reason: string, mode: EnforcementMode, kitPath?: string): ReturnType<typeof spawnSync> {
   const helperCode = `
 import { enforce } from '${path.resolve(__dirname, '../../scripts/security/enforcement.js')}';
 const policy = { enforcementMode: '${mode}' };
@@ -29,7 +30,7 @@ enforce(${JSON.stringify(reason)}, policy);
 }
 
 describe('enforcement', () => {
-  let tmpDir;
+  let tmpDir: string;
 
   before(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ak-enf-'));
