@@ -39,7 +39,11 @@ export class MemoryIndexer {
   ) {}
 
   async indexFile(absolutePath: string): Promise<IndexStats> {
-    const source = path.relative(this.config.memoryDir, absolutePath);
+    return this.indexFileRelativeTo(absolutePath, this.config.wikiDir);
+  }
+
+  private async indexFileRelativeTo(absolutePath: string, sourceRoot: string): Promise<IndexStats> {
+    const source = path.relative(sourceRoot, absolutePath);
     const existingHashes = this.store.hashesBySource(source);
 
     let text: string;
@@ -80,27 +84,46 @@ export class MemoryIndexer {
     };
   }
 
-  async indexDirectory(dirPath: string): Promise<IndexStats> {
+  async indexDirectory(
+    rootDir: string,
+    opts: { relativeBase?: string; excludeFiles?: string[] } = {},
+  ): Promise<IndexStats> {
     const totals: IndexStats = { indexed: 0, deleted: 0, skipped: 0 };
 
-    if (!fs.existsSync(dirPath)) return totals;
+    if (!fs.existsSync(rootDir)) return totals;
 
-    let files: string[];
-    try {
-      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-      files = entries
-        .filter((e) => e.isFile() && /\.(md|markdown)$/i.test(e.name))
-        .map((e) => path.join(dirPath, e.name));
-    } catch (err) {
-      console.warn(`[memory-indexer] Cannot scan directory ${dirPath}:`, err);
-      return totals;
-    }
+    const relativeBase = opts.relativeBase ?? this.config.wikiDir;
+    const excludeFiles = new Set(opts.excludeFiles ?? []);
+    const files: string[] = [];
+
+    const walk = (dirPath: string): void => {
+      let entries: fs.Dirent[];
+      try {
+        entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      } catch (err) {
+        console.warn(`[memory-indexer] Cannot scan directory ${dirPath}:`, err);
+        return;
+      }
+
+      for (const entry of entries) {
+        const entryPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          walk(entryPath);
+          continue;
+        }
+        if (entry.isFile() && /\.md$/i.test(entry.name) && !excludeFiles.has(entry.name)) {
+          files.push(entryPath);
+        }
+      }
+    };
+
+    walk(rootDir);
 
     const currentSources = new Set(
-      files.map((f) => path.relative(this.config.memoryDir, f)),
+      files.map((file) => path.relative(relativeBase, file)),
     );
 
-    // Remove stale sources (deleted files)
+    // Remove stale sources (deleted files or pre-migration daily-file sources)
     for (const stale of this.store.indexedSources()) {
       if (!currentSources.has(stale)) {
         this.store.deleteBySource(stale);
@@ -109,7 +132,7 @@ export class MemoryIndexer {
     }
 
     for (const file of files) {
-      const stats = await this.indexFile(file);
+      const stats = await this.indexFileRelativeTo(file, relativeBase);
       totals.indexed += stats.indexed;
       totals.deleted += stats.deleted;
       totals.skipped += stats.skipped;
@@ -161,34 +184,44 @@ export class MemoryIndexer {
         hasDense: scores.dense > 0,
         hasBm25: scores.bm25 > 0,
       }))
-      .sort((a, b) => b.totalScore - a.totalScore)
-      .slice(0, topK);
+      .sort((a, b) => b.totalScore - a.totalScore);
 
     const chunks = this.store.getChunksByIds(ranked.map((r) => r.id));
     const chunkMap = new Map(chunks.map((c) => [c.id, c]));
 
     const results: SearchResult[] = [];
+    const seenSources = new Set<string>();
     for (const r of ranked) {
+      if (results.length >= topK) break;
       const chunk = chunkMap.get(r.id);
       if (!chunk) continue;
+      if (seenSources.has(chunk.source)) continue;
+      seenSources.add(chunk.source);
 
       const normalizedScore = maxScore > 0 ? r.totalScore / maxScore : 0;
       const retriever: 'dense' | 'bm25' | 'both' =
         r.hasDense && r.hasBm25 ? 'both' : r.hasDense ? 'dense' : 'bm25';
 
-      results.push({ chunk, score: normalizedScore, retriever });
+      let contentSource: 'file' | 'fallback' = 'file';
+      try {
+        chunk.content = fs.readFileSync(path.join(this.config.wikiDir, chunk.source), 'utf8');
+      } catch {
+        contentSource = 'fallback';
+      }
+
+      results.push({ chunk, score: normalizedScore, retriever, contentSource });
     }
 
     return results;
   }
 
   async save(content: string): Promise<IndexStats> {
-    const now = new Date();
-    const datePart = now.toISOString().slice(0, 10);
-    const todayPath = path.join(this.config.memoryDir, `${datePart}.md`);
-    const lockPath = `${todayPath}.lock`;
+    const datePart = new Date().toISOString().slice(0, 10);
+    const rawDir = path.join(this.config.wikiDir, 'raw');
+    const savePath = path.join(rawDir, `conv_save_${datePart}.md`);
+    const lockPath = `${savePath}.lock`;
 
-    fs.mkdirSync(this.config.memoryDir, { recursive: true });
+    fs.mkdirSync(rawDir, { recursive: true });
 
     const acquired = await acquireLock(lockPath);
     if (!acquired) {
@@ -196,17 +229,20 @@ export class MemoryIndexer {
     }
 
     try {
-      fs.appendFileSync(todayPath, `\n${content}\n`, 'utf8');
+      fs.appendFileSync(savePath, `\n${content}\n`, 'utf8');
     } finally {
       if (acquired) releaseLock(lockPath);
     }
 
-    return this.indexFile(todayPath);
+    return { indexed: 0, deleted: 0, skipped: 0 };
   }
 
   async startupIndex(): Promise<void> {
     try {
-      await this.indexDirectory(this.config.memoryDir);
+      await this.indexDirectory(path.join(this.config.wikiDir, 'compiled'), {
+        relativeBase: this.config.wikiDir,
+        excludeFiles: ['index.md', 'log.md'],
+      });
     } catch (err) {
       console.warn('[memory-indexer] Startup indexing failed:', err);
     } finally {

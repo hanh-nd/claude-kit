@@ -12,11 +12,12 @@ export interface SearchResult {
   chunk: MemoryChunk;
   score: number;
   retriever: 'dense' | 'bm25' | 'both';
+  contentSource: 'file' | 'fallback';
 }
 
 export interface MemoryConfig {
   enabled: boolean;
-  memoryDir: string;
+  wikiDir: string;
   topK: number;
   chunkSize: number;
   overlapLines: number;
@@ -32,7 +33,7 @@ export interface IndexStats {
 
 export const DEFAULT_MEMORY_CONFIG: MemoryConfig = {
   enabled: false,
-  memoryDir: '',
+  wikiDir: '',
   topK: 5,
   chunkSize: 1500,
   overlapLines: 2,

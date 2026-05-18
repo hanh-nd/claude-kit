@@ -42,8 +42,12 @@ export function registerMemoryToolHandlers(
 
         const formatted = results
           .map((r) => {
-            const heading = r.chunk.heading ? `[${r.chunk.heading}]` : '[No Heading]';
-            return `### ${heading} (score: ${r.score.toFixed(3)})\n${r.chunk.content}\n_Source: ${r.chunk.source}_`;
+            const displaySource = r.chunk.source.replace(/^compiled\//, '');
+            const content =
+              r.contentSource === 'fallback'
+                ? `⚠️ Source file unavailable — showing matched chunk only:\n${r.chunk.content}`
+                : r.chunk.content;
+            return `### ${displaySource} (score: ${r.score.toFixed(3)})\n${content}`;
           })
           .join('\n\n---\n\n');
 
@@ -57,14 +61,18 @@ export function registerMemoryToolHandlers(
 
   server.tool(
     'kit_memory_save',
-    "Append content to today's memory file and index it immediately.",
+    'Save content to wiki/raw for inclusion after the next /wiki compile.',
     {
       content: z.string().min(1).describe('Content to save to memory'),
     },
     async ({ content }) => {
       try {
-        const stats = await indexer.save(content);
-        return mcpJson({ saved: true, chunks_indexed: stats.indexed, chunks_deleted: stats.deleted });
+        await indexer.save(content);
+        return mcpJson({
+          saved: true,
+          queued_for_compile: true,
+          message: 'Saved to wiki/raw — will be indexed after next /wiki compile',
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return mcpJson({ saved: false, error: message });
@@ -86,7 +94,7 @@ export function registerMemoryTools(
   if (settings.memory?.enabled !== true) return null;
 
   const config = resolveMemoryConfig(settings, workspaceRoot);
-  const store = new MemoryStore(path.join(config.memoryDir, 'index.db'), config);
+  const store = new MemoryStore(path.join(config.wikiDir, 'index.db'), config);
   const embedder = new Embedder(config.embeddingModel);
   const indexer = new MemoryIndexer(store, embedder, config);
 

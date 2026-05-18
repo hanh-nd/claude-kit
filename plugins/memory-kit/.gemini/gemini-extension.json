@@ -1,8 +1,7 @@
 {
-  "name": "agent-kit",
-  "version": "1.0.26",
-  "description": "Super Engineer - Team of AI Agents for software development",
-  "contextFileName": "docs/instruction.md",
+  "name": "mk",
+  "version": "1.0.0",
+  "description": "Memory Kit - Persistent context and knowledge base for AI Agents",
   "mcpServers": {
     "kit-agents": {
       "command": "npx",

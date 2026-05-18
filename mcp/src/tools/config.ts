@@ -47,18 +47,19 @@ export interface ProjectSettings {
 export { MemoryConfig };
 
 /**
- * Merge DEFAULT_MEMORY_CONFIG with settings.memory; resolve memoryDir when not explicitly set.
+ * Merge DEFAULT_MEMORY_CONFIG with settings.memory; resolve wikiDir when not explicitly set.
  */
 export function resolveMemoryConfig(settings: ProjectSettings, workspaceRoot: string): MemoryConfig {
   const override = settings.memory ?? {};
+
   return {
     ...DEFAULT_MEMORY_CONFIG,
     ...override,
     enabled: override.enabled ?? DEFAULT_MEMORY_CONFIG.enabled,
-    memoryDir:
-      typeof override.memoryDir === 'string' && override.memoryDir.length > 0
-        ? override.memoryDir
-        : path.join(workspaceRoot, '.agent-kit', 'memory'),
+    wikiDir:
+      typeof override.wikiDir === 'string' && override.wikiDir.length > 0
+        ? override.wikiDir
+        : path.join(workspaceRoot, '.agent-kit', 'wiki'),
   };
 }
 

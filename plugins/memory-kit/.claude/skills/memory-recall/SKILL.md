@@ -3,7 +3,6 @@ name: memory-recall
 description: "Search persistent memory for context relevant to the current question.
   Use this proactively when the user asks about past decisions, prior conversations,
   or context from previous sessions."
-allowed-tools: mcp__kit_agents__kit_memory_search
 context: fork
 ---
 

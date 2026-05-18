@@ -8,7 +8,7 @@ import type { MemoryChunk } from '../types.js';
 
 const TEST_CONFIG = {
   enabled: true,
-  memoryDir: '',
+  wikiDir: '',
   topK: 5,
   chunkSize: 1500,
   overlapLines: 2,

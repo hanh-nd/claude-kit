@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import type { MemoryIndexer } from '../../memory/indexer.js';
 import type { MemoryStore } from '../../memory/store.js';
 import type { MemoryChunk, MemoryConfig, SearchResult } from '../../memory/types.js';
+import { resolveMemoryConfig } from '../config.js';
 import { registerMemoryToolHandlers } from '../memory.js';
 
 // Minimal McpServer stub that captures tool registrations
@@ -31,7 +32,7 @@ function makeChunk(overrides: Partial<MemoryChunk> = {}): MemoryChunk {
 
 const BASE_CONFIG: MemoryConfig = {
   enabled: true,
-  memoryDir: '/tmp/memory',
+  wikiDir: '/tmp/wiki',
   topK: 5,
   chunkSize: 1500,
   overlapLines: 2,
@@ -56,9 +57,9 @@ function extractText(result: unknown): string {
 }
 
 describe('kit_memory_search', () => {
-  test('returns formatted chunk content and source when results exist', async () => {
-    const chunk = makeChunk({ content: 'Important memory content', source: '2024-01-01.md' });
-    const searchResult: SearchResult = { chunk, score: 0.85, retriever: 'bm25' };
+  test('returns formatted full content and display source when results exist', async () => {
+    const chunk = makeChunk({ content: 'Important memory content', source: 'compiled/entities/foo.md' });
+    const searchResult: SearchResult = { chunk, score: 0.85, retriever: 'bm25', contentSource: 'file' };
 
     const indexer = makeIndexerStub({ search: async () => [searchResult] });
     const store = makeStoreStub(true);
@@ -69,8 +70,9 @@ describe('kit_memory_search', () => {
     const text = extractText(result);
 
     assert.ok(text.includes('Important memory content'), 'Result must include chunk content');
-    assert.ok(text.includes('2024-01-01.md'), 'Result must include source');
-    assert.ok(text.includes('My Section'), 'Result must include heading');
+    assert.ok(text.includes('### entities/foo.md (score: 0.850)'), 'Result must include display source and score');
+    assert.ok(!text.includes('compiled/entities/foo.md'), 'Result must strip compiled/ prefix');
+    assert.ok(!text.includes('My Section'), 'Result must not include chunk heading as the block title');
   });
 
   test('returns "no memories" message when results are empty', async () => {
@@ -101,7 +103,7 @@ describe('kit_memory_search', () => {
 
   test('prepends degraded warning when vecAvailable is false with results', async () => {
     const chunk = makeChunk({ content: 'Found content', source: 'test.md' });
-    const searchResult: SearchResult = { chunk, score: 0.5, retriever: 'bm25' };
+    const searchResult: SearchResult = { chunk, score: 0.5, retriever: 'bm25', contentSource: 'file' };
 
     const indexer = makeIndexerStub({ search: async () => [searchResult] });
     const store = makeStoreStub(false);
@@ -114,6 +116,22 @@ describe('kit_memory_search', () => {
     assert.ok(text.includes('Vector search unavailable') || text.includes('keyword-only'),
       `Expected degraded warning with results in: ${text.slice(0, 200)}`);
     assert.ok(text.includes('Found content'), 'Result must still contain chunk content');
+  });
+
+  test('prepends source-unavailable warning for fallback results', async () => {
+    const chunk = makeChunk({ content: 'Stored chunk only', source: 'compiled/entities/foo.md' });
+    const searchResult: SearchResult = { chunk, score: 0.5, retriever: 'bm25', contentSource: 'fallback' };
+
+    const indexer = makeIndexerStub({ search: async () => [searchResult] });
+    const store = makeStoreStub(true);
+    const { server, tools } = makeMockServer();
+    registerMemoryToolHandlers(server as never, indexer, store, BASE_CONFIG);
+
+    const result = await tools.get('kit_memory_search')!({ query: 'test' });
+    const text = extractText(result);
+
+    assert.ok(text.includes('Source file unavailable'), `Expected fallback warning in: ${text}`);
+    assert.ok(text.includes('Stored chunk only'), 'Result must include fallback chunk content');
   });
 
   test('uses top_k parameter when provided', async () => {
@@ -164,9 +182,9 @@ describe('kit_memory_search', () => {
 });
 
 describe('kit_memory_save', () => {
-  test('returns saved:true and chunk stats on success', async () => {
+  test('returns saved:true and queued-for-compile status on success', async () => {
     const indexer = makeIndexerStub({
-      save: async () => ({ indexed: 3, deleted: 1, skipped: 0 }),
+      save: async () => ({ indexed: 0, deleted: 0, skipped: 0 }),
     });
     const store = makeStoreStub(true);
     const { server, tools } = makeMockServer();
@@ -174,11 +192,11 @@ describe('kit_memory_save', () => {
 
     const result = await tools.get('kit_memory_save')!({ content: 'Some important note' });
     const text = extractText(result);
-    const parsed = JSON.parse(text) as { saved: boolean; chunks_indexed: number; chunks_deleted: number };
+    const parsed = JSON.parse(text) as { saved: boolean; queued_for_compile: boolean; message: string };
 
     assert.equal(parsed.saved, true);
-    assert.equal(parsed.chunks_indexed, 3);
-    assert.equal(parsed.chunks_deleted, 1);
+    assert.equal(parsed.queued_for_compile, true);
+    assert.equal(parsed.message, 'Saved to wiki/raw — will be indexed after next /wiki compile');
   });
 
   test('returns saved:false and error message when indexer.save throws', async () => {
@@ -195,5 +213,19 @@ describe('kit_memory_save', () => {
 
     assert.equal(parsed.saved, false);
     assert.ok(parsed.error.includes('disk full'), `Expected "disk full" in error, got: ${parsed.error}`);
+  });
+});
+
+describe('resolveMemoryConfig', () => {
+  test('defaults wikiDir under .agent-kit', () => {
+    const config = resolveMemoryConfig({ memory: {} }, '/repo');
+
+    assert.equal(config.wikiDir, '/repo/.agent-kit/wiki');
+  });
+
+  test('uses explicit wikiDir override', () => {
+    const config = resolveMemoryConfig({ memory: { wikiDir: '/custom/wiki' } }, '/repo');
+
+    assert.equal(config.wikiDir, '/custom/wiki');
   });
 });

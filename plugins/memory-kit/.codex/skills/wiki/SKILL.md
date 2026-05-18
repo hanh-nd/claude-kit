@@ -43,7 +43,7 @@ Default (empty or unrecognized): run **Compile**.
 .agent-kit/wiki/
   raw/
     inbox.md                 # append-only handoff log (PostToolUse hook)
-    conv_*.txt               # exported conversations
+    conv_*.md                # exported conversations
   compiled/
     index.md                 # category-organized catalog (loaded into every session)
     log.md                   # chronological compile/query record
@@ -56,7 +56,7 @@ Default (empty or unrecognized): run **Compile**.
       {slug}.md              # short reference entries
   archive/
     YYYY-MM.md               # processed inbox entries, verbatim
-    conversations/           # processed conv_*.txt files
+    conversations/           # processed conv_*.md files
 ```
 
 **Slug rules.** Lowercase kebab-case. Descriptive over short. **Stable forever** — once a slug exists, every cross-link in every page depends on it. Anti-patterns enforced by lint: slugs ending in `-refactor`, `-redesign`, `-migration`, `-update`, `-fix`, or matching `^[a-z]+-\d+$` (ticket IDs).
@@ -85,7 +85,7 @@ When compiling, the `path` field points to the full handoff document — read it
 
 ### Step 1 — Check for Work
 
-Read `.agent-kit/wiki/raw/inbox.md`. List all `wiki/raw/conv_*.txt` files via Glob.
+Read `.agent-kit/wiki/raw/inbox.md`. List all `wiki/raw/conv_*.md` files via Glob.
 
 If both are empty:
 
@@ -95,7 +95,7 @@ Nothing to compile — inbox is empty.
 
 Stop.
 
-For large `conv_*.txt` files (>500 lines), focus on sections containing decisions, conclusions, or "we always / the rule is / because" language — not every exchange.
+For large `conv_*.md` files (>500 lines), focus on sections containing decisions, conclusions, or "we always / the rule is / because" language — not every exchange.
 
 ### Step 2 — Bundle Related Handoffs
 
@@ -243,7 +243,7 @@ The outcome breakdown makes it easy to spot drift over time (e.g. lots of B's = 
 ### Step 9 — Archive and Clear
 
 - Append processed inbox entries verbatim to `wiki/archive/{YYYY-MM}.md`.
-- Move `conv_*.txt` files to `wiki/archive/conversations/` via `mv`.
+- Move `conv_*.md` files to `wiki/archive/conversations/` via `mv`.
 - Overwrite `wiki/raw/inbox.md` with an empty file.
 
 ### Step 10 — Report

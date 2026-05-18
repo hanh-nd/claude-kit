@@ -10,4 +10,7 @@ export const PROJECT_DIR =
 
 export const KIT_DIR = '.agent-kit';
 export const KIT_PATH = path.join(PROJECT_DIR, KIT_DIR);
-export const MEMORY_DIR = path.join(KIT_PATH, 'memory');
+export const WIKI_DIR = path.join(KIT_PATH, 'wiki');
+export const WIKI_RAW_DIR = path.join(WIKI_DIR, 'raw');
+export const WIKI_COMPILED_DIR = path.join(WIKI_DIR, 'compiled');
+export const WIKI_ARCHIVE_CONVERSATIONS_DIR = path.join(WIKI_DIR, 'archive', 'conversations');

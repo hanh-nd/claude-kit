@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
-import { MEMORY_DIR } from './constants.js';
+import { WIKI_RAW_DIR } from './constants.js';
 import { parseTranscript, runWhenInvoked } from './utils.js';
 const LOCK_RETRY_MS = 50;
 const LOCK_TIMEOUT_MS = 500;
@@ -74,11 +74,11 @@ runWhenInvoked(import.meta.url, async () => {
         process.exit(0);
     }
     const now = new Date();
-    const datePart = now.toISOString().slice(0, 10);
-    const todayPath = path.join(MEMORY_DIR, `${datePart}.md`);
+    const safeTimestamp = now.toISOString().replace(/[:.]/g, '-');
+    const todayPath = path.join(WIKI_RAW_DIR, `conv_${safeTimestamp}.md`);
     const lockPath = `${todayPath}.lock`;
     try {
-        fs.mkdirSync(MEMORY_DIR, { recursive: true });
+        fs.mkdirSync(WIKI_RAW_DIR, { recursive: true });
     }
     catch {
         // ignore
