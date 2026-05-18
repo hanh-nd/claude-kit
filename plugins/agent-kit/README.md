@@ -118,6 +118,8 @@ For Codex hooks, add this to `~/.codex/config.toml`:
 plugin_hooks = true
 ```
 
+Note that you may have to manually enable hooks in Codex settings.
+
 **3. Add credentials** to `~/.claude/credentials` for MCP integrations:
 
 ```bash
