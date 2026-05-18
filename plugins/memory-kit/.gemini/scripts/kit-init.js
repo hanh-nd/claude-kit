@@ -1,11 +1,29 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
-import { MEMORY_DIR } from './constants.js';
+import { KIT_PATH, MEMORY_DIR } from './constants.js';
 import { readdirSorted, runWhenInvoked } from './utils.js';
 function ensureMemoryDir() {
     try {
         fs.mkdirSync(MEMORY_DIR, { recursive: true });
+    }
+    catch {
+        // Silently fail to not block session startup
+    }
+}
+function ensureMemoryEnabled() {
+    const settingsPath = path.join(KIT_PATH, 'settings.json');
+    try {
+        fs.mkdirSync(KIT_PATH, { recursive: true });
+        let settings = {};
+        if (fs.existsSync(settingsPath)) {
+            settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        }
+        const memory = (settings.memory ?? {});
+        if (memory.enabled !== true) {
+            settings.memory = { ...memory, enabled: true };
+            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+        }
     }
     catch {
         // Silently fail to not block session startup
@@ -53,6 +71,7 @@ runWhenInvoked(import.meta.url, async () => {
         process.stdin.on('data', (chunk) => (data += chunk));
         process.stdin.on('end', () => resolve());
     });
+    ensureMemoryEnabled();
     ensureMemoryDir();
     writeTodaySessionHeading();
     const additionalContext = buildAdditionalContext();

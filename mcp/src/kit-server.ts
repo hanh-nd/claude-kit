@@ -29,8 +29,9 @@ registerIntegrationTools(server);
 registerCoreTools(server);
 registerAgentTools(server);
 
-const settings = loadProjectSettings(getWorkspaceRoot());
-const memoryIndexer = registerMemoryTools(server, settings, getWorkspaceRoot());
+const workspaceRoot = getWorkspaceRoot();
+const settings = loadProjectSettings(workspaceRoot);
+const memoryIndexer = registerMemoryTools(server, settings, workspaceRoot);
 
 // ═══════════════════════════════════════════════════════════════
 // START SERVER

@@ -232,6 +232,15 @@ export class MemoryStore {
   searchBm25(query: string, limit: number): Array<{ id: string; score: number }> {
     if (!query.trim()) return [];
 
+    // FTS5 defaults to AND for multi-word queries; convert to OR so any term is a hit
+    const ftsQuery = query
+      .trim()
+      .split(/\s+/)
+      .map((t) => t.replace(/['"*^():\-]/g, ' ').trim())
+      .filter(Boolean)
+      .join(' OR ');
+    if (!ftsQuery) return [];
+
     try {
       const rows = this.db
         .prepare(
@@ -242,7 +251,7 @@ export class MemoryStore {
            ORDER BY rank
            LIMIT ?`,
         )
-        .all(query, limit) as Array<{ id: string; rank: number }>;
+        .all(ftsQuery, limit) as Array<{ id: string; rank: number }>;
 
       if (rows.length === 0) return [];
 
