@@ -25,6 +25,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "kit_save_handoff",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/kit-handoff-saved.js",
+            "statusMessage": "Logging handoff to wiki inbox",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

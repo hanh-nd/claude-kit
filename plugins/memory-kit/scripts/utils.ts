@@ -3,6 +3,34 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ContentBlock, Message, Transcript } from '@types';
 
+export interface FileLockOptions {
+  retryMs?: number;
+  timeoutMs?: number;
+}
+
+export async function acquireFileLock(lockPath: string, opts?: FileLockOptions): Promise<boolean> {
+  const retryMs = opts?.retryMs ?? 50;
+  const timeoutMs = opts?.timeoutMs ?? 500;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
+      return true;
+    } catch {
+      await new Promise((r) => setTimeout(r, retryMs));
+    }
+  }
+  return false;
+}
+
+export function releaseFileLock(lockPath: string): void {
+  try {
+    fs.unlinkSync(lockPath);
+  } catch {
+    // ignore ENOENT
+  }
+}
+
 export function runWhenInvoked(importMetaUrl: string, fn: () => void | Promise<void>): void {
   if (!process.argv[1]) return;
   const entryPath = fs.realpathSync(process.argv[1]);

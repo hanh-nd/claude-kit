@@ -5,6 +5,24 @@ import * as path from 'path';
 import { KIT_PATH, WIKI_ARCHIVE_CONVERSATIONS_DIR, WIKI_COMPILED_DIR, WIKI_RAW_DIR } from './constants.js';
 import { runWhenInvoked } from './utils.js';
 
+function checkInboxNudge(): string {
+  const inboxPath = path.join(WIKI_RAW_DIR, 'inbox.md');
+  try {
+    const text = fs.readFileSync(inboxPath, 'utf8');
+    const slugs = new Set<string>();
+    for (const line of text.split('\n')) {
+      const match = line.match(/^- slug:\s*(.+)$/);
+      if (match) slugs.add(match[1].trim());
+    }
+    if (slugs.size > 3) {
+      return `\n[memory-kit] ${slugs.size} uncompiled handoffs (${[...slugs].join(', ')}). Run /wiki compile to index them.`;
+    }
+  } catch {
+    // inbox doesn't exist or is unreadable
+  }
+  return '';
+}
+
 function ensureWikiDirs(): void {
   try {
     fs.mkdirSync(WIKI_RAW_DIR, { recursive: true });
@@ -42,9 +60,10 @@ runWhenInvoked(import.meta.url, async () => {
 
   ensureMemoryEnabled();
   ensureWikiDirs();
+  const nudge = checkInboxNudge();
 
   console.log(JSON.stringify({
-    systemMessage: '[memory-kit] Memory available',
+    systemMessage: '[memory-kit] Memory available' + nudge,
   }));
   process.exit(0);
 });

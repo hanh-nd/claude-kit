@@ -3,31 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { WIKI_RAW_DIR } from './constants.js';
-import { parseTranscript, runWhenInvoked } from './utils.js';
-
-const LOCK_RETRY_MS = 50;
-const LOCK_TIMEOUT_MS = 500;
-
-async function acquireLock(lockPath: string): Promise<boolean> {
-  const deadline = Date.now() + LOCK_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    try {
-      fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
-      return true;
-    } catch {
-      await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
-    }
-  }
-  return false;
-}
-
-function releaseLock(lockPath: string): void {
-  try {
-    fs.unlinkSync(lockPath);
-  } catch {
-    // ignore
-  }
-}
+import { acquireFileLock, parseTranscript, releaseFileLock, runWhenInvoked } from './utils.js';
 
 function formatTurns(transcriptPath: string): string {
   const transcript = parseTranscript(transcriptPath);
@@ -93,13 +69,13 @@ runWhenInvoked(import.meta.url, async () => {
     // ignore
   }
 
-  const acquired = await acquireLock(lockPath);
+  const acquired = await acquireFileLock(lockPath);
   try {
     fs.appendFileSync(todayPath, `\n${content}\n`, 'utf8');
   } catch (err) {
     console.error('[memory-kit] Failed to write session end content:', err);
   } finally {
-    if (acquired) releaseLock(lockPath);
+    if (acquired) releaseFileLock(lockPath);
   }
 
   console.log(JSON.stringify({}));

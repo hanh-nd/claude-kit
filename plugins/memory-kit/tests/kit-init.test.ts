@@ -36,7 +36,10 @@ describe('kit-init', () => {
     });
 
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout.trim(), '{}');
+    assert.equal(
+      JSON.parse(result.stdout).systemMessage,
+      '[memory-kit] Memory available',
+    );
 
     const settingsPath = path.join(projectDir, '.agent-kit', 'settings.json');
     const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as {
@@ -50,34 +53,121 @@ describe('kit-init', () => {
     assert.ok(!fs.existsSync(path.join(projectDir, '.agent-kit', 'memory')));
   });
 
-  test('does not inject SessionStart context even when compiled wiki exists', () => {
+  test('emits baseline systemMessage with no nudge when inbox is absent (C6)', () => {
     const projectDir = makeTempDir();
     const scriptPath = path.resolve('dist/scripts/kit-init.js');
-    const compiledDir = path.join(projectDir, '.agent-kit', 'wiki', 'compiled');
-
-    fs.mkdirSync(compiledDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(compiledDir, 'preferences.md'),
-      '# Preferences\nAlways keep memory-kit startup context curated.',
-      'utf8',
-    );
-    fs.writeFileSync(
-      path.join(compiledDir, 'index.md'),
-      '# Project Index\nMemory Kit stores compiled knowledge in wiki.',
-      'utf8',
-    );
 
     const result = spawnSync(process.execPath, [scriptPath], {
       cwd: path.resolve('.'),
-      env: {
-        ...process.env,
-        CODEX_PROJECT_DIR: projectDir,
-      },
+      env: { ...process.env, CODEX_PROJECT_DIR: projectDir },
       input: '{}',
       encoding: 'utf8',
     });
 
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(JSON.parse(result.stdout), {});
+    assert.equal(
+      JSON.parse(result.stdout).systemMessage,
+      '[memory-kit] Memory available',
+    );
+  });
+
+  test('no nudge when inbox has exactly 3 unique slugs (C7 — boundary)', () => {
+    const projectDir = makeTempDir();
+    const scriptPath = path.resolve('dist/scripts/kit-init.js');
+    const rawDir = path.join(projectDir, '.agent-kit', 'wiki', 'raw');
+    fs.mkdirSync(rawDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(rawDir, 'inbox.md'),
+      '- slug: alpha\n- slug: beta\n- slug: gamma\n',
+      'utf8',
+    );
+
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: path.resolve('.'),
+      env: { ...process.env, CODEX_PROJECT_DIR: projectDir },
+      input: '{}',
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      JSON.parse(result.stdout).systemMessage,
+      '[memory-kit] Memory available',
+    );
+  });
+
+  test('nudge fires when inbox has 4 unique slugs (C8)', () => {
+    const projectDir = makeTempDir();
+    const scriptPath = path.resolve('dist/scripts/kit-init.js');
+    const rawDir = path.join(projectDir, '.agent-kit', 'wiki', 'raw');
+    fs.mkdirSync(rawDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(rawDir, 'inbox.md'),
+      '- slug: alpha\n- slug: beta\n- slug: gamma\n- slug: delta\n',
+      'utf8',
+    );
+
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: path.resolve('.'),
+      env: { ...process.env, CODEX_PROJECT_DIR: projectDir },
+      input: '{}',
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const msg = JSON.parse(result.stdout).systemMessage as string;
+    assert.ok(msg.startsWith('[memory-kit] Memory available\n[memory-kit] 4 uncompiled handoffs ('));
+    assert.ok(msg.includes('alpha'));
+    assert.ok(msg.includes('beta'));
+    assert.ok(msg.includes('gamma'));
+    assert.ok(msg.includes('delta'));
+    assert.ok(msg.endsWith('Run /wiki compile to index them.'));
+  });
+
+  test('duplicate slugs counted once — no nudge for 5 lines with 2 unique slugs', () => {
+    const projectDir = makeTempDir();
+    const scriptPath = path.resolve('dist/scripts/kit-init.js');
+    const rawDir = path.join(projectDir, '.agent-kit', 'wiki', 'raw');
+    fs.mkdirSync(rawDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(rawDir, 'inbox.md'),
+      '- slug: alpha\n- slug: alpha\n- slug: beta\n- slug: beta\n- slug: beta\n',
+      'utf8',
+    );
+
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: path.resolve('.'),
+      env: { ...process.env, CODEX_PROJECT_DIR: projectDir },
+      input: '{}',
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      JSON.parse(result.stdout).systemMessage,
+      '[memory-kit] Memory available',
+    );
+  });
+
+  test('falls back to baseline systemMessage when inbox is unreadable (C9)', () => {
+    const projectDir = makeTempDir();
+    const scriptPath = path.resolve('dist/scripts/kit-init.js');
+    // Place a file at the wiki/raw path so readFileSync on inbox.md fails (parent is a file)
+    const agentKitDir = path.join(projectDir, '.agent-kit', 'wiki');
+    fs.mkdirSync(agentKitDir, { recursive: true });
+    fs.writeFileSync(path.join(agentKitDir, 'raw'), 'not-a-dir', 'utf8');
+
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: path.resolve('.'),
+      env: { ...process.env, CODEX_PROJECT_DIR: projectDir },
+      input: '{}',
+      encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      JSON.parse(result.stdout).systemMessage,
+      '[memory-kit] Memory available',
+    );
   });
 });

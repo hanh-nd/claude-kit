@@ -77,7 +77,7 @@ Written by the `PostToolUse` hook after each `kit_save_handoff` call:
 
 ```
 ## [YYYY-MM-DDTHH:MM:SS] handoff | {type}-{slug}
-- type: {brainstorm | plan | ticket | clarify | research}
+- type: {brainstorm | clarification | plan | ticket | research | scenario | investigation}
 - slug: {slug}
 - path: {relative path to handoff file}
 - summary: {one-line summary}

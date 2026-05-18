@@ -23,6 +23,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__plugin_ak_kit-agents__kit_save_handoff",
+        "hooks": [
+          {
+            "name": "memory-kit-handoff-saved",
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/scripts/kit-handoff-saved.js",
+            "timeout": 10000
+          }
+        ]
+      }
     ]
   }
 }

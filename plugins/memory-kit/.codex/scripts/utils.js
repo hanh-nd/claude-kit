@@ -1,6 +1,29 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+export async function acquireFileLock(lockPath, opts) {
+    const retryMs = opts?.retryMs ?? 50;
+    const timeoutMs = opts?.timeoutMs ?? 500;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        try {
+            fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
+            return true;
+        }
+        catch {
+            await new Promise((r) => setTimeout(r, retryMs));
+        }
+    }
+    return false;
+}
+export function releaseFileLock(lockPath) {
+    try {
+        fs.unlinkSync(lockPath);
+    }
+    catch {
+        // ignore ENOENT
+    }
+}
 export function runWhenInvoked(importMetaUrl, fn) {
     if (!process.argv[1])
         return;

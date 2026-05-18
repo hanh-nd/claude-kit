@@ -2,30 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { WIKI_RAW_DIR } from './constants.js';
-import { parseTranscript, runWhenInvoked } from './utils.js';
-const LOCK_RETRY_MS = 50;
-const LOCK_TIMEOUT_MS = 500;
-async function acquireLock(lockPath) {
-    const deadline = Date.now() + LOCK_TIMEOUT_MS;
-    while (Date.now() < deadline) {
-        try {
-            fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
-            return true;
-        }
-        catch {
-            await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
-        }
-    }
-    return false;
-}
-function releaseLock(lockPath) {
-    try {
-        fs.unlinkSync(lockPath);
-    }
-    catch {
-        // ignore
-    }
-}
+import { acquireFileLock, parseTranscript, releaseFileLock, runWhenInvoked } from './utils.js';
 function formatTurns(transcriptPath) {
     const transcript = parseTranscript(transcriptPath);
     if (transcript.messages.length === 0)
@@ -83,7 +60,7 @@ runWhenInvoked(import.meta.url, async () => {
     catch {
         // ignore
     }
-    const acquired = await acquireLock(lockPath);
+    const acquired = await acquireFileLock(lockPath);
     try {
         fs.appendFileSync(todayPath, `\n${content}\n`, 'utf8');
     }
@@ -92,7 +69,7 @@ runWhenInvoked(import.meta.url, async () => {
     }
     finally {
         if (acquired)
-            releaseLock(lockPath);
+            releaseFileLock(lockPath);
     }
     console.log(JSON.stringify({}));
     process.exit(0);

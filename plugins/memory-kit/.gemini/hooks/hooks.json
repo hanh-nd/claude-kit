@@ -25,6 +25,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "kit_save_handoff",
+        "hooks": [
+          {
+            "name": "memory-kit-handoff-saved",
+            "type": "command",
+            "command": "node \"${extensionPath}/scripts/kit-handoff-saved.js\"",
+            "timeout": 10000
+          }
+        ]
+      }
     ]
   }
 }
