@@ -307,6 +307,72 @@ describe('MemoryIndexer', () => {
     }
   });
 
+  test('search does not include dense-only results when BM25 has matches', async () => {
+    const testCfg = makeConfig('/tmp/search-dense-filter');
+    const chunks = [
+      {
+        id: 'preference-1',
+        source: 'compiled/preferences.md',
+        heading: '',
+        headingLevel: 0,
+        content: 'I like fish',
+        lineStart: 1,
+        lineEnd: 1,
+      },
+      {
+        id: 'dense-only-1',
+        source: 'compiled/entities/worktree.md',
+        heading: 'Worktree',
+        headingLevel: 1,
+        content: 'Unrelated worktree lifecycle content',
+        lineStart: 1,
+        lineEnd: 2,
+      },
+    ];
+    const fakeStore = {
+      vecAvailable: true,
+      searchDense: () => [
+        { id: 'dense-only-1', score: 0.99 },
+        { id: 'preference-1', score: 0.98 },
+      ],
+      searchBm25: () => [{ id: 'preference-1', score: 1 }],
+      getChunksByIds: (ids: string[]) => chunks.filter((chunk) => ids.includes(chunk.id)),
+    } as unknown as MemoryStore;
+    const testIndexer = new MemoryIndexer(fakeStore, new StubEmbedder() as unknown as Embedder, testCfg);
+
+    const results = await testIndexer.search('personal likes and preferences of the user', 5);
+
+    assert.deepEqual(results.map((result) => result.chunk.id), ['preference-1']);
+    assert.equal(results[0].retriever, 'both');
+  });
+
+  test('search still returns dense-only results when BM25 has no matches', async () => {
+    const testCfg = makeConfig('/tmp/search-dense-fallback');
+    const chunks = [
+      {
+        id: 'semantic-1',
+        source: 'compiled/preferences.md',
+        heading: '',
+        headingLevel: 0,
+        content: 'I like fish',
+        lineStart: 1,
+        lineEnd: 1,
+      },
+    ];
+    const fakeStore = {
+      vecAvailable: true,
+      searchDense: () => [{ id: 'semantic-1', score: 0.99 }],
+      searchBm25: () => [],
+      getChunksByIds: (ids: string[]) => chunks.filter((chunk) => ids.includes(chunk.id)),
+    } as unknown as MemoryStore;
+    const testIndexer = new MemoryIndexer(fakeStore, new StubEmbedder() as unknown as Embedder, testCfg);
+
+    const results = await testIndexer.search('favorite dish', 5);
+
+    assert.deepEqual(results.map((result) => result.chunk.id), ['semantic-1']);
+    assert.equal(results[0].retriever, 'dense');
+  });
+
   test('search falls back to stored chunk content when source file is missing', async () => {
     const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'search-fallback-'));
     const testCfg = makeConfig(path.join(testDir, 'wiki'));

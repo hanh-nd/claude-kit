@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import { eng, removeStopwords } from 'stopword';
 import type { MemoryChunk, MemoryConfig } from './types.js';
 
 export class StoreError extends Error {
@@ -59,18 +60,20 @@ export class MemoryStore {
   private createSchema(db: Database.Database): void {
     db.exec(`
       CREATE TABLE IF NOT EXISTS memory_chunks (
-        rowid       INTEGER PRIMARY KEY AUTOINCREMENT,
-        id          TEXT NOT NULL UNIQUE,
-        source      TEXT NOT NULL,
-        heading     TEXT NOT NULL DEFAULT '',
+        rowid         INTEGER PRIMARY KEY AUTOINCREMENT,
+        id            TEXT NOT NULL UNIQUE,
+        source        TEXT NOT NULL,
+        heading       TEXT NOT NULL DEFAULT '',
         heading_level INTEGER NOT NULL DEFAULT 0,
-        content     TEXT NOT NULL,
-        line_start  INTEGER NOT NULL,
-        line_end    INTEGER NOT NULL,
-        indexed_at  INTEGER NOT NULL
+        content       TEXT NOT NULL,
+        line_start    INTEGER NOT NULL,
+        line_end      INTEGER NOT NULL,
+        indexed_at    INTEGER NOT NULL
       );
 
       CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+        source,
+        heading,
         content,
         content='memory_chunks',
         content_rowid='rowid'
@@ -78,13 +81,14 @@ export class MemoryStore {
 
       CREATE TRIGGER IF NOT EXISTS memory_chunks_ai
         AFTER INSERT ON memory_chunks BEGIN
-          INSERT INTO memory_fts(rowid, content) VALUES (new.rowid, new.content);
+          INSERT INTO memory_fts(rowid, source, heading, content)
+            VALUES (new.rowid, new.source, new.heading, new.content);
         END;
 
       CREATE TRIGGER IF NOT EXISTS memory_chunks_ad
         AFTER DELETE ON memory_chunks BEGIN
-          INSERT INTO memory_fts(memory_fts, rowid, content)
-            VALUES ('delete', old.rowid, old.content);
+          INSERT INTO memory_fts(memory_fts, rowid, source, heading, content)
+            VALUES ('delete', old.rowid, old.source, old.heading, old.content);
         END;
     `);
 
@@ -232,19 +236,21 @@ export class MemoryStore {
   searchBm25(query: string, limit: number): Array<{ id: string; score: number }> {
     if (!query.trim()) return [];
 
-    // FTS5 defaults to AND for multi-word queries; convert to OR so any term is a hit
-    const ftsQuery = query
+    const tokens = query
       .trim()
       .split(/\s+/)
-      .map((t) => t.replace(/['"*^():\-]/g, ' ').trim())
-      .filter(Boolean)
+      .map((t) => t.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())
+      .filter((t) => t.length > 1);
+
+    const ftsQuery = removeStopwords(tokens, eng)
+      .map((t) => `${t.replace(/s$/, '')}*`)
       .join(' OR ');
     if (!ftsQuery) return [];
 
     try {
       const rows = this.db
         .prepare(
-          `SELECT mc.id, rank
+          `SELECT mc.id, bm25(memory_fts, 0.2, 2.0, 5.0) AS rank
            FROM memory_fts
            JOIN memory_chunks mc ON mc.rowid = memory_fts.rowid
            WHERE memory_fts MATCH ?

@@ -91,6 +91,28 @@ describe('MemoryStore', () => {
     );
   });
 
+  test('searchBm25 ignores filler words and matches preference source/content terms', () => {
+    const preference = makeChunk({
+      id: 'preference-search-0001',
+      source: 'compiled/preferences.md',
+      heading: '',
+      headingLevel: 0,
+      content: 'I like fish',
+    });
+    const unrelated = makeChunk({
+      id: 'preference-search-0002',
+      source: 'compiled/entities/worktree.md',
+      heading: 'Open Questions',
+      content: 'How should git manage worktree lifecycle decisions?',
+    });
+    store.upsert([preference, unrelated], [new Float32Array(384), new Float32Array(384)]);
+
+    const results = store.searchBm25('personal likes and preferences of the user', 5);
+
+    assert.ok(results.length > 0, 'Expected preference query to return results');
+    assert.equal(results[0].id, 'preference-search-0001');
+  });
+
   test('searchBm25 returns empty array for empty query', () => {
     const results = store.searchBm25('   ', 5);
     assert.deepEqual(results, []);

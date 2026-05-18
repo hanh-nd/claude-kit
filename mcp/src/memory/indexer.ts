@@ -155,6 +155,10 @@ export class MemoryIndexer {
     }
 
     const bm25Results = this.store.searchBm25(query, fetchLimit);
+    const bm25Ids = new Set(bm25Results.map((result) => result.id));
+    if (bm25Ids.size > 0) {
+      denseResults = denseResults.filter((result) => bm25Ids.has(result.id));
+    }
 
     // RRF fusion (k=60)
     const k = 60;
