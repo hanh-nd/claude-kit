@@ -1,27 +1,36 @@
 ---
 name: wiki
 description: Persistent project wiki. Commands — compile (default), query {question}, lint.
+version: 1.0.0
 ---
 
 # 📖 Wiki
 
 **Operation:** $ARGUMENTS
 
-The wiki is the codebase's compounding annotation. It tracks **what exists** (entities), **why it works the way it does** (concepts), **how the user wants to work** (preferences), and **what external terms mean here** (glossary). Every page is a noun. Work events update the noun's page — they do not become new pages.
-
-The goal is not filing. It is _synthesis that saves future sessions from re-deriving the same conclusions_.
-
 ---
 
-## Core Mental Model — Codebase-First Anchoring
+## Identity
 
-Five rules that govern every write to the wiki. Violating any of them is the failure mode this skill exists to prevent.
+You are the **project wiki compiler**. Your job is to turn raw handoffs and conversations into durable project knowledge:
+
+- **Entities:** what exists in the codebase.
+- **Concepts:** why the codebase works the way it does.
+- **Preferences:** universal user rules that apply across features.
+- **Glossary:** external or project-specific terms worth defining.
+
+The wiki is synthesis, not filing. Every page is a noun. Work events update the noun's page; they do not become new pages.
+
+## Mission Constraints
+
+These rules govern every write:
 
 1. **The codebase is the source of truth. The wiki annotates it.** If a wiki claim cannot be traced to a file, a decision artifact, or a stated preference, the claim does not belong in the wiki.
 2. **Entity pages are nouns that exist in the codebase.** A file, a directory, a module, a service, a feature, a domain object. Slugs derive from the codebase noun: `credentials-utility`, `kit-jira-tools`, `ak-plan-skill`. Slugs never derive from work events (`-refactor`, `-redesign`, `-migration`, `-fix`) or from ticket IDs (`yr-24781`, `proj-1234`).
 3. **Work events update the entity; they do not become entities.** A refactor of `credentials-utility` is logged in the entity's `Events` section. It does not produce a separate `credential-manager-refactor.md`.
-4. **A handoff bundle resolves to a single target.** When `brainstorm-X`, `plan-X`, and `ticket-X` all describe the same work, they update the SAME entity (the thing being built or changed) — not three separate entities.
+4. **A handoff bundle resolves to one target.** When `brainstorm-X`, `plan-X`, and `ticket-X` describe the same work, they update the same entity or concept.
 5. **Not every handoff deserves a page.** Routine tickets with no synthesis value go into `log.md` only.
+6. **Read only what proves the claim.** Follow handoff paths, conversation files, existing wiki pages, and cited code anchors. Do not scan unrelated code unless it changes a wiki claim.
 
 ---
 
@@ -45,9 +54,9 @@ Default (empty or unrecognized): run **Compile**.
     inbox.md                 # append-only handoff log (PostToolUse hook)
     conv_*.md                # exported conversations
   compiled/
-    index.md                 # category-organized catalog (loaded into every session)
+    index.md                 # category-organized catalog
     log.md                   # chronological compile/query record
-    preferences.md           # all preference rules in one file (loaded every session)
+    preferences.md           # universal preference rules in one file
     concepts/
       {slug}.md              # patterns, architectural decisions, rules
     entities/
@@ -97,11 +106,26 @@ Stop.
 
 For large `conv_*.md` files (>500 lines), focus on sections containing decisions, conclusions, or "we always / the rule is / because" language — not every exchange.
 
+Conversation files are noisy. Extract durable context only:
+
+- Universal user preferences: "always", "never", "we agreed", "don't", "the rule is". Apply the universal test in Step 3.5 before writing to `preferences.md`.
+- User corrections and reversals.
+- Final decisions after back-and-forth.
+- Rejected approaches and the reason they were rejected.
+- Naming decisions.
+- Scope changes.
+- Implementation tradeoffs that explain why the code ended up this way.
+- Unresolved questions that could affect future work.
+
+Ignore intermediate assistant guesses, obsolete plans, repeated status updates, tool output noise, and temporary implementation details that were later reverted.
+
+If a conversation contradicts itself, the latest explicit user decision wins. Preserve the earlier position only when the rejection rationale has lasting value, usually in `Considered & Rejected`.
+
 ### Step 2 — Bundle Related Handoffs
 
 Group inbox entries that share a slug family:
 
-- `brainstorm-multi-angle-protocol`, `plan-multi-angle-protocol`, `ticket-multi-angle-protocol` → ONE bundle.
+- `brainstorm-multi-angle-protocol`, `plan-multi-angle-protocol`, `ticket-multi-angle-protocol` → one bundle.
 - A standalone `ticket-fix-jira-pagination` with no related plan/brainstorm → its own bundle.
 
 A bundle is the unit of triage. All members of a bundle must resolve to the same target page (or be classified together as routine).
@@ -121,18 +145,18 @@ Classify every bundle into one or more outcomes before writing anything. Most bu
 
 A bundle may produce multiple outcomes (e.g. an A entity update + a C new concept). Triage all outcomes before any write.
 
-#### Unexecuted Handoffs — Additional Routing
+#### Unexecuted Handoffs
 
-A handoff bundle that did not (and will not) produce code is still wiki-worthy if the _decision itself_ has lasting value. The triage above is about **content type**; this is about **execution state**. Both apply.
+A handoff that did not produce code can still be wiki-worthy if the decision has lasting value.
 
 | Survives non-execution                                                                  | Route to                                                                                                                       |
 | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | A principle that generalizes (e.g. "we always reject X for Y reason")                   | Outcome C — concept page captures the rule.                                                                                    |
 | An alternative considered for an existing entity (e.g. "we thought about token tables") | Outcome A — that entity's `Considered & Rejected` section (see Entity Page Format).                                            |
-| Pure exploration, no conclusion                                                         | Outcome F — log only. Lint surfaces stale F entries (>90 days, no follow-up) for revive/formalize/archive.                     |
+| Pure exploration, no conclusion                                                         | Outcome F — log only. Lint surfaces stale explorations later.                                                                  |
 | Phantom entity (a brainstorm for something that does not exist and may never)           | **Never produces an entity page.** The slug rule (codebase noun must exist) blocks this structurally. Route to F or C instead. |
 
-Future-tense entities are the same drift as task-tense entities — different timeline, same failure. If the brainstorm describes a thing that does not yet exist in `src/`, you cannot create an entity for it. Wait until the code exists; the brainstorm becomes Events on the entity at that point.
+If a brainstorm describes a thing that does not exist in the codebase, do not create an entity page. Route durable decisions to a concept page, or log the exploration only.
 
 ### Step 3.5 — Negative Knowledge Mining
 
@@ -140,7 +164,7 @@ Before writing any page, scan each bundle's source handoffs for **negative knowl
 
 **Signals to look for:**
 
-- **Explicit user coding directives** — statements in conversation or handoffs like "always use X", "never do Y", "use Z instead of W". These are the most reliable preference signal and the most commonly missed. If the user stated a rule in conversation, it belongs in `preferences.md` — even if no handoff was created for it.
+- **Explicit user coding directives** — statements in conversation or handoffs like "always use X", "never do Y", "use Z instead of W". These are the strongest preference candidates, but only universal rules belong in `preferences.md`.
 - Explicit rejection language: "we considered X but rejected it because", "we tried X and it caused Y"
 - Failed approaches: reverted changes, bugs introduced by a path, plans abandoned mid-implementation
 - Implementation mistakes found during execution: wrong file naming, hardcoded values, incorrect typing, structural shortcuts that broke
@@ -151,12 +175,12 @@ Before writing any page, scan each bundle's source handoffs for **negative knowl
 
 **Route each finding:**
 
-| Signal | Route | Why |
-| :-- | :-- | :-- |
-| Recurring coding anti-pattern (naming, typing, hardcoded values, structural mistake) | `preferences.md` as a standing rule | Preferences load first — the right place for rules that apply to all future code sessions |
-| Rejected alternative for a specific entity's design | Entity's `Considered & Rejected` section | Keeps the rejection co-located with the entity it affects |
-| Generalizable architectural lesson (one decision explains multiple failures) | Concept page | Surfaces patterns that span entities |
-| Abandoned approach, no useful conclusion | F-exploration, log only | Not enough signal to warrant a page |
+| Signal | Route |
+| :-- | :-- |
+| Universal coding anti-pattern or standing rule | `preferences.md` |
+| Rejected alternative for a specific entity | Entity `Considered & Rejected` |
+| Generalizable architectural lesson | Concept page |
+| Abandoned approach, no useful conclusion | F-exploration, log only |
 
 A preference mined this way is a negative rule — `## Rule` states what to avoid, `## Why` captures the failure that surfaced it:
 
@@ -171,7 +195,7 @@ Before creating any entity page:
 2. **Identify the codebase noun the bundle targets.** If the work touches `src/utils/credentials.ts`, the noun is `credentials-utility`. If the work creates a new file `src/tools/multi-angle.ts`, the noun is `multi-angle-tool` or whatever the canonical name is.
 3. **Resolve.** If the noun already has an entity page → outcome is A (update + log Event). If it does not → outcome is B (create new page with codebase-noun slug).
 
-**Slug derivation rules:**
+**Slug rules:**
 
 - ✅ Use codebase nouns: `credentials-utility`, `kit-jira-tools`, `ak-plan-skill`, `auth-middleware`.
 - ❌ Never use the handoff slug: `multi-angle-protocol-code-review` is a handoff slug, not an entity. The entity might be `ak-code-review-skill`.
@@ -189,7 +213,9 @@ For every entity page being created or updated:
 - If a plan exists but the files are missing → set status to `parked` and add `> ⚠️ Reality Gap: Plan exists but {path} is missing` near the top.
 - If files were previously documented and are now gone → set status to `deprecated` and add `> ⚠️ Reality Gap: {path} no longer exists in the codebase`.
 
-This step is what makes the wiki self-correcting. Skip it and the wiki diverges from the code.
+Treat handoffs as intent, not truth. Brainstorm, plan, and ticket artifacts describe proposed behavior; the codebase check decides actual behavior. If implementation diverged from the plan, document what exists now. Record the divergence only when the reason matters for future work.
+
+This step keeps the wiki anchored to reality.
 
 ### Step 6 — Apply Outcomes
 
@@ -199,11 +225,12 @@ For each triaged bundle, apply its outcome using the corresponding page format (
 
 - **Existing page:** Read it. Merge new decisions, edge cases, and cross-links. If new material contradicts an existing claim, add `> ⚠️ Contradiction: {new claim} — from {source-slug}` rather than silently overwriting. Increment `Sources` count, update `Last updated`.
 - **New page:** Use the page format for the chosen category. Be specific — a good page is useful to someone who missed every session that produced it.
+- **Conversation provenance:** When a decision or preference comes from a conversation file, cite the raw conversation filename while compiling. After archive, the durable source is `archive/conversations/{filename}`.
 - **Idempotent:** Re-compiling the same bundle never duplicates content. If a decision is already listed, skip it.
 
 ### Step 7 — Rebuild `index.md`
 
-Overwrite `wiki/compiled/index.md` with category-ordered structure. Preferences load first because they trump everything else in subsequent code sessions.
+Overwrite `wiki/compiled/index.md` with category-ordered structure. Preferences appear first because universal user rules trump category-specific context.
 
 ```markdown
 # Project Wiki Index
@@ -223,7 +250,7 @@ Overwrite `wiki/compiled/index.md` with category-ordered structure. Preferences 
 - [[{slug}]](glossary/{slug}.md) — {one-line definition} | updated: {date}
 ```
 
-Within each section, sort by `updated` descending — most recently touched first. This gives a code session both the always-loaded preferences and a "what's been moving lately" view.
+Within each section, sort by `updated` descending — most recently touched first. This keeps the index useful as both a rule catalog and a "what's been moving lately" view.
 
 ### Step 8 — Append to `log.md`
 
@@ -238,7 +265,7 @@ Within each section, sort by `updated` descending — most recently touched firs
 - F-exploration (logged only): {handoff-slug — one-line topic, ...}
 ```
 
-The outcome breakdown makes it easy to spot drift over time (e.g. lots of B's = unusual creation rate; lots of F-explorations = many parked ideas to revisit). F-routine and F-exploration are logged separately because lint treats them differently — routine tasks never go stale; explorations do.
+Log F-routine and F-exploration separately because lint treats them differently: routine tasks do not go stale; explorations can.
 
 ### Step 9 — Archive and Clear
 
@@ -301,7 +328,8 @@ Run all checks. Group findings by severity.
     - ❌ Misrouted: "Use `sentence-splitter` for English sentence segmentation" — the directive IS the specific library.
     - ✅ Correctly placed: "Never use hardcoded strings — use centralized enums like `AudioContextStateEnum`" — the rule is universal; the enum name is just an example.
     Flag misrouted entries with the suggested migration target (entity Key Decisions or concept page).
-11. **Suggested investigations**: based on gaps and orphans, propose 2–3 specific topics worth compiling next.
+11. **Oversized pages** (WARNING): flag entity or concept pages over 300 lines, and `preferences.md` over 500 lines. Large pages usually mean mixed concepts, excessive event detail, or preferences that should be split, merged, or moved.
+12. **Suggested investigations**: based on gaps and orphans, propose 2–3 specific topics worth compiling next.
 
 **Output:**
 
@@ -325,6 +353,9 @@ Run all checks. Group findings by severity.
 
 ### ⚠️ Misrouted Preferences ({N})
 - `{Rule Name}` — directive is scoped to `{specific library/feature}` → migrate to `entities/{slug}.md` Key Decisions or `concepts/{slug}.md`
+
+### 📏 Oversized Pages ({N})
+- `{path}` — {N} lines → split reusable patterns into concepts, move excessive timeline detail to `log.md`, or merge duplicated sections.
 
 ### 🔍 Suggested Investigations
 - {specific question or topic worth compiling next}
@@ -354,6 +385,14 @@ If no issues: `✅ Wiki is healthy. No anti-patterns, orphans, or contradictions
 
 - Primary: `{file or directory path}`
 - Related: `{path}`, `{path}`
+
+## Aliases
+
+- {Alternate name, old name, or common shorthand}
+
+## Keywords
+
+- {term, API name, command name, or domain phrase}
 
 ## Key Decisions
 
@@ -402,6 +441,14 @@ The `Events` log is critical: it preserves work history without spawning event-n
 ## Where Applied
 
 - [[entity-slug]] — {how the pattern manifests here, with `file:line` if useful}
+
+## Aliases
+
+- {Alternate name, old name, or common shorthand}
+
+## Keywords
+
+- {term, API name, command name, or domain phrase}
 
 ## Contradictions / Open Questions
 
@@ -463,7 +510,7 @@ If neither holds, keep the term inline in whichever page mentions it — single-
 
 ## Rules
 
-- **Codebase-first anchoring.** Every entity slug derives from a codebase noun. Work events update entities; they never become entities. (See Core Mental Model.)
+- **Codebase-first anchoring.** Every entity slug derives from a codebase noun. Work events update entities; they never become entities. (See Mission Constraints.)
 - **Raw sources are read-only.** `wiki/raw/` and `wiki/archive/` are write-once — append to archive, clear inbox after compile, move conv files only.
 - **Fail gracefully.** Missing files → skip and note in the report, never abort.
 - **Idempotent pages.** Re-compiling the same bundle updates a page, never duplicates content.
@@ -471,4 +518,4 @@ If neither holds, keep the term inline in whichever page mentions it — single-
 - **Cite everything.** Every key decision or risk needs a `[[slug]]` source link or `file:line` reference.
 - **Stable slugs.** Once created, slugs never change — renaming a slug breaks every page that links to it. Choose carefully on first creation; lint surfaces anti-patterns for migration with human review.
 - **Routine work logs only.** Outcome-F bundles never produce pages. The compile log records that they happened.
-- **Preferences first in the index.** They trump every other category in subsequent code sessions.
+- **Preferences first in the index.** Universal user rules trump every other category.
