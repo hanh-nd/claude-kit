@@ -58,10 +58,10 @@ For Codex hooks, add this to `~/.codex/config.toml`:
 plugin_hooks = true
 ```
 
-**Add credentials** to `~/.claude/credentials` (like `~/.aws/credentials`):
+**Add credentials** to `~/.agent-kit/credentials` (like `~/.aws/credentials`):
 
 ```bash
-touch ~/.claude/credentials && chmod 600 ~/.claude/credentials
+mkdir -p ~/.agent-kit && touch ~/.agent-kit/credentials && chmod 600 ~/.agent-kit/credentials
 ```
 
 ```ini
@@ -120,10 +120,10 @@ plugin_hooks = true
 
 Note that you may have to manually enable hooks in Codex settings.
 
-**3. Add credentials** to `~/.claude/credentials` for MCP integrations:
+**3. Add credentials** to `~/.agent-kit/credentials` for MCP integrations:
 
 ```bash
-touch ~/.claude/credentials && chmod 600 ~/.claude/credentials
+mkdir -p ~/.agent-kit && touch ~/.agent-kit/credentials && chmod 600 ~/.agent-kit/credentials
 ```
 
 ```ini
@@ -176,7 +176,7 @@ This workspace builds the provider plugin bundles. Agent personas are in `agents
 
 ## Integrations
 
-Credentials are stored in `~/.claude/credentials` (INI format). Keys can also be set as environment variables — env vars take priority (useful for CI/CD).
+Credentials are stored in `~/.agent-kit/credentials` (INI format). Keys can also be set as environment variables — env vars take priority (useful for CI/CD).
 
 ### Jira (via Atlassian REST API)
 

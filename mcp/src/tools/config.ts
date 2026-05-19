@@ -108,7 +108,7 @@ export const FORBIDDEN_FILES: string[] = [
   '.yarnrc',
   '.netrc',
   '.gitconfig',
-  'credentials', // ~/.claude/credentials file
+  'credentials', // ~/.agent-kit/credentials file
 ];
 
 /**

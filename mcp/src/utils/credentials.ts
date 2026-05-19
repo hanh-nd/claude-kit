@@ -1,9 +1,9 @@
 /**
- * Credential loader — reads ~/.claude/credentials (INI format, like ~/.aws/credentials)
+ * Credential loader — reads ~/.agent-kit/credentials (INI format, like ~/.aws/credentials)
  *
  * Resolution order per key:
  *   1. process.env.KEY  (explicit override / CI)
- *   2. ~/.claude/credentials [profile] section
+ *   2. ~/.agent-kit/credentials [profile] section
  *   3. undefined
  *
  * File format:
@@ -15,10 +15,7 @@
  */
 
 import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-
-const CREDENTIALS_FILE = path.join(os.homedir(), '.claude', 'credentials');
+import { CREDENTIALS_FILE } from './paths.js';
 
 type IniProfile = Record<string, string>;
 type IniData = Record<string, IniProfile>;
@@ -57,7 +54,7 @@ function parseIni(content: string): IniData {
 }
 
 /**
- * Load credentials from ~/.claude/credentials for the active profile.
+ * Load credentials from ~/.agent-kit/credentials for the active profile.
  * Result is cached for the lifetime of the MCP server process.
  */
 function loadCredentials(): IniProfile {
@@ -98,7 +95,7 @@ function loadCredentials(): IniProfile {
 
 /**
  * Resolve a credential key using the priority chain:
- *   process.env.KEY → ~/.claude/credentials [profile] → undefined
+ *   process.env.KEY → ~/.agent-kit/credentials [profile] → undefined
  */
 export function getCredential(key: string): string | undefined {
   if (process.env[key]) {

@@ -1,7 +1,6 @@
-import * as os from 'os';
-import * as path from 'path';
+import { FASTEMBED_CACHE_DIR } from '../utils/paths.js';
 
-const DEFAULT_CACHE_DIR = path.join(os.homedir(), '.cache', 'fastembed');
+export { FASTEMBED_CACHE_DIR, MODEL_CACHE_DIR as DEFAULT_MODEL_CACHE_DIR } from '../utils/paths.js';
 
 export class EmbedderError extends Error {
   constructor(message: string, cause?: unknown) {
@@ -59,7 +58,7 @@ export class Embedder {
 
       const model = modelMap[this.modelName] ?? EmbeddingModel.BGESmallENV15;
 
-      const embedder = await FlagEmbedding.init({ model: model as never, cacheDir: DEFAULT_CACHE_DIR, showDownloadProgress: false });
+      const embedder = await FlagEmbedding.init({ model: model as never, cacheDir: FASTEMBED_CACHE_DIR, showDownloadProgress: false });
 
       this.pipeline = async (texts: string[]) => {
         const result: number[][] = [];
