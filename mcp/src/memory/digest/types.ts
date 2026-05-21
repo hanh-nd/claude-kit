@@ -66,3 +66,10 @@ export interface InitializeConversationDigestInput {
   allowDownload: boolean;
   enabled?: boolean;
 }
+
+export type DigestPendingResult =
+  | { ok: true; initialized: false; action: 'noop'; reason: 'not-initialized' }
+  | { ok: true; initialized: true; action: 'noop'; reason: 'locked' }
+  | { ok: true; initialized: true; action: 'noop'; reason: 'no-pending' }
+  | { ok: true; initialized: true; action: 'digested'; count: number; skipped: number; errors: number }
+  | { ok: false; initialized: true; action: 'error'; error: string };

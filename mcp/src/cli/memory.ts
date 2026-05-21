@@ -1,6 +1,7 @@
 import {
   initializeConversationDigestModel,
   digestConversationFile,
+  digestPendingConversations,
 } from '../memory/digest/processor.js';
 import { isDigestWorkerInvocation, runDigestFileInWorker } from '../memory/digest/worker.js';
 import {
@@ -63,21 +64,15 @@ async function cmdDigestFile(args: string[]): Promise<number> {
   return 0;
 }
 
-function cmdDigestPending(args: string[]): number {
+async function cmdDigestPending(args: string[]): Promise<number> {
   const parsed = parseArgs(args);
   if (parsed.flags.get('hook') !== true) {
     process.stderr.write('Usage: agent-kit-cli memory digest-pending --hook\n');
     return 1;
   }
 
-  try {
-    const digestConfig = resolveConversationDigestConfig(loadProjectSettings(getWorkspaceRoot()));
-    const initialized = digestConfig?.initialized === true && digestConfig?.enabled !== false;
-    process.stdout.write(JSON.stringify({ ok: true, initialized, action: 'noop' }) + '\n');
-  } catch {
-    process.stdout.write(JSON.stringify({ ok: true, initialized: false, action: 'noop' }) + '\n');
-  }
-
+  const result = await digestPendingConversations({ workspaceRoot: getWorkspaceRoot() });
+  process.stdout.write(JSON.stringify(result) + '\n');
   return 0;
 }
 
@@ -86,7 +81,7 @@ export async function runMemoryCli(args: string[], _env: NodeJS.ProcessEnv): Pro
   try {
     if (command === 'digest-file') return await cmdDigestFile(rest);
     if (command === 'digest-init') return await cmdDigestInit(rest);
-    if (command === 'digest-pending') return cmdDigestPending(rest);
+    if (command === 'digest-pending') return await cmdDigestPending(rest);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     process.stderr.write('[agent-kit] memory ' + (command ?? '') + ' failed: ' + message + '\n');

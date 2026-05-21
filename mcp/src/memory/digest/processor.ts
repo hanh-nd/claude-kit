@@ -1,7 +1,9 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
   DEFAULT_DIGEST_TIMEOUT_MS,
   DEFAULT_DIGEST_MAX_INPUT_CHARS,
+  WIKI_RAW_DIR,
 } from './constants.js';
 import {
   defaultProvisionalDigestDir,
@@ -10,15 +12,17 @@ import {
   writeProvisionalDigestFile,
   writeConversationDigestSettings,
 } from './files.js';
+import { acquireDigestLock, releaseDigestLock } from './lockfile.js';
 import { getDigestModelSpec } from './model-registry.js';
 import { createLlamaLocalDigestProvider } from './providers/llama-local.js';
 import type {
   DigestFileOptions,
+  DigestPendingResult,
   ProvisionalDigestResult,
   ConversationDigestInitResult,
   InitializeConversationDigestInput,
 } from './types.js';
-import { loadProjectSettings, resolveMemoryConfig } from '../../tools/config.js';
+import { loadProjectSettings, resolveConversationDigestConfig, resolveMemoryConfig } from '../../tools/config.js';
 import { MemoryStore } from '../store.js';
 import { MemoryIndexer } from '../indexer.js';
 
@@ -83,6 +87,83 @@ export async function digestConversationFile(
   }
 }
 
+export async function digestPendingConversations({
+  workspaceRoot,
+  digestFn = digestConversationFile,
+}: {
+  workspaceRoot: string;
+  digestFn?: (opts: DigestFileOptions) => Promise<ProvisionalDigestResult>;
+}): Promise<DigestPendingResult> {
+  const digestConfig = resolveConversationDigestConfig(loadProjectSettings(workspaceRoot));
+  if (!digestConfig || digestConfig.enabled === false) {
+    return { ok: true, initialized: false, action: 'noop', reason: 'not-initialized' };
+  }
+
+  if (!acquireDigestLock(workspaceRoot)) {
+    return { ok: true, initialized: true, action: 'noop', reason: 'locked' };
+  }
+
+  try {
+    const rawDir = path.join(workspaceRoot, WIKI_RAW_DIR);
+    let files: string[];
+    try {
+      files = fs
+        .readdirSync(rawDir)
+        .filter((f) => f.startsWith('conv_') && f.endsWith('.md'))
+        .map((f) => path.join(rawDir, f))
+        .sort((a, b) => fs.statSync(a).mtimeMs - fs.statSync(b).mtimeMs);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        files = [];
+      } else {
+        throw err;
+      }
+    }
+
+    const outDir = defaultProvisionalDigestDir(workspaceRoot);
+    const candidates = files.filter((f) => {
+      try {
+        const input = readConversationDigestInput(workspaceRoot, f);
+        return !findExistingProvisionalDigest(outDir, input);
+      } catch {
+        return false;
+      }
+    });
+
+    if (candidates.length === 0) {
+      return { ok: true, initialized: true, action: 'noop', reason: 'no-pending' };
+    }
+
+    let count = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const filePath of candidates) {
+      try {
+        const result = await digestFn({
+          workspaceRoot,
+          inputPath: filePath,
+          modelId: digestConfig.modelId,
+        });
+        if (result.skipped) {
+          skipped++;
+        } else {
+          count++;
+        }
+      } catch {
+        errors++;
+      }
+    }
+
+    return { ok: true, initialized: true, action: 'digested', count, skipped, errors };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, initialized: true, action: 'error', error: message };
+  } finally {
+    releaseDigestLock(workspaceRoot);
+  }
+}
+
 export async function initializeConversationDigestModel(
   input: InitializeConversationDigestInput,
 ): Promise<ConversationDigestInitResult> {
@@ -107,6 +188,8 @@ export async function initializeConversationDigestModel(
       modelId: input.modelId,
       initializedAt,
     });
+
+    await digestPendingConversations({ workspaceRoot: input.workspaceRoot });
 
     return {
       initialized: true,

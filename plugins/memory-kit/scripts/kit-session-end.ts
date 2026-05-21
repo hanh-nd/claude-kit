@@ -3,6 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { WIKI_RAW_DIR } from './constants.js';
+import { normalizeTranscript } from './normalize.js';
 import { acquireFileLock, parseTranscript, releaseFileLock, runWhenInvoked } from './utils.js';
 
 function formatTurns(transcriptPath: string): string {
@@ -13,8 +14,10 @@ function formatTurns(transcriptPath: string): string {
   const lines: string[] = [`### ${now}`];
 
   for (const msg of transcript.messages) {
+    const normalized = normalizeTranscript(msg.content);
+    if (normalized.replace(/\s/g, '').length < 5) continue;
     const role = msg.role === 'assistant' || msg.role === 'gemini' ? 'Assistant' : 'User';
-    lines.push(`**${role}:** ${msg.content}`);
+    lines.push(`**${role}:** ${normalized}`);
     lines.push('');
   }
 

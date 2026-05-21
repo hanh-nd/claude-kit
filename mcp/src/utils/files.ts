@@ -11,3 +11,14 @@ export function atomicWriteTextFile(filePath: string, content: string): void {
 export function atomicWriteJsonFile(filePath: string, value: unknown): void {
   atomicWriteTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
+
+export function tryWriteFileExclusive(filePath: string, content: string): boolean {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  try {
+    fs.writeFileSync(filePath, content, { flag: 'wx' });
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EEXIST') return false;
+    throw err;
+  }
+}
