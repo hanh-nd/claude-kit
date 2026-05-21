@@ -1,8 +1,8 @@
-import { createHash } from 'crypto';
 import type { MemoryChunk, MemoryConfig } from './types.js';
+import { sha256Hex } from '../utils/hash.js';
 
 export function computeChunkId(content: string): string {
-  return createHash('sha256').update(content).digest('hex').slice(0, 16);
+  return sha256Hex(content).slice(0, 16);
 }
 
 export function cleanContentForEmbedding(text: string): string {
