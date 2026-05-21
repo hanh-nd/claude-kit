@@ -1,12 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { chunkMarkdown } from './chunker.js';
-import type { Embedder } from './embedder.js';
 import type { MemoryStore } from './store.js';
 import type { IndexStats, MemoryConfig, SearchResult } from './types.js';
+import { LOCK_RETRY_MS, LOCK_TIMEOUT_MS, RRF_K } from './constants.js';
 
-const LOCK_RETRY_MS = 50;
-const LOCK_TIMEOUT_MS = 500;
+export interface TextEmbedder {
+  embed(texts: string[]): Promise<Float32Array[]>;
+}
 
 async function acquireLock(lockPath: string): Promise<boolean> {
   const deadline = Date.now() + LOCK_TIMEOUT_MS;
@@ -34,7 +35,7 @@ export class MemoryIndexer {
 
   constructor(
     private readonly store: MemoryStore,
-    private readonly embedder: Embedder,
+    private readonly embedder: TextEmbedder,
     private readonly config: MemoryConfig,
   ) {}
 
@@ -44,21 +45,21 @@ export class MemoryIndexer {
 
   private async indexFileRelativeTo(absolutePath: string, sourceRoot: string): Promise<IndexStats> {
     const source = path.relative(sourceRoot, absolutePath);
-    const existingHashes = this.store.hashesBySource(source);
+    const existingChunkIds = this.store.hashesBySource(source);
 
     let text: string;
     try {
       text = fs.readFileSync(absolutePath, 'utf8');
     } catch (err) {
       console.warn(`[memory-indexer] Cannot read file ${absolutePath}:`, err);
-      return { indexed: 0, deleted: 0, skipped: existingHashes.size };
+      return { indexed: 0, deleted: 0, skipped: existingChunkIds.size };
     }
 
     const allChunks = chunkMarkdown(text, source, this.config);
-    const newHashes = new Set(allChunks.map((c) => c.id));
+    const currentChunkIds = new Set(allChunks.map((chunk) => chunk.id));
 
-    const toIndex = allChunks.filter((c) => !existingHashes.has(c.id));
-    const toDelete = [...existingHashes].filter((h) => !newHashes.has(h));
+    const toIndex = allChunks.filter((chunk) => !existingChunkIds.has(chunk.id));
+    const toDelete = [...existingChunkIds].filter((id) => !currentChunkIds.has(id));
 
     let embeddings: Float32Array[] = [];
     if (toIndex.length > 0) {
@@ -66,7 +67,7 @@ export class MemoryIndexer {
         embeddings = await this.embedder.embed(toIndex.map((c) => c.content));
       } catch (err) {
         console.warn(`[memory-indexer] Embedding failed for ${absolutePath}:`, err);
-        return { indexed: 0, deleted: 0, skipped: existingHashes.size };
+        return { indexed: 0, deleted: 0, skipped: existingChunkIds.size };
       }
     }
 
@@ -160,26 +161,24 @@ export class MemoryIndexer {
       denseResults = denseResults.filter((result) => bm25Ids.has(result.id));
     }
 
-    // RRF fusion (k=60)
-    const k = 60;
     const scoreMap = new Map<string, { dense: number; bm25: number }>();
 
     denseResults.forEach((r, rank) => {
-      scoreMap.set(r.id, { dense: 1 / (k + rank + 1), bm25: 0 });
+      scoreMap.set(r.id, { dense: 1 / (RRF_K + rank + 1), bm25: 0 });
     });
 
     bm25Results.forEach((r, rank) => {
       const existing = scoreMap.get(r.id);
       if (existing) {
-        existing.bm25 = 1 / (k + rank + 1);
+        existing.bm25 = 1 / (RRF_K + rank + 1);
       } else {
-        scoreMap.set(r.id, { dense: 0, bm25: 1 / (k + rank + 1) });
+        scoreMap.set(r.id, { dense: 0, bm25: 1 / (RRF_K + rank + 1) });
       }
     });
 
     const hasDense = this.store.vecAvailable && denseResults.length > 0;
     const numRetrievers = hasDense ? 2 : 1;
-    const maxScore = numRetrievers / 61;
+    const maxScore = numRetrievers / (RRF_K + 1);
 
     const ranked = [...scoreMap.entries()]
       .map(([id, scores]) => ({
